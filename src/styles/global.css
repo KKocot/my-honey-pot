@@ -1,1 +1,81 @@
 @import "tailwindcss";
+
+@theme {
+  --color-bg: var(--theme-bg);
+  --color-bg-secondary: var(--theme-bg-secondary);
+  --color-bg-card: var(--theme-bg-card);
+  --color-text: var(--theme-text);
+  --color-text-muted: var(--theme-text-muted);
+  --color-primary: var(--theme-primary);
+  --color-primary-hover: var(--theme-primary-hover);
+  --color-accent: var(--theme-accent);
+  --color-border: var(--theme-border);
+  --color-success: var(--theme-success);
+  --color-error: var(--theme-error);
+  --color-warning: var(--theme-warning);
+}
+
+/* Light theme (default) */
+:root,
+[data-theme="light"] {
+  --theme-bg: #f5f5f5;
+  --theme-bg-secondary: #e5e5e5;
+  --theme-bg-card: #ffffff;
+  --theme-text: #1f2937;
+  --theme-text-muted: #6b7280;
+  --theme-primary: #3b82f6;
+  --theme-primary-hover: #2563eb;
+  --theme-accent: #8b5cf6;
+  --theme-border: #d1d5db;
+  --theme-success: #22c55e;
+  --theme-error: #ef4444;
+  --theme-warning: #f59e0b;
+}
+
+/* Dark theme */
+[data-theme="dark"] {
+  --theme-bg: #0f172a;
+  --theme-bg-secondary: #1e293b;
+  --theme-bg-card: #1e293b;
+  --theme-text: #f1f5f9;
+  --theme-text-muted: #94a3b8;
+  --theme-primary: #3b82f6;
+  --theme-primary-hover: #60a5fa;
+  --theme-accent: #a78bfa;
+  --theme-border: #334155;
+  --theme-success: #4ade80;
+  --theme-error: #f87171;
+  --theme-warning: #fbbf24;
+}
+
+/* Green theme */
+[data-theme="green"] {
+  --theme-bg: #ecfdf5;
+  --theme-bg-secondary: #d1fae5;
+  --theme-bg-card: #ffffff;
+  --theme-text: #064e3b;
+  --theme-text-muted: #047857;
+  --theme-primary: #10b981;
+  --theme-primary-hover: #059669;
+  --theme-accent: #14b8a6;
+  --theme-border: #a7f3d0;
+  --theme-success: #22c55e;
+  --theme-error: #ef4444;
+  --theme-warning: #f59e0b;
+}
+
+/* Pink theme */
+[data-theme="pink"] {
+  --theme-bg: #fdf2f8;
+  --theme-bg-secondary: #fce7f3;
+  --theme-bg-card: #ffffff;
+  --theme-text: #831843;
+  --theme-text-muted: #be185d;
+  --theme-primary: #ec4899;
+  --theme-primary-hover: #db2777;
+  --theme-accent: #f472b6;
+  --theme-border: #fbcfe8;
+  --theme-success: #22c55e;
+  --theme-error: #ef4444;
+  --theme-warning: #f59e0b;
+}

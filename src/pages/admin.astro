@@ -3,99 +3,97 @@ import Layout from '../layouts/Layout.astro'
 ---
 
 <Layout title="Admin Panel - Astro + Payload">
-  <div class="min-h-screen bg-slate-900">
-    <div class="max-w-4xl mx-auto px-4 py-8">
-      <a
-        href="/"
-        class="inline-flex items-center text-rose-400 hover:text-rose-300 mb-6 transition-colors"
-      >
-        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-        </svg>
-        Powrót do strony
-      </a>
+  <div class="max-w-4xl mx-auto px-4 py-8">
+    <a
+      href="/"
+      class="inline-flex items-center text-primary hover:text-primary-hover mb-6 transition-colors"
+    >
+      <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+      </svg>
+      Powrót do strony
+    </a>
 
-      <h1 class="text-3xl font-bold text-white mb-8">Admin Panel</h1>
+    <h1 class="text-3xl font-bold text-text mb-8">Admin Panel</h1>
 
-      <div id="message" class="hidden mb-6 px-4 py-3 rounded-lg font-medium"></div>
+    <div id="message" class="hidden mb-6 px-4 py-3 rounded-lg font-medium"></div>
 
-      <!-- Form Card -->
-      <div class="bg-slate-800 rounded-xl p-6 mb-6">
-        <h2 class="text-xl font-semibold text-rose-400 mb-6">Dodaj nowy post</h2>
+    <!-- Form Card -->
+    <div class="bg-bg-card rounded-xl p-6 mb-6 border border-border">
+      <h2 class="text-xl font-semibold text-primary mb-6">Dodaj nowy post</h2>
 
-        <form id="postForm" class="space-y-4">
-          <div>
-            <label for="title" class="block text-sm font-medium text-gray-300 mb-1">Tytuł</label>
-            <input
-              type="text"
-              id="title"
-              name="title"
-              required
-              class="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent"
-            />
-          </div>
+      <form id="postForm" class="space-y-4">
+        <div>
+          <label for="title" class="block text-sm font-medium text-text mb-1">Tytuł</label>
+          <input
+            type="text"
+            id="title"
+            name="title"
+            required
+            class="w-full px-4 py-2 bg-bg border border-border rounded-lg text-text placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+          />
+        </div>
 
-          <div>
-            <label for="slug" class="block text-sm font-medium text-gray-300 mb-1">Slug (URL)</label>
-            <input
-              type="text"
-              id="slug"
-              name="slug"
-              required
-              placeholder="moj-pierwszy-post"
-              class="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent"
-            />
-          </div>
+        <div>
+          <label for="slug" class="block text-sm font-medium text-text mb-1">Slug (URL)</label>
+          <input
+            type="text"
+            id="slug"
+            name="slug"
+            required
+            placeholder="moj-pierwszy-post"
+            class="w-full px-4 py-2 bg-bg border border-border rounded-lg text-text placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+          />
+        </div>
 
-          <div>
-            <label for="content" class="block text-sm font-medium text-gray-300 mb-1">Treść</label>
-            <textarea
-              id="content"
-              name="content"
-              required
-              placeholder="Treść posta..."
-              rows="6"
-              class="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent resize-y"
-            ></textarea>
-          </div>
+        <div>
+          <label for="content" class="block text-sm font-medium text-text mb-1">Treść</label>
+          <textarea
+            id="content"
+            name="content"
+            required
+            placeholder="Treść posta..."
+            rows="6"
+            class="w-full px-4 py-2 bg-bg border border-border rounded-lg text-text placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent resize-y"
+          ></textarea>
+        </div>
 
-          <div>
-            <label for="excerpt" class="block text-sm font-medium text-gray-300 mb-1">Zajawka</label>
-            <textarea
-              id="excerpt"
-              name="excerpt"
-              rows="2"
-              placeholder="Krótki opis..."
-              class="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent resize-y"
-            ></textarea>
-          </div>
+        <div>
+          <label for="excerpt" class="block text-sm font-medium text-text mb-1">Zajawka</label>
+          <textarea
+            id="excerpt"
+            name="excerpt"
+            rows="2"
+            placeholder="Krótki opis..."
+            class="w-full px-4 py-2 bg-bg border border-border rounded-lg text-text placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent resize-y"
+          ></textarea>
+        </div>
 
-          <div>
-            <label for="status" class="block text-sm font-medium text-gray-300 mb-1">Status</label>
-            <select
-              id="status"
-              name="status"
-              class="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent"
-            >
-              <option value="draft">Szkic</option>
-              <option value="published">Opublikowany</option>
-            </select>
-          </div>
-
-          <button
-            type="submit"
-            class="w-full sm:w-auto px-6 py-2.5 bg-rose-500 text-white font-medium rounded-lg hover:bg-rose-600 transition-colors focus:outline-none focus:ring-2 focus:ring-rose-500 focus:ring-offset-2 focus:ring-offset-slate-800"
+        <div>
+          <label for="status" class="block text-sm font-medium text-text mb-1">Status</label>
+          <select
+            id="status"
+            name="status"
+            class="w-full px-4 py-2 bg-bg border border-border rounded-lg text-text focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
           >
-            Dodaj post
-          </button>
-        </form>
-      </div>
+            <option value="draft">Szkic</option>
+            <option value="published">Opublikowany</option>
+          </select>
+        </div>
 
-      <!-- Posts List Card -->
-      <div class="bg-slate-800 rounded-xl p-6">
-        <h2 class="text-xl font-semibold text-rose-400 mb-6">Lista postów</h2>
-        <div id="posts" class="text-gray-400">Ładowanie...</div>
-      </div>
+        <button
+          type="submit"
+          class="w-full sm:w-auto px-6 py-2.5 bg-primary text-bg-card font-medium rounded-lg hover:bg-primary-hover transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-bg"
+        >
+          Dodaj post
+        </button>
+      </form>
+    </div>
+
+    <!-- Posts List Card -->
+    <div class="bg-bg-card rounded-xl p-6 border border-border">
+      <h2 class="text-xl font-semibold text-primary mb-6">Lista postów</h2>
+      <div id="posts" class="text-text-muted">Ładowanie...</div>
     </div>
   </div>
 
@@ -104,53 +102,64 @@ import Layout from '../layouts/Layout.astro'
     const postsDiv = document.getElementById('posts') as HTMLDivElement
     const form = document.getElementById('postForm') as HTMLFormElement
 
-    function showMessage(text: string, type: 'success' | 'error') {
+    function showMessage(text: string, type: 'success' | 'error'): void {
       messageDiv.textContent = text
       messageDiv.className = type === 'success'
-        ? 'mb-6 px-4 py-3 rounded-lg font-medium bg-green-500/20 text-green-400 border border-green-500/30'
-        : 'mb-6 px-4 py-3 rounded-lg font-medium bg-red-500/20 text-red-400 border border-red-500/30'
+        ? 'mb-6 px-4 py-3 rounded-lg font-medium bg-success/20 text-success border border-success/30'
+        : 'mb-6 px-4 py-3 rounded-lg font-medium bg-error/20 text-error border border-error/30'
       setTimeout(() => {
         messageDiv.className = 'hidden'
       }, 3000)
     }
 
-    async function loadPosts() {
+    interface PostData {
+      id: string
+      title: string
+      slug: string
+      status: 'draft' | 'published'
+    }
+
+    interface PostsResponse {
+      docs: PostData[]
+    }
+
+    async function loadPosts(): Promise<void> {
       try {
         const res = await fetch('/api/admin/posts')
-        const data = await res.json()
+        const data: PostsResponse = await res.json()
 
         if (data.docs.length === 0) {
-          postsDiv.innerHTML = '<p class="text-gray-400">Brak postów. Dodaj pierwszy post powyżej.</p>'
+          postsDiv.innerHTML = '<p class="text-text-muted">Brak postów. Dodaj pierwszy post powyżej.</p>'
           return
         }
 
-        postsDiv.innerHTML = data.docs.map((post: any) => `
-          <div class="flex flex-wrap items-center justify-between gap-3 p-4 bg-slate-700/50 rounded-lg mb-3">
+        postsDiv.innerHTML = data.docs.map((post: PostData) => `
+          <div class="flex flex-wrap items-center justify-between gap-3 p-4 bg-bg-secondary rounded-lg mb-3">
             <div class="flex-1 min-w-0">
-              <span class="block font-medium text-white truncate">${post.title}</span>
-              <span class="text-sm text-gray-400">/${post.slug}</span>
+              <span class="block font-medium text-text truncate">${post.title}</span>
+              <span class="text-sm text-text-muted">/${post.slug}</span>
               <span class="inline-block ml-2 px-2 py-0.5 text-xs rounded ${
                 post.status === 'published'
-                  ? 'bg-green-500/20 text-green-400'
-                  : 'bg-amber-500/20 text-amber-400'
+                  ? 'bg-success/20 text-success'
+                  : 'bg-warning/20 text-warning'
               }">
                 ${post.status === 'published' ? 'Opublikowany' : 'Szkic'}
               </span>
             </div>
             <button
               onclick="deletePost('${post.id}')"
-              class="px-4 py-1.5 bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 transition-colors text-sm font-medium"
+              class="px-4 py-1.5 bg-error/20 text-error rounded-lg hover:bg-error/30 transition-colors text-sm font-medium"
             >
               Usuń
             </button>
           </div>
         `).join('')
-      } catch (e) {
-        postsDiv.innerHTML = '<p class="text-red-400">Błąd ładowania postów</p>'
+      } catch {
+        postsDiv.innerHTML = '<p class="text-error">Błąd ładowania postów</p>'
       }
     }
 
-    form.addEventListener('submit', async (e) => {
+    form.addEventListener('submit', async (e: SubmitEvent) => {
       e.preventDefault()
 
       const formData = new FormData(form)
@@ -178,12 +187,12 @@ import Layout from '../layouts/Layout.astro'
           const error = await res.json()
           showMessage('Błąd: ' + (error.error || 'Nie udało się dodać posta'), 'error')
         }
-      } catch (e) {
+      } catch {
         showMessage('Błąd połączenia z serwerem', 'error')
       }
     })
 
-    ;(window as any).deletePost = async function(id: string) {
+    ;(window as Window & { deletePost: (id: string) => Promise<void> }).deletePost = async function(id: string): Promise<void> {
       if (!confirm('Czy na pewno chcesz usunąć ten post?')) return
 
       try {
@@ -194,12 +203,11 @@ import Layout from '../layouts/Layout.astro'
         } else {
           showMessage('Błąd usuwania posta', 'error')
         }
-      } catch (e) {
+      } catch {
         showMessage('Błąd połączenia z serwerem', 'error')
       }
     }
 
-    // Auto-generate slug from title
     const titleInput = document.getElementById('title') as HTMLInputElement
     const slugInput = document.getElementById('slug') as HTMLInputElement
 

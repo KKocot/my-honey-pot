@@ -32,14 +32,14 @@ try {
 
 <Layout title="Astro + Payload CMS">
   <div class="max-w-4xl mx-auto px-4 py-8">
-    <header class="flex justify-between items-center mb-8 pb-4 border-b-2 border-gray-200">
+    <header class="flex justify-between items-center mb-8 pb-4 border-b-2 border-border">
       <div>
-        <h1 class="text-3xl font-bold text-gray-800">Astro + Payload CMS</h1>
-        <p class="text-gray-500 mt-1">Projekt startowy z integracją Payload CMS</p>
+        <h1 class="text-3xl font-bold text-text">Astro + Payload CMS</h1>
+        <p class="text-text-muted mt-1">Projekt startowy z integracją Payload CMS</p>
       </div>
       <a
         href="/admin"
-        class="px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors text-sm font-medium"
+        class="px-4 py-2 bg-bg-secondary text-text rounded-lg hover:bg-border transition-colors text-sm font-medium"
       >
         Admin
       </a>
@@ -47,7 +47,7 @@ try {
 
     <main>
       {error && (
-        <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
+        <div class="bg-error/10 border border-error/30 text-error px-4 py-3 rounded-lg mb-6">
           <strong>Błąd:</strong> {error}
         </div>
       )}
@@ -55,33 +55,33 @@ try {
       {posts.length > 0 ? (
         <div class="space-y-6">
           {posts.map((post) => (
-            <article class="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow">
+            <article class="bg-bg-card p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow border border-border">
               <h2 class="text-xl font-semibold mb-2">
                 <a
                   href={`/posts/${post.slug}`}
-                  class="text-gray-800 hover:text-blue-600 transition-colors"
+                  class="text-text hover:text-primary transition-colors"
                 >
                   {post.title}
                 </a>
               </h2>
               {post.publishedDate && (
-                <p class="text-gray-400 text-sm mb-2">
+                <p class="text-text-muted text-sm mb-2">
                   {new Date(post.publishedDate).toLocaleDateString('pl-PL')}
                 </p>
               )}
               {post.excerpt && (
-                <p class="text-gray-600">{post.excerpt}</p>
+                <p class="text-text-muted">{post.excerpt}</p>
               )}
             </article>
           ))}
         </div>
       ) : !error && (
-        <div class="text-center py-12 bg-white rounded-xl shadow-sm">
-          <p class="text-gray-600 mb-2">Brak opublikowanych postów.</p>
-          <p class="text-gray-500 mb-4">Dodaj pierwszy post w panelu administracyjnym.</p>
+        <div class="text-center py-12 bg-bg-card rounded-xl shadow-sm border border-border">
+          <p class="text-text mb-2">Brak opublikowanych postów.</p>
+          <p class="text-text-muted mb-4">Dodaj pierwszy post w panelu administracyjnym.</p>
           <a
             href="/admin"
-            class="inline-block px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+            class="inline-block px-6 py-2 bg-primary text-bg-card rounded-lg hover:bg-primary-hover transition-colors font-medium"
           >
             Otwórz Panel Admin
           </a>
