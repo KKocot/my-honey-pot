@@ -1,4 +1,5 @@
 ---
+import Layout from '../layouts/Layout.astro'
 import { getPayloadClient } from '../lib/payload'
 
 interface Post {
@@ -29,152 +30,63 @@ try {
 }
 ---
 
-<html lang="pl">
-  <head>
-    <meta charset="utf-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width" />
-    <meta name="generator" content={Astro.generator} />
-    <title>Astro + Payload CMS</title>
-    <style>
-      * {
-        box-sizing: border-box;
-        margin: 0;
-        padding: 0;
-      }
-      body {
-        font-family: system-ui, -apple-system, sans-serif;
-        line-height: 1.6;
-        max-width: 800px;
-        margin: 0 auto;
-        padding: 2rem;
-        background: #f5f5f5;
-      }
-      header {
-        margin-bottom: 2rem;
-        padding-bottom: 1rem;
-        border-bottom: 2px solid #ddd;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-      }
-      h1 {
-        color: #333;
-        margin-bottom: 0.25rem;
-      }
-      .subtitle {
-        color: #666;
-      }
-      .header-link {
-        padding: 0.5rem 1rem;
-        background: #333;
-        color: white;
-        text-decoration: none;
-        border-radius: 4px;
-        font-size: 0.875rem;
-      }
-      .header-link:hover {
-        background: #555;
-      }
-      .error {
-        background: #fee;
-        border: 1px solid #fcc;
-        padding: 1rem;
-        border-radius: 8px;
-        color: #c00;
-        margin-bottom: 1rem;
-      }
-      .posts {
-        display: grid;
-        gap: 1.5rem;
-      }
-      .post-card {
-        background: white;
-        padding: 1.5rem;
-        border-radius: 8px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-      }
-      .post-card h2 {
-        margin-bottom: 0.5rem;
-      }
-      .post-card h2 a {
-        color: #333;
-        text-decoration: none;
-      }
-      .post-card h2 a:hover {
-        color: #0066cc;
-      }
-      .post-meta {
-        color: #888;
-        font-size: 0.875rem;
-        margin-bottom: 0.5rem;
-      }
-      .post-excerpt {
-        color: #555;
-      }
-      .no-posts {
-        text-align: center;
-        padding: 3rem;
-        background: white;
-        border-radius: 8px;
-      }
-      .admin-link {
-        display: inline-block;
-        margin-top: 1rem;
-        padding: 0.5rem 1rem;
-        background: #0066cc;
-        color: white;
-        text-decoration: none;
-        border-radius: 4px;
-      }
-      .admin-link:hover {
-        background: #0055aa;
-      }
-    </style>
-  </head>
-  <body>
-    <header>
+<Layout title="Astro + Payload CMS">
+  <div class="max-w-4xl mx-auto px-4 py-8">
+    <header class="flex justify-between items-center mb-8 pb-4 border-b-2 border-gray-200">
       <div>
-        <h1>Astro + Payload CMS</h1>
-        <p class="subtitle">Projekt startowy z integracją Payload CMS</p>
+        <h1 class="text-3xl font-bold text-gray-800">Astro + Payload CMS</h1>
+        <p class="text-gray-500 mt-1">Projekt startowy z integracją Payload CMS</p>
       </div>
-      <a href="/admin" class="header-link">Admin</a>
+      <a
+        href="/admin"
+        class="px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors text-sm font-medium"
+      >
+        Admin
+      </a>
     </header>
 
     <main>
       {error && (
-        <div class="error">
+        <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
           <strong>Błąd:</strong> {error}
         </div>
       )}
 
       {posts.length > 0 ? (
-        <div class="posts">
+        <div class="space-y-6">
           {posts.map((post) => (
-            <article class="post-card">
-              <h2>
-                <a href={`/posts/${post.slug}`}>{post.title}</a>
+            <article class="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow">
+              <h2 class="text-xl font-semibold mb-2">
+                <a
+                  href={`/posts/${post.slug}`}
+                  class="text-gray-800 hover:text-blue-600 transition-colors"
+                >
+                  {post.title}
+                </a>
               </h2>
               {post.publishedDate && (
-                <p class="post-meta">
+                <p class="text-gray-400 text-sm mb-2">
                   {new Date(post.publishedDate).toLocaleDateString('pl-PL')}
                 </p>
               )}
               {post.excerpt && (
-                <p class="post-excerpt">{post.excerpt}</p>
+                <p class="text-gray-600">{post.excerpt}</p>
               )}
             </article>
           ))}
         </div>
       ) : !error && (
-        <div class="no-posts">
-          <p>Brak opublikowanych postów.</p>
-          <p>Dodaj pierwszy post w panelu administracyjnym.</p>
-          <a href="/admin" class="admin-link">
+        <div class="text-center py-12 bg-white rounded-xl shadow-sm">
+          <p class="text-gray-600 mb-2">Brak opublikowanych postów.</p>
+          <p class="text-gray-500 mb-4">Dodaj pierwszy post w panelu administracyjnym.</p>
+          <a
+            href="/admin"
+            class="inline-block px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+          >
             Otwórz Panel Admin
           </a>
         </div>
       )}
     </main>
-  </body>
-</html>
+  </div>
+</Layout>
