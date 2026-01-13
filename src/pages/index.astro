@@ -1,0 +1,180 @@
+---
+import { getPayloadClient } from '../lib/payload'
+
+interface Post {
+  id: string
+  title: string
+  slug: string
+  excerpt?: string
+  publishedDate?: string
+  status: 'draft' | 'published'
+}
+
+let posts: Post[] = []
+let error: string | null = null
+
+try {
+  const payload = await getPayloadClient()
+  const result = await payload.find({
+    collection: 'posts',
+    where: {
+      status: { equals: 'published' },
+    },
+    sort: '-publishedDate',
+  })
+  posts = result.docs as Post[]
+} catch (e) {
+  console.error('Error fetching posts:', e)
+  error = 'Błąd połączenia z bazą danych.'
+}
+---
+
+<html lang="pl">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width" />
+    <meta name="generator" content={Astro.generator} />
+    <title>Astro + Payload CMS</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: system-ui, -apple-system, sans-serif;
+        line-height: 1.6;
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 2rem;
+        background: #f5f5f5;
+      }
+      header {
+        margin-bottom: 2rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid #ddd;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      h1 {
+        color: #333;
+        margin-bottom: 0.25rem;
+      }
+      .subtitle {
+        color: #666;
+      }
+      .header-link {
+        padding: 0.5rem 1rem;
+        background: #333;
+        color: white;
+        text-decoration: none;
+        border-radius: 4px;
+        font-size: 0.875rem;
+      }
+      .header-link:hover {
+        background: #555;
+      }
+      .error {
+        background: #fee;
+        border: 1px solid #fcc;
+        padding: 1rem;
+        border-radius: 8px;
+        color: #c00;
+        margin-bottom: 1rem;
+      }
+      .posts {
+        display: grid;
+        gap: 1.5rem;
+      }
+      .post-card {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      }
+      .post-card h2 {
+        margin-bottom: 0.5rem;
+      }
+      .post-card h2 a {
+        color: #333;
+        text-decoration: none;
+      }
+      .post-card h2 a:hover {
+        color: #0066cc;
+      }
+      .post-meta {
+        color: #888;
+        font-size: 0.875rem;
+        margin-bottom: 0.5rem;
+      }
+      .post-excerpt {
+        color: #555;
+      }
+      .no-posts {
+        text-align: center;
+        padding: 3rem;
+        background: white;
+        border-radius: 8px;
+      }
+      .admin-link {
+        display: inline-block;
+        margin-top: 1rem;
+        padding: 0.5rem 1rem;
+        background: #0066cc;
+        color: white;
+        text-decoration: none;
+        border-radius: 4px;
+      }
+      .admin-link:hover {
+        background: #0055aa;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div>
+        <h1>Astro + Payload CMS</h1>
+        <p class="subtitle">Projekt startowy z integracją Payload CMS</p>
+      </div>
+      <a href="/admin" class="header-link">Admin</a>
+    </header>
+
+    <main>
+      {error && (
+        <div class="error">
+          <strong>Błąd:</strong> {error}
+        </div>
+      )}
+
+      {posts.length > 0 ? (
+        <div class="posts">
+          {posts.map((post) => (
+            <article class="post-card">
+              <h2>
+                <a href={`/posts/${post.slug}`}>{post.title}</a>
+              </h2>
+              {post.publishedDate && (
+                <p class="post-meta">
+                  {new Date(post.publishedDate).toLocaleDateString('pl-PL')}
+                </p>
+              )}
+              {post.excerpt && (
+                <p class="post-excerpt">{post.excerpt}</p>
+              )}
+            </article>
+          ))}
+        </div>
+      ) : !error && (
+        <div class="no-posts">
+          <p>Brak opublikowanych postów.</p>
+          <p>Dodaj pierwszy post w panelu administracyjnym.</p>
+          <a href="/admin" class="admin-link">
+            Otwórz Panel Admin
+          </a>
+        </div>
+      )}
+    </main>
+  </body>
+</html>

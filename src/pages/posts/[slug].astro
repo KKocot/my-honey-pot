@@ -1,0 +1,197 @@
+---
+import { getPayloadClient } from '../../lib/payload'
+
+interface Post {
+  id: string
+  title: string
+  slug: string
+  content: any
+  excerpt?: string
+  publishedDate?: string
+  status: 'draft' | 'published'
+}
+
+const { slug } = Astro.params
+
+let post: Post | null = null
+let error: string | null = null
+
+try {
+  const payload = await getPayloadClient()
+  const result = await payload.find({
+    collection: 'posts',
+    where: {
+      slug: { equals: slug },
+    },
+    limit: 1,
+  })
+
+  if (result.docs.length === 0) {
+    return Astro.redirect('/404')
+  }
+
+  post = result.docs[0] as Post
+} catch (e) {
+  console.error('Error fetching post:', e)
+  error = 'Błąd połączenia z bazą danych.'
+}
+
+// Helper function to render Lexical content
+function renderLexicalContent(content: any): string {
+  if (!content || !content.root) return ''
+
+  function renderNode(node: any): string {
+    if (!node) return ''
+
+    switch (node.type) {
+      case 'root':
+        return node.children?.map(renderNode).join('') || ''
+      case 'paragraph':
+        const pContent = node.children?.map(renderNode).join('') || ''
+        return `<p>${pContent}</p>`
+      case 'heading':
+        const hContent = node.children?.map(renderNode).join('') || ''
+        const tag = node.tag || 'h2'
+        return `<${tag}>${hContent}</${tag}>`
+      case 'text':
+        let text = node.text || ''
+        if (node.format & 1) text = `<strong>${text}</strong>`
+        if (node.format & 2) text = `<em>${text}</em>`
+        if (node.format & 8) text = `<u>${text}</u>`
+        return text
+      case 'link':
+        const linkContent = node.children?.map(renderNode).join('') || ''
+        return `<a href="${node.url}">${linkContent}</a>`
+      case 'list':
+        const listTag = node.listType === 'number' ? 'ol' : 'ul'
+        const listItems = node.children?.map(renderNode).join('') || ''
+        return `<${listTag}>${listItems}</${listTag}>`
+      case 'listitem':
+        const liContent = node.children?.map(renderNode).join('') || ''
+        return `<li>${liContent}</li>`
+      case 'quote':
+        const quoteContent = node.children?.map(renderNode).join('') || ''
+        return `<blockquote>${quoteContent}</blockquote>`
+      default:
+        if (node.children) {
+          return node.children.map(renderNode).join('')
+        }
+        return ''
+    }
+  }
+
+  return renderNode(content.root)
+}
+
+const htmlContent = post ? renderLexicalContent(post.content) : ''
+---
+
+<html lang="pl">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width" />
+    <meta name="generator" content={Astro.generator} />
+    <title>{post?.title || 'Post'} | Astro + Payload CMS</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: system-ui, -apple-system, sans-serif;
+        line-height: 1.6;
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 2rem;
+        background: #f5f5f5;
+      }
+      .back-link {
+        display: inline-block;
+        margin-bottom: 1rem;
+        color: #0066cc;
+        text-decoration: none;
+      }
+      .back-link:hover {
+        text-decoration: underline;
+      }
+      article {
+        background: white;
+        padding: 2rem;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      }
+      h1 {
+        color: #333;
+        margin-bottom: 0.5rem;
+        font-size: 2rem;
+      }
+      .meta {
+        color: #888;
+        margin-bottom: 1.5rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid #eee;
+      }
+      .content {
+        color: #444;
+      }
+      .content h2 {
+        margin-top: 1.5rem;
+        margin-bottom: 0.5rem;
+        color: #333;
+      }
+      .content p {
+        margin-bottom: 1rem;
+      }
+      .content a {
+        color: #0066cc;
+      }
+      .content ul, .content ol {
+        margin-left: 1.5rem;
+        margin-bottom: 1rem;
+      }
+      .content blockquote {
+        border-left: 4px solid #ddd;
+        padding-left: 1rem;
+        margin: 1rem 0;
+        color: #666;
+        font-style: italic;
+      }
+      .error {
+        background: #fee;
+        border: 1px solid #fcc;
+        padding: 1rem;
+        border-radius: 8px;
+        color: #c00;
+      }
+    </style>
+  </head>
+  <body>
+    <a href="/" class="back-link">&larr; Powrót do listy</a>
+
+    {error && (
+      <div class="error">
+        <strong>Błąd:</strong> {error}
+      </div>
+    )}
+
+    {post && (
+      <article>
+        <h1>{post.title}</h1>
+
+        {post.publishedDate && (
+          <p class="meta">
+            Opublikowano: {new Date(post.publishedDate).toLocaleDateString('pl-PL', {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric'
+            })}
+          </p>
+        )}
+
+        <div class="content" set:html={htmlContent} />
+      </article>
+    )}
+  </body>
+</html>

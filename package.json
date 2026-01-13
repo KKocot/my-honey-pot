@@ -1,0 +1,28 @@
+{
+  "name": "astro-payload-cms",
+  "type": "module",
+  "version": "0.0.1",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro"
+  },
+  "dependencies": {
+    "@astrojs/node": "^9.5.1",
+    "@payloadcms/db-mongodb": "^3.70.0",
+    "@payloadcms/richtext-lexical": "^3.70.0",
+    "astro": "^5.16.9",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^5.2.1",
+    "http-proxy-middleware": "^3.0.5",
+    "payload": "^3.70.0"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "concurrently": "^9.2.1",
+    "tsx": "^4.21.0"
+  }
+}
