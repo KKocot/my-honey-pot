@@ -7,6 +7,7 @@ import { fileURLToPath } from 'url'
 import { Posts } from './collections/Posts'
 import { Users } from './collections/Users'
 import { Media } from './collections/Media'
+import { Settings } from './collections/Settings'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -16,6 +17,7 @@ export default buildConfig({
     user: Users.slug,
   },
   collections: [Posts, Users, Media],
+  globals: [Settings],
   editor: lexicalEditor({}),
   secret: process.env.PAYLOAD_SECRET || 'default-secret-change-me',
   typescript: {
