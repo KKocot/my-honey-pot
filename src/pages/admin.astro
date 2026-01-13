@@ -3,7 +3,7 @@ import Layout from '../layouts/Layout.astro'
 ---
 
 <Layout title="Admin Panel - Hive Blog">
-  <div class="max-w-4xl mx-auto px-4 py-8">
+  <div class="max-w-7xl mx-auto px-4 py-8">
     <a
       href="/"
       class="inline-flex items-center text-primary hover:text-primary-hover mb-6 transition-colors"
@@ -18,205 +18,85 @@ import Layout from '../layouts/Layout.astro'
 
     <div id="message" class="hidden mb-6 px-4 py-3 rounded-lg font-medium"></div>
 
-    <!-- Site Settings Card -->
+    <!-- Site Settings with Header Preview -->
     <div class="bg-bg-card rounded-xl p-6 mb-6 border border-border">
       <h2 class="text-xl font-semibold text-primary mb-6">Ustawienia strony</h2>
 
-      <form id="settingsForm" class="space-y-4">
-        <div>
-          <label for="siteTheme" class="block text-sm font-medium text-text mb-1">Motyw kolorystyczny</label>
-          <select
-            id="siteTheme"
-            name="siteTheme"
-            class="w-full px-4 py-2 bg-bg border border-border rounded-lg text-text focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-          >
-            <option value="light">Jasny (Light)</option>
-            <option value="dark">Ciemny (Dark)</option>
-            <option value="green">Zielony (Green)</option>
-            <option value="pink">Różowy (Pink)</option>
-          </select>
-        </div>
-
-        <div>
-          <label for="siteName" class="block text-sm font-medium text-text mb-1">Nazwa strony</label>
-          <input
-            type="text"
-            id="siteName"
-            name="siteName"
-            class="w-full px-4 py-2 bg-bg border border-border rounded-lg text-text placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-          />
-        </div>
-
-        <div>
-          <label for="siteDescription" class="block text-sm font-medium text-text mb-1">Opis strony</label>
-          <textarea
-            id="siteDescription"
-            name="siteDescription"
-            rows="2"
-            class="w-full px-4 py-2 bg-bg border border-border rounded-lg text-text placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent resize-y"
-          ></textarea>
-        </div>
-      </form>
-    </div>
-
-    <!-- Card Appearance Settings -->
-    <div class="bg-bg-card rounded-xl p-6 mb-6 border border-border">
-      <h2 class="text-xl font-semibold text-primary mb-6">Wygląd karty posta</h2>
-
-      <form id="cardSettingsForm" class="space-y-6">
-        <!-- Layout Section -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Options -->
         <div class="space-y-4">
-          <h3 class="text-lg font-medium text-text border-b border-border pb-2">Układ</h3>
-
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label for="cardLayout" class="block text-sm font-medium text-text mb-1">Typ układu</label>
-              <select id="cardLayout" class="w-full px-4 py-2 bg-bg border border-border rounded-lg text-text focus:outline-none focus:ring-2 focus:ring-primary">
-                <option value="horizontal">Poziomy (miniaturka obok)</option>
-                <option value="vertical">Pionowy (miniaturka nad)</option>
-              </select>
-            </div>
-
-            <div id="thumbnailPositionWrapper">
-              <label for="thumbnailPosition" class="block text-sm font-medium text-text mb-1">Pozycja miniaturki</label>
-              <select id="thumbnailPosition" class="w-full px-4 py-2 bg-bg border border-border rounded-lg text-text focus:outline-none focus:ring-2 focus:ring-primary">
-                <option value="left">Po lewej</option>
-                <option value="right">Po prawej</option>
-              </select>
-            </div>
-
-            <div>
-              <label for="thumbnailSize" class="block text-sm font-medium text-text mb-1">Rozmiar miniaturki</label>
-              <select id="thumbnailSize" class="w-full px-4 py-2 bg-bg border border-border rounded-lg text-text focus:outline-none focus:ring-2 focus:ring-primary">
-                <option value="small">Mały (64px)</option>
-                <option value="medium">Średni (96px)</option>
-                <option value="large">Duży (128px)</option>
-                <option value="xlarge">Bardzo duży (160px)</option>
-                <option value="xxlarge">Ogromny (200px)</option>
-              </select>
-            </div>
-
-            <div>
-              <label for="cardPadding" class="block text-sm font-medium text-text mb-1">Padding karty</label>
-              <select id="cardPadding" class="w-full px-4 py-2 bg-bg border border-border rounded-lg text-text focus:outline-none focus:ring-2 focus:ring-primary">
-                <option value="compact">Kompaktowy</option>
-                <option value="normal">Normalny</option>
-                <option value="spacious">Przestronny</option>
-              </select>
-            </div>
-
-            <div>
-              <label for="cardBorderRadius" class="block text-sm font-medium text-text mb-1">Zaokrąglenie rogów</label>
-              <select id="cardBorderRadius" class="w-full px-4 py-2 bg-bg border border-border rounded-lg text-text focus:outline-none focus:ring-2 focus:ring-primary">
-                <option value="none">Brak</option>
-                <option value="small">Małe</option>
-                <option value="medium">Średnie</option>
-                <option value="large">Duże</option>
-              </select>
-            </div>
-
-            <div>
-              <label for="titleSize" class="block text-sm font-medium text-text mb-1">Rozmiar tytułu</label>
-              <select id="titleSize" class="w-full px-4 py-2 bg-bg border border-border rounded-lg text-text focus:outline-none focus:ring-2 focus:ring-primary">
-                <option value="small">Mały</option>
-                <option value="medium">Średni</option>
-                <option value="large">Duży</option>
-              </select>
-            </div>
-          </div>
-        </div>
-
-        <!-- Visibility Section -->
-        <div class="space-y-4">
-          <h3 class="text-lg font-medium text-text border-b border-border pb-2">Widoczność elementów</h3>
-
-          <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
-            <label class="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" id="showThumbnail" class="w-5 h-5 rounded border-border text-primary focus:ring-primary" />
-              <span class="text-sm text-text">Miniaturka</span>
-            </label>
-
-            <label class="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" id="showDate" class="w-5 h-5 rounded border-border text-primary focus:ring-primary" />
-              <span class="text-sm text-text">Data</span>
-            </label>
-
-            <label class="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" id="showVotes" class="w-5 h-5 rounded border-border text-primary focus:ring-primary" />
-              <span class="text-sm text-text">Głosy</span>
-            </label>
-
-            <label class="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" id="showComments" class="w-5 h-5 rounded border-border text-primary focus:ring-primary" />
-              <span class="text-sm text-text">Komentarze</span>
-            </label>
-
-            <label class="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" id="showPayout" class="w-5 h-5 rounded border-border text-primary focus:ring-primary" />
-              <span class="text-sm text-text">Payout</span>
-            </label>
-
-            <label class="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" id="showTags" class="w-5 h-5 rounded border-border text-primary focus:ring-primary" />
-              <span class="text-sm text-text">Tagi</span>
-            </label>
-
-            <label class="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" id="cardBorder" class="w-5 h-5 rounded border-border text-primary focus:ring-primary" />
-              <span class="text-sm text-text">Ramka karty</span>
-            </label>
+          <div>
+            <label for="siteTheme" class="block text-sm font-medium text-text mb-1">Motyw kolorystyczny</label>
+            <select
+              id="siteTheme"
+              class="w-full px-4 py-2 bg-bg border border-border rounded-lg text-text focus:outline-none focus:ring-2 focus:ring-primary"
+            >
+              <option value="light">Jasny (Light)</option>
+              <option value="dark">Ciemny (Dark)</option>
+              <option value="green">Zielony (Green)</option>
+              <option value="pink">Różowy (Pink)</option>
+            </select>
           </div>
 
-          <div id="maxTagsWrapper" class="mt-4">
-            <label for="maxTags" class="block text-sm font-medium text-text mb-1">Maksymalna liczba tagów: <span id="maxTagsValue">5</span></label>
+          <div>
+            <label for="siteName" class="block text-sm font-medium text-text mb-1">Nazwa strony</label>
             <input
-              type="range"
-              id="maxTags"
-              min="1"
-              max="10"
-              value="5"
-              class="w-full h-2 bg-bg-secondary rounded-lg appearance-none cursor-pointer accent-primary"
+              type="text"
+              id="siteName"
+              class="w-full px-4 py-2 bg-bg border border-border rounded-lg text-text focus:outline-none focus:ring-2 focus:ring-primary"
             />
           </div>
+
+          <div>
+            <label for="siteDescription" class="block text-sm font-medium text-text mb-1">Opis strony</label>
+            <textarea
+              id="siteDescription"
+              rows="2"
+              class="w-full px-4 py-2 bg-bg border border-border rounded-lg text-text resize-y focus:outline-none focus:ring-2 focus:ring-primary"
+            ></textarea>
+          </div>
         </div>
 
-        <button
-          type="submit"
-          class="w-full sm:w-auto px-6 py-2.5 bg-accent text-bg-card font-medium rounded-lg hover:opacity-90 transition-opacity focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-bg"
-        >
-          Zapisz wszystkie ustawienia
-        </button>
-      </form>
+        <!-- Header Preview -->
+        <div class="bg-bg rounded-lg p-4 border border-border">
+          <p class="text-xs text-text-muted mb-2 uppercase tracking-wide">Podgląd nagłówka</p>
+          <div id="headerPreview" class="border-b-2 border-border pb-4">
+            <h1 id="previewSiteName" class="text-2xl font-bold text-text">Hive Blog</h1>
+            <p id="previewSiteDescription" class="text-text-muted mt-1 text-sm">Posty z Hive blockchain</p>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <!-- Homepage Layout Settings -->
+    <!-- Homepage Layout with Author Preview -->
     <div class="bg-bg-card rounded-xl p-6 mb-6 border border-border">
       <h2 class="text-xl font-semibold text-primary mb-6">Wygląd strony głównej</h2>
 
-      <form id="homepageSettingsForm" class="space-y-4">
-        <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
-          <label class="flex items-center gap-2 cursor-pointer">
-            <input type="checkbox" id="showHeader" class="w-5 h-5 rounded border-border text-primary focus:ring-primary" />
-            <span class="text-sm text-text">Nagłówek strony</span>
-          </label>
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Options -->
+        <div class="space-y-4">
+          <div class="grid grid-cols-2 gap-4">
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" id="showHeader" class="w-5 h-5 rounded border-border text-primary focus:ring-primary" />
+              <span class="text-sm text-text">Nagłówek strony</span>
+            </label>
 
-          <label class="flex items-center gap-2 cursor-pointer">
-            <input type="checkbox" id="showAuthorProfile" class="w-5 h-5 rounded border-border text-primary focus:ring-primary" />
-            <span class="text-sm text-text">Profil autora</span>
-          </label>
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" id="showAuthorProfile" class="w-5 h-5 rounded border-border text-primary focus:ring-primary" />
+              <span class="text-sm text-text">Profil autora</span>
+            </label>
 
-          <label class="flex items-center gap-2 cursor-pointer">
-            <input type="checkbox" id="showPostCount" class="w-5 h-5 rounded border-border text-primary focus:ring-primary" />
-            <span class="text-sm text-text">Liczba postów</span>
-          </label>
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" id="showPostCount" class="w-5 h-5 rounded border-border text-primary focus:ring-primary" />
+              <span class="text-sm text-text">Liczba postów</span>
+            </label>
 
-          <label class="flex items-center gap-2 cursor-pointer">
-            <input type="checkbox" id="showAuthorRewards" class="w-5 h-5 rounded border-border text-primary focus:ring-primary" />
-            <span class="text-sm text-text">Nagrody autora</span>
-          </label>
-        </div>
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" id="showAuthorRewards" class="w-5 h-5 rounded border-border text-primary focus:ring-primary" />
+              <span class="text-sm text-text">Nagrody autora</span>
+            </label>
+          </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
           <div id="authorAvatarSizeWrapper">
             <label for="authorAvatarSize" class="block text-sm font-medium text-text mb-1">Rozmiar awatara autora</label>
             <select id="authorAvatarSize" class="w-full px-4 py-2 bg-bg border border-border rounded-lg text-text focus:outline-none focus:ring-2 focus:ring-primary">
@@ -240,19 +120,171 @@ import Layout from '../layouts/Layout.astro'
           </div>
         </div>
 
-        <button
-          type="submit"
-          class="w-full sm:w-auto px-6 py-2.5 bg-accent text-bg-card font-medium rounded-lg hover:opacity-90 transition-opacity focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-bg"
-        >
-          Zapisz wszystkie ustawienia
-        </button>
-      </form>
+        <!-- Author Profile Preview -->
+        <div class="bg-bg rounded-lg p-4 border border-border">
+          <p class="text-xs text-text-muted mb-2 uppercase tracking-wide">Podgląd profilu autora</p>
+          <div id="authorPreview" class="bg-bg-card rounded-xl p-4 border border-border">
+            <div class="flex items-center gap-4">
+              <img
+                id="previewAuthorAvatar"
+                src="https://images.hive.blog/u/gtg/avatar"
+                alt="avatar"
+                class="w-16 h-16 rounded-full border-2 border-border"
+                onerror="this.src='/hive-logo.png'"
+              />
+              <div>
+                <h2 class="text-lg font-semibold text-text">@gtg</h2>
+                <div id="previewAuthorMeta" class="text-text-muted text-sm space-x-4 mt-1">
+                  <span id="previewPostCount">1234 postów</span>
+                  <span id="previewRewards">5678 HP zarobionych</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <!-- Card Preview -->
-    <div class="bg-bg-card rounded-xl p-6 border border-border">
-      <h2 class="text-xl font-semibold text-primary mb-6">Podgląd karty</h2>
-      <div id="cardPreview" class="transition-all duration-300"></div>
+    <!-- Card Appearance with Card Preview -->
+    <div class="bg-bg-card rounded-xl p-6 mb-6 border border-border">
+      <h2 class="text-xl font-semibold text-primary mb-6">Wygląd karty posta</h2>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Options -->
+        <div class="space-y-6">
+          <!-- Layout Section -->
+          <div class="space-y-4">
+            <h3 class="text-sm font-medium text-text-muted uppercase tracking-wide">Układ</h3>
+
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label for="cardLayout" class="block text-sm font-medium text-text mb-1">Typ układu</label>
+                <select id="cardLayout" class="w-full px-4 py-2 bg-bg border border-border rounded-lg text-text focus:outline-none focus:ring-2 focus:ring-primary">
+                  <option value="horizontal">Poziomy</option>
+                  <option value="vertical">Pionowy</option>
+                </select>
+              </div>
+
+              <div id="thumbnailPositionWrapper">
+                <label for="thumbnailPosition" class="block text-sm font-medium text-text mb-1">Pozycja miniaturki</label>
+                <select id="thumbnailPosition" class="w-full px-4 py-2 bg-bg border border-border rounded-lg text-text focus:outline-none focus:ring-2 focus:ring-primary">
+                  <option value="left">Po lewej</option>
+                  <option value="right">Po prawej</option>
+                </select>
+              </div>
+
+              <div>
+                <label for="thumbnailSize" class="block text-sm font-medium text-text mb-1">Rozmiar miniaturki</label>
+                <select id="thumbnailSize" class="w-full px-4 py-2 bg-bg border border-border rounded-lg text-text focus:outline-none focus:ring-2 focus:ring-primary">
+                  <option value="small">Mały (64px)</option>
+                  <option value="medium">Średni (96px)</option>
+                  <option value="large">Duży (128px)</option>
+                  <option value="xlarge">Bardzo duży (160px)</option>
+                  <option value="xxlarge">Ogromny (200px)</option>
+                </select>
+              </div>
+
+              <div>
+                <label for="cardPadding" class="block text-sm font-medium text-text mb-1">Padding karty</label>
+                <select id="cardPadding" class="w-full px-4 py-2 bg-bg border border-border rounded-lg text-text focus:outline-none focus:ring-2 focus:ring-primary">
+                  <option value="compact">Kompaktowy</option>
+                  <option value="normal">Normalny</option>
+                  <option value="spacious">Przestronny</option>
+                </select>
+              </div>
+
+              <div>
+                <label for="cardBorderRadius" class="block text-sm font-medium text-text mb-1">Zaokrąglenie rogów</label>
+                <select id="cardBorderRadius" class="w-full px-4 py-2 bg-bg border border-border rounded-lg text-text focus:outline-none focus:ring-2 focus:ring-primary">
+                  <option value="none">Brak</option>
+                  <option value="small">Małe</option>
+                  <option value="medium">Średnie</option>
+                  <option value="large">Duże</option>
+                </select>
+              </div>
+
+              <div>
+                <label for="titleSize" class="block text-sm font-medium text-text mb-1">Rozmiar tytułu</label>
+                <select id="titleSize" class="w-full px-4 py-2 bg-bg border border-border rounded-lg text-text focus:outline-none focus:ring-2 focus:ring-primary">
+                  <option value="small">Mały</option>
+                  <option value="medium">Średni</option>
+                  <option value="large">Duży</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Visibility Section -->
+          <div class="space-y-4">
+            <h3 class="text-sm font-medium text-text-muted uppercase tracking-wide">Widoczność elementów</h3>
+
+            <div class="grid grid-cols-2 gap-3">
+              <label class="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" id="showThumbnail" class="w-5 h-5 rounded border-border text-primary focus:ring-primary" />
+                <span class="text-sm text-text">Miniaturka</span>
+              </label>
+
+              <label class="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" id="showDate" class="w-5 h-5 rounded border-border text-primary focus:ring-primary" />
+                <span class="text-sm text-text">Data</span>
+              </label>
+
+              <label class="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" id="showVotes" class="w-5 h-5 rounded border-border text-primary focus:ring-primary" />
+                <span class="text-sm text-text">Głosy</span>
+              </label>
+
+              <label class="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" id="showComments" class="w-5 h-5 rounded border-border text-primary focus:ring-primary" />
+                <span class="text-sm text-text">Komentarze</span>
+              </label>
+
+              <label class="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" id="showPayout" class="w-5 h-5 rounded border-border text-primary focus:ring-primary" />
+                <span class="text-sm text-text">Payout</span>
+              </label>
+
+              <label class="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" id="showTags" class="w-5 h-5 rounded border-border text-primary focus:ring-primary" />
+                <span class="text-sm text-text">Tagi</span>
+              </label>
+
+              <label class="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" id="cardBorder" class="w-5 h-5 rounded border-border text-primary focus:ring-primary" />
+                <span class="text-sm text-text">Ramka karty</span>
+              </label>
+            </div>
+
+            <div id="maxTagsWrapper">
+              <label for="maxTags" class="block text-sm font-medium text-text mb-1">Maksymalna liczba tagów: <span id="maxTagsValue">5</span></label>
+              <input
+                type="range"
+                id="maxTags"
+                min="1"
+                max="10"
+                value="5"
+                class="w-full h-2 bg-bg-secondary rounded-lg appearance-none cursor-pointer accent-primary"
+              />
+            </div>
+          </div>
+        </div>
+
+        <!-- Card Preview -->
+        <div class="bg-bg rounded-lg p-4 border border-border">
+          <p class="text-xs text-text-muted mb-2 uppercase tracking-wide">Podgląd karty</p>
+          <div id="cardPreview" class="transition-all duration-300"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Save Button -->
+    <div class="flex justify-end">
+      <button
+        id="saveButton"
+        class="px-8 py-3 bg-accent text-bg-card font-medium rounded-lg hover:opacity-90 transition-opacity focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-bg"
+      >
+        Zapisz wszystkie ustawienia
+      </button>
     </div>
   </div>
 
@@ -269,12 +301,26 @@ import Layout from '../layouts/Layout.astro'
       }, 3000)
     }
 
-    // Settings elements
-    const settingsForm = document.getElementById('settingsForm') as HTMLFormElement
-    const cardSettingsForm = document.getElementById('cardSettingsForm') as HTMLFormElement
+    // Site settings elements
     const siteThemeSelect = document.getElementById('siteTheme') as HTMLSelectElement
     const siteNameInput = document.getElementById('siteName') as HTMLInputElement
     const siteDescriptionTextarea = document.getElementById('siteDescription') as HTMLTextAreaElement
+    const previewSiteName = document.getElementById('previewSiteName') as HTMLElement
+    const previewSiteDescription = document.getElementById('previewSiteDescription') as HTMLElement
+
+    // Homepage settings elements
+    const showHeaderCheckbox = document.getElementById('showHeader') as HTMLInputElement
+    const showAuthorProfileCheckbox = document.getElementById('showAuthorProfile') as HTMLInputElement
+    const showPostCountCheckbox = document.getElementById('showPostCount') as HTMLInputElement
+    const showAuthorRewardsCheckbox = document.getElementById('showAuthorRewards') as HTMLInputElement
+    const authorAvatarSizeSelect = document.getElementById('authorAvatarSize') as HTMLSelectElement
+    const authorAvatarSizeWrapper = document.getElementById('authorAvatarSizeWrapper') as HTMLDivElement
+    const postsPerPageSlider = document.getElementById('postsPerPage') as HTMLInputElement
+    const postsPerPageValue = document.getElementById('postsPerPageValue') as HTMLSpanElement
+    const authorPreview = document.getElementById('authorPreview') as HTMLDivElement
+    const previewAuthorAvatar = document.getElementById('previewAuthorAvatar') as HTMLImageElement
+    const previewPostCount = document.getElementById('previewPostCount') as HTMLElement
+    const previewRewards = document.getElementById('previewRewards') as HTMLElement
 
     // Card settings elements
     const cardLayoutSelect = document.getElementById('cardLayout') as HTMLSelectElement
@@ -295,17 +341,7 @@ import Layout from '../layouts/Layout.astro'
     const maxTagsValue = document.getElementById('maxTagsValue') as HTMLSpanElement
     const maxTagsWrapper = document.getElementById('maxTagsWrapper') as HTMLDivElement
     const cardPreview = document.getElementById('cardPreview') as HTMLDivElement
-
-    // Homepage settings elements
-    const homepageSettingsForm = document.getElementById('homepageSettingsForm') as HTMLFormElement
-    const showHeaderCheckbox = document.getElementById('showHeader') as HTMLInputElement
-    const showAuthorProfileCheckbox = document.getElementById('showAuthorProfile') as HTMLInputElement
-    const showPostCountCheckbox = document.getElementById('showPostCount') as HTMLInputElement
-    const showAuthorRewardsCheckbox = document.getElementById('showAuthorRewards') as HTMLInputElement
-    const authorAvatarSizeSelect = document.getElementById('authorAvatarSize') as HTMLSelectElement
-    const authorAvatarSizeWrapper = document.getElementById('authorAvatarSizeWrapper') as HTMLDivElement
-    const postsPerPageSlider = document.getElementById('postsPerPage') as HTMLInputElement
-    const postsPerPageValue = document.getElementById('postsPerPageValue') as HTMLSpanElement
+    const saveButton = document.getElementById('saveButton') as HTMLButtonElement
 
     interface SettingsData {
       siteTheme: 'light' | 'dark' | 'green' | 'pink'
@@ -361,7 +397,35 @@ import Layout from '../layouts/Layout.astro'
       large: 'text-2xl'
     }
 
-    function updatePreview(): void {
+    const authorAvatarSizeClasses: Record<string, string> = {
+      small: 'w-12 h-12',
+      medium: 'w-16 h-16',
+      large: 'w-20 h-20',
+      xlarge: 'w-24 h-24'
+    }
+
+    function updateHeaderPreview(): void {
+      const name = siteNameInput.value || 'Hive Blog'
+      const desc = siteDescriptionTextarea.value || 'Posty z Hive blockchain'
+      previewSiteName.textContent = name
+      previewSiteDescription.textContent = desc
+    }
+
+    function updateAuthorPreview(): void {
+      const showProfile = showAuthorProfileCheckbox.checked
+      const showCount = showPostCountCheckbox.checked
+      const showRewards = showAuthorRewardsCheckbox.checked
+      const avatarSize = authorAvatarSizeSelect.value
+
+      authorPreview.style.display = showProfile ? 'block' : 'none'
+      authorAvatarSizeWrapper.style.display = showProfile ? 'block' : 'none'
+
+      previewAuthorAvatar.className = `${authorAvatarSizeClasses[avatarSize]} rounded-full border-2 border-border`
+      previewPostCount.style.display = showCount ? 'inline' : 'none'
+      previewRewards.style.display = showRewards ? 'inline' : 'none'
+    }
+
+    function updateCardPreview(): void {
       const layout = cardLayoutSelect.value
       const thumbPos = thumbnailPositionSelect.value
       const thumbSize = thumbnailSizeSelect.value
@@ -377,7 +441,7 @@ import Layout from '../layouts/Layout.astro'
       const showBorder = cardBorderCheckbox.checked
       const maxTags = parseInt(maxTagsSlider.value)
 
-      // Update visibility of thumbnail position based on layout
+      // Update visibility of options
       thumbnailPositionWrapper.style.display = layout === 'horizontal' ? 'block' : 'none'
       maxTagsWrapper.style.display = showTags ? 'block' : 'none'
 
@@ -389,10 +453,9 @@ import Layout from '../layouts/Layout.astro'
 
       const thumbnailHtml = showThumb ? `
         <img
-          src="https://images.hive.blog/256x512/https://files.peakd.com/file/peakd-hive/gtg/23tSWK86d3tpyJsGi39WaTEJqfREhvJ5BVuXsLBmMFMj6ZaSBxxMiLqxCChvf6ByV2vSu.png"
+          src="/hive-logo.png"
           alt=""
           class="${thumbnailSizeClasses[thumbSize]} object-cover rounded-lg flex-shrink-0"
-          onerror="this.src='/hive-logo.png'"
         />
       ` : ''
 
@@ -455,6 +518,15 @@ import Layout from '../layouts/Layout.astro'
         siteNameInput.value = data.siteName || ''
         siteDescriptionTextarea.value = data.siteDescription || ''
 
+        // Homepage settings
+        showHeaderCheckbox.checked = data.showHeader !== false
+        showAuthorProfileCheckbox.checked = data.showAuthorProfile !== false
+        showPostCountCheckbox.checked = data.showPostCount !== false
+        showAuthorRewardsCheckbox.checked = data.showAuthorRewards !== false
+        authorAvatarSizeSelect.value = data.authorAvatarSize || 'medium'
+        postsPerPageSlider.value = String(data.postsPerPage || 20)
+        postsPerPageValue.textContent = String(data.postsPerPage || 20)
+
         // Card settings
         cardLayoutSelect.value = data.cardLayout || 'horizontal'
         thumbnailPositionSelect.value = data.thumbnailPosition || 'left'
@@ -472,20 +544,11 @@ import Layout from '../layouts/Layout.astro'
         maxTagsSlider.value = String(data.maxTags || 5)
         maxTagsValue.textContent = String(data.maxTags || 5)
 
-        // Homepage settings
-        showHeaderCheckbox.checked = data.showHeader !== false
-        showAuthorProfileCheckbox.checked = data.showAuthorProfile !== false
-        showPostCountCheckbox.checked = data.showPostCount !== false
-        showAuthorRewardsCheckbox.checked = data.showAuthorRewards !== false
-        authorAvatarSizeSelect.value = data.authorAvatarSize || 'medium'
-        postsPerPageSlider.value = String(data.postsPerPage || 20)
-        postsPerPageValue.textContent = String(data.postsPerPage || 20)
-
-        // Update visibility
-        authorAvatarSizeWrapper.style.display = data.showAuthorProfile !== false ? 'block' : 'none'
-
         document.documentElement.setAttribute('data-theme', data.siteTheme || 'light')
-        updatePreview()
+
+        updateHeaderPreview()
+        updateAuthorPreview()
+        updateCardPreview()
       } catch {
         console.error('Błąd ładowania ustawień')
       }
@@ -496,6 +559,12 @@ import Layout from '../layouts/Layout.astro'
         siteTheme: siteThemeSelect.value as SettingsData['siteTheme'],
         siteName: siteNameInput.value,
         siteDescription: siteDescriptionTextarea.value,
+        showHeader: showHeaderCheckbox.checked,
+        showAuthorProfile: showAuthorProfileCheckbox.checked,
+        authorAvatarSize: authorAvatarSizeSelect.value as SettingsData['authorAvatarSize'],
+        showPostCount: showPostCountCheckbox.checked,
+        showAuthorRewards: showAuthorRewardsCheckbox.checked,
+        postsPerPage: parseInt(postsPerPageSlider.value),
         cardLayout: cardLayoutSelect.value as SettingsData['cardLayout'],
         thumbnailPosition: thumbnailPositionSelect.value as SettingsData['thumbnailPosition'],
         thumbnailSize: thumbnailSizeSelect.value as SettingsData['thumbnailSize'],
@@ -510,18 +579,10 @@ import Layout from '../layouts/Layout.astro'
         showTags: showTagsCheckbox.checked,
         cardBorder: cardBorderCheckbox.checked,
         maxTags: parseInt(maxTagsSlider.value),
-        showHeader: showHeaderCheckbox.checked,
-        showAuthorProfile: showAuthorProfileCheckbox.checked,
-        authorAvatarSize: authorAvatarSizeSelect.value as SettingsData['authorAvatarSize'],
-        showPostCount: showPostCountCheckbox.checked,
-        showAuthorRewards: showAuthorRewardsCheckbox.checked,
-        postsPerPage: parseInt(postsPerPageSlider.value),
       }
     }
 
-    async function saveSettings(e: SubmitEvent): Promise<void> {
-      e.preventDefault()
-
+    async function saveSettings(): Promise<void> {
       const data = getSettingsData()
 
       try {
@@ -542,8 +603,28 @@ import Layout from '../layouts/Layout.astro'
       }
     }
 
-    // Event listeners for live preview
-    const previewInputs = [
+    // Event listeners for header preview
+    siteNameInput.addEventListener('input', updateHeaderPreview)
+    siteDescriptionTextarea.addEventListener('input', updateHeaderPreview)
+    siteThemeSelect.addEventListener('change', () => {
+      document.documentElement.setAttribute('data-theme', siteThemeSelect.value)
+    })
+
+    // Event listeners for author preview
+    const authorInputs = [
+      showAuthorProfileCheckbox, showPostCountCheckbox,
+      showAuthorRewardsCheckbox, authorAvatarSizeSelect
+    ]
+    authorInputs.forEach(input => {
+      input.addEventListener('change', updateAuthorPreview)
+    })
+
+    postsPerPageSlider.addEventListener('input', () => {
+      postsPerPageValue.textContent = postsPerPageSlider.value
+    })
+
+    // Event listeners for card preview
+    const cardInputs = [
       cardLayoutSelect, thumbnailPositionSelect, thumbnailSizeSelect,
       cardPaddingSelect, cardBorderRadiusSelect, titleSizeSelect,
       showThumbnailCheckbox, showDateCheckbox, showVotesCheckbox,
@@ -551,32 +632,19 @@ import Layout from '../layouts/Layout.astro'
       cardBorderCheckbox, maxTagsSlider
     ]
 
-    previewInputs.forEach(input => {
-      input.addEventListener('change', updatePreview)
-      input.addEventListener('input', updatePreview)
+    cardInputs.forEach(input => {
+      input.addEventListener('change', updateCardPreview)
+      input.addEventListener('input', updateCardPreview)
     })
 
     maxTagsSlider.addEventListener('input', () => {
       maxTagsValue.textContent = maxTagsSlider.value
     })
 
-    siteThemeSelect.addEventListener('change', () => {
-      document.documentElement.setAttribute('data-theme', siteThemeSelect.value)
-    })
+    // Save button
+    saveButton.addEventListener('click', saveSettings)
 
-    settingsForm.addEventListener('submit', saveSettings)
-    cardSettingsForm.addEventListener('submit', saveSettings)
-    homepageSettingsForm.addEventListener('submit', saveSettings)
-
-    // Homepage settings visibility toggles
-    showAuthorProfileCheckbox.addEventListener('change', () => {
-      authorAvatarSizeWrapper.style.display = showAuthorProfileCheckbox.checked ? 'block' : 'none'
-    })
-
-    postsPerPageSlider.addEventListener('input', () => {
-      postsPerPageValue.textContent = postsPerPageSlider.value
-    })
-
+    // Load initial settings
     loadSettings()
   </script>
 </Layout>
