@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@astrojs/node": "^9.5.1",
+    "@hiveio/wax": "^1.28.4-rc0",
     "@payloadcms/db-mongodb": "^3.70.0",
     "@payloadcms/richtext-lexical": "^3.70.0",
     "@tailwindcss/vite": "^4.1.18",
