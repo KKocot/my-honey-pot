@@ -1,100 +1,42 @@
 ---
 import '../styles/global.css'
+import { getPayloadClient } from '../lib/payload'
 
 interface Props {
   title: string
 }
 
+interface SiteSettings {
+  siteTheme?: 'light' | 'dark' | 'green' | 'pink'
+  siteName?: string
+  siteDescription?: string
+}
+
 const { title } = Astro.props
+
+let siteTheme: SiteSettings['siteTheme'] = 'light'
+
+try {
+  const payload = await getPayloadClient()
+  const settings = await payload.findGlobal({
+    slug: 'settings',
+  }) as SiteSettings
+  siteTheme = settings.siteTheme || 'light'
+} catch {
+  siteTheme = 'light'
+}
 ---
 
 <!doctype html>
-<html lang="pl" data-theme="light">
+<html lang="pl" data-theme={siteTheme}>
   <head>
     <meta charset="utf-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width" />
     <meta name="generator" content={Astro.generator} />
     <title>{title}</title>
-    <script is:inline>
-      const savedTheme = localStorage.getItem('theme') || 'light';
-      document.documentElement.setAttribute('data-theme', savedTheme);
-    </script>
   </head>
   <body class="bg-bg text-text min-h-screen transition-colors duration-300">
-    <div class="fixed top-4 right-4 z-50">
-      <div class="flex gap-1 p-1 bg-bg-card rounded-lg shadow-lg border border-border">
-        <button
-          data-theme-btn="light"
-          class="w-8 h-8 rounded-md flex items-center justify-center hover:bg-bg-secondary transition-colors"
-          title="Light"
-        >
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-          </svg>
-        </button>
-        <button
-          data-theme-btn="dark"
-          class="w-8 h-8 rounded-md flex items-center justify-center hover:bg-bg-secondary transition-colors"
-          title="Dark"
-        >
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-          </svg>
-        </button>
-        <button
-          data-theme-btn="green"
-          class="w-8 h-8 rounded-md flex items-center justify-center hover:bg-bg-secondary transition-colors"
-          title="Green"
-        >
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
-          </svg>
-        </button>
-        <button
-          data-theme-btn="pink"
-          class="w-8 h-8 rounded-md flex items-center justify-center hover:bg-bg-secondary transition-colors"
-          title="Pink"
-        >
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-          </svg>
-        </button>
-      </div>
-    </div>
     <slot />
-    <script>
-      function initThemeSwitcher(): void {
-        const buttons = document.querySelectorAll<HTMLButtonElement>('[data-theme-btn]');
-
-        function updateActiveState(activeTheme: string): void {
-          buttons.forEach(btn => {
-            const theme = btn.getAttribute('data-theme-btn');
-            if (theme === activeTheme) {
-              btn.classList.add('bg-primary', 'text-bg-card');
-            } else {
-              btn.classList.remove('bg-primary', 'text-bg-card');
-            }
-          });
-        }
-
-        const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
-        updateActiveState(currentTheme);
-
-        buttons.forEach(btn => {
-          btn.addEventListener('click', () => {
-            const theme = btn.getAttribute('data-theme-btn');
-            if (theme) {
-              document.documentElement.setAttribute('data-theme', theme);
-              localStorage.setItem('theme', theme);
-              updateActiveState(theme);
-            }
-          });
-        });
-      }
-
-      initThemeSwitcher();
-      document.addEventListener('astro:after-swap', initThemeSwitcher);
-    </script>
   </body>
 </html>

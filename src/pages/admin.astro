@@ -18,6 +18,54 @@ import Layout from '../layouts/Layout.astro'
 
     <div id="message" class="hidden mb-6 px-4 py-3 rounded-lg font-medium"></div>
 
+    <!-- Site Settings Card -->
+    <div class="bg-bg-card rounded-xl p-6 mb-6 border border-border">
+      <h2 class="text-xl font-semibold text-primary mb-6">Ustawienia strony</h2>
+
+      <form id="settingsForm" class="space-y-4">
+        <div>
+          <label for="siteTheme" class="block text-sm font-medium text-text mb-1">Motyw kolorystyczny</label>
+          <select
+            id="siteTheme"
+            name="siteTheme"
+            class="w-full px-4 py-2 bg-bg border border-border rounded-lg text-text focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+          >
+            <option value="light">Jasny (Light)</option>
+            <option value="dark">Ciemny (Dark)</option>
+            <option value="green">Zielony (Green)</option>
+            <option value="pink">Różowy (Pink)</option>
+          </select>
+        </div>
+
+        <div>
+          <label for="siteName" class="block text-sm font-medium text-text mb-1">Nazwa strony</label>
+          <input
+            type="text"
+            id="siteName"
+            name="siteName"
+            class="w-full px-4 py-2 bg-bg border border-border rounded-lg text-text placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+          />
+        </div>
+
+        <div>
+          <label for="siteDescription" class="block text-sm font-medium text-text mb-1">Opis strony</label>
+          <textarea
+            id="siteDescription"
+            name="siteDescription"
+            rows="2"
+            class="w-full px-4 py-2 bg-bg border border-border rounded-lg text-text placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent resize-y"
+          ></textarea>
+        </div>
+
+        <button
+          type="submit"
+          class="w-full sm:w-auto px-6 py-2.5 bg-accent text-bg-card font-medium rounded-lg hover:opacity-90 transition-opacity focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-bg"
+        >
+          Zapisz ustawienia
+        </button>
+      </form>
+    </div>
+
     <!-- Form Card -->
     <div class="bg-bg-card rounded-xl p-6 mb-6 border border-border">
       <h2 class="text-xl font-semibold text-primary mb-6">Dodaj nowy post</h2>
@@ -235,5 +283,61 @@ import Layout from '../layouts/Layout.astro'
     })
 
     loadPosts()
+
+    // Settings handling
+    const settingsForm = document.getElementById('settingsForm') as HTMLFormElement
+    const siteThemeSelect = document.getElementById('siteTheme') as HTMLSelectElement
+    const siteNameInput = document.getElementById('siteName') as HTMLInputElement
+    const siteDescriptionTextarea = document.getElementById('siteDescription') as HTMLTextAreaElement
+
+    interface SettingsData {
+      siteTheme: 'light' | 'dark' | 'green' | 'pink'
+      siteName: string
+      siteDescription: string
+    }
+
+    async function loadSettings(): Promise<void> {
+      try {
+        const res = await fetch('/api/admin/settings')
+        const data: SettingsData = await res.json()
+
+        siteThemeSelect.value = data.siteTheme || 'light'
+        siteNameInput.value = data.siteName || ''
+        siteDescriptionTextarea.value = data.siteDescription || ''
+
+        document.documentElement.setAttribute('data-theme', data.siteTheme || 'light')
+      } catch {
+        console.error('Błąd ładowania ustawień')
+      }
+    }
+
+    settingsForm.addEventListener('submit', async (e: SubmitEvent) => {
+      e.preventDefault()
+
+      const data: SettingsData = {
+        siteTheme: siteThemeSelect.value as SettingsData['siteTheme'],
+        siteName: siteNameInput.value,
+        siteDescription: siteDescriptionTextarea.value,
+      }
+
+      try {
+        const res = await fetch('/api/admin/settings', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+        })
+
+        if (res.ok) {
+          showMessage('Ustawienia zapisane!', 'success')
+          document.documentElement.setAttribute('data-theme', data.siteTheme)
+        } else {
+          showMessage('Błąd zapisu ustawień', 'error')
+        }
+      } catch {
+        showMessage('Błąd połączenia z serwerem', 'error')
+      }
+    })
+
+    loadSettings()
   </script>
 </Layout>
