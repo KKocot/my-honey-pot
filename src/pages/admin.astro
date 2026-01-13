@@ -2,7 +2,7 @@
 import Layout from '../layouts/Layout.astro'
 ---
 
-<Layout title="Admin Panel - Astro + Payload">
+<Layout title="Admin Panel - Hive Blog">
   <div class="max-w-4xl mx-auto px-4 py-8">
     <a
       href="/"
@@ -56,99 +56,208 @@ import Layout from '../layouts/Layout.astro'
             class="w-full px-4 py-2 bg-bg border border-border rounded-lg text-text placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent resize-y"
           ></textarea>
         </div>
+      </form>
+    </div>
+
+    <!-- Card Appearance Settings -->
+    <div class="bg-bg-card rounded-xl p-6 mb-6 border border-border">
+      <h2 class="text-xl font-semibold text-primary mb-6">Wygląd karty posta</h2>
+
+      <form id="cardSettingsForm" class="space-y-6">
+        <!-- Layout Section -->
+        <div class="space-y-4">
+          <h3 class="text-lg font-medium text-text border-b border-border pb-2">Układ</h3>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label for="cardLayout" class="block text-sm font-medium text-text mb-1">Typ układu</label>
+              <select id="cardLayout" class="w-full px-4 py-2 bg-bg border border-border rounded-lg text-text focus:outline-none focus:ring-2 focus:ring-primary">
+                <option value="horizontal">Poziomy (miniaturka obok)</option>
+                <option value="vertical">Pionowy (miniaturka nad)</option>
+              </select>
+            </div>
+
+            <div id="thumbnailPositionWrapper">
+              <label for="thumbnailPosition" class="block text-sm font-medium text-text mb-1">Pozycja miniaturki</label>
+              <select id="thumbnailPosition" class="w-full px-4 py-2 bg-bg border border-border rounded-lg text-text focus:outline-none focus:ring-2 focus:ring-primary">
+                <option value="left">Po lewej</option>
+                <option value="right">Po prawej</option>
+              </select>
+            </div>
+
+            <div>
+              <label for="thumbnailSize" class="block text-sm font-medium text-text mb-1">Rozmiar miniaturki</label>
+              <select id="thumbnailSize" class="w-full px-4 py-2 bg-bg border border-border rounded-lg text-text focus:outline-none focus:ring-2 focus:ring-primary">
+                <option value="small">Mały (64px)</option>
+                <option value="medium">Średni (96px)</option>
+                <option value="large">Duży (128px)</option>
+                <option value="xlarge">Bardzo duży (160px)</option>
+                <option value="xxlarge">Ogromny (200px)</option>
+              </select>
+            </div>
+
+            <div>
+              <label for="cardPadding" class="block text-sm font-medium text-text mb-1">Padding karty</label>
+              <select id="cardPadding" class="w-full px-4 py-2 bg-bg border border-border rounded-lg text-text focus:outline-none focus:ring-2 focus:ring-primary">
+                <option value="compact">Kompaktowy</option>
+                <option value="normal">Normalny</option>
+                <option value="spacious">Przestronny</option>
+              </select>
+            </div>
+
+            <div>
+              <label for="cardBorderRadius" class="block text-sm font-medium text-text mb-1">Zaokrąglenie rogów</label>
+              <select id="cardBorderRadius" class="w-full px-4 py-2 bg-bg border border-border rounded-lg text-text focus:outline-none focus:ring-2 focus:ring-primary">
+                <option value="none">Brak</option>
+                <option value="small">Małe</option>
+                <option value="medium">Średnie</option>
+                <option value="large">Duże</option>
+              </select>
+            </div>
+
+            <div>
+              <label for="titleSize" class="block text-sm font-medium text-text mb-1">Rozmiar tytułu</label>
+              <select id="titleSize" class="w-full px-4 py-2 bg-bg border border-border rounded-lg text-text focus:outline-none focus:ring-2 focus:ring-primary">
+                <option value="small">Mały</option>
+                <option value="medium">Średni</option>
+                <option value="large">Duży</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Visibility Section -->
+        <div class="space-y-4">
+          <h3 class="text-lg font-medium text-text border-b border-border pb-2">Widoczność elementów</h3>
+
+          <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" id="showThumbnail" class="w-5 h-5 rounded border-border text-primary focus:ring-primary" />
+              <span class="text-sm text-text">Miniaturka</span>
+            </label>
+
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" id="showDate" class="w-5 h-5 rounded border-border text-primary focus:ring-primary" />
+              <span class="text-sm text-text">Data</span>
+            </label>
+
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" id="showVotes" class="w-5 h-5 rounded border-border text-primary focus:ring-primary" />
+              <span class="text-sm text-text">Głosy</span>
+            </label>
+
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" id="showComments" class="w-5 h-5 rounded border-border text-primary focus:ring-primary" />
+              <span class="text-sm text-text">Komentarze</span>
+            </label>
+
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" id="showPayout" class="w-5 h-5 rounded border-border text-primary focus:ring-primary" />
+              <span class="text-sm text-text">Payout</span>
+            </label>
+
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" id="showTags" class="w-5 h-5 rounded border-border text-primary focus:ring-primary" />
+              <span class="text-sm text-text">Tagi</span>
+            </label>
+
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" id="cardBorder" class="w-5 h-5 rounded border-border text-primary focus:ring-primary" />
+              <span class="text-sm text-text">Ramka karty</span>
+            </label>
+          </div>
+
+          <div id="maxTagsWrapper" class="mt-4">
+            <label for="maxTags" class="block text-sm font-medium text-text mb-1">Maksymalna liczba tagów: <span id="maxTagsValue">5</span></label>
+            <input
+              type="range"
+              id="maxTags"
+              min="1"
+              max="10"
+              value="5"
+              class="w-full h-2 bg-bg-secondary rounded-lg appearance-none cursor-pointer accent-primary"
+            />
+          </div>
+        </div>
 
         <button
           type="submit"
           class="w-full sm:w-auto px-6 py-2.5 bg-accent text-bg-card font-medium rounded-lg hover:opacity-90 transition-opacity focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-bg"
         >
-          Zapisz ustawienia
+          Zapisz wszystkie ustawienia
         </button>
       </form>
     </div>
 
-    <!-- Form Card -->
+    <!-- Homepage Layout Settings -->
     <div class="bg-bg-card rounded-xl p-6 mb-6 border border-border">
-      <h2 class="text-xl font-semibold text-primary mb-6">Dodaj nowy post</h2>
+      <h2 class="text-xl font-semibold text-primary mb-6">Wygląd strony głównej</h2>
 
-      <form id="postForm" class="space-y-4">
-        <div>
-          <label for="title" class="block text-sm font-medium text-text mb-1">Tytuł</label>
-          <input
-            type="text"
-            id="title"
-            name="title"
-            required
-            class="w-full px-4 py-2 bg-bg border border-border rounded-lg text-text placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-          />
+      <form id="homepageSettingsForm" class="space-y-4">
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" id="showHeader" class="w-5 h-5 rounded border-border text-primary focus:ring-primary" />
+            <span class="text-sm text-text">Nagłówek strony</span>
+          </label>
+
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" id="showAuthorProfile" class="w-5 h-5 rounded border-border text-primary focus:ring-primary" />
+            <span class="text-sm text-text">Profil autora</span>
+          </label>
+
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" id="showPostCount" class="w-5 h-5 rounded border-border text-primary focus:ring-primary" />
+            <span class="text-sm text-text">Liczba postów</span>
+          </label>
+
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" id="showAuthorRewards" class="w-5 h-5 rounded border-border text-primary focus:ring-primary" />
+            <span class="text-sm text-text">Nagrody autora</span>
+          </label>
         </div>
 
-        <div>
-          <label for="slug" class="block text-sm font-medium text-text mb-1">Slug (URL)</label>
-          <input
-            type="text"
-            id="slug"
-            name="slug"
-            required
-            placeholder="moj-pierwszy-post"
-            class="w-full px-4 py-2 bg-bg border border-border rounded-lg text-text placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-          />
-        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+          <div id="authorAvatarSizeWrapper">
+            <label for="authorAvatarSize" class="block text-sm font-medium text-text mb-1">Rozmiar awatara autora</label>
+            <select id="authorAvatarSize" class="w-full px-4 py-2 bg-bg border border-border rounded-lg text-text focus:outline-none focus:ring-2 focus:ring-primary">
+              <option value="small">Mały (48px)</option>
+              <option value="medium">Średni (64px)</option>
+              <option value="large">Duży (80px)</option>
+              <option value="xlarge">Bardzo duży (96px)</option>
+            </select>
+          </div>
 
-        <div>
-          <label for="content" class="block text-sm font-medium text-text mb-1">Treść</label>
-          <textarea
-            id="content"
-            name="content"
-            required
-            placeholder="Treść posta..."
-            rows="6"
-            class="w-full px-4 py-2 bg-bg border border-border rounded-lg text-text placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent resize-y"
-          ></textarea>
-        </div>
-
-        <div>
-          <label for="excerpt" class="block text-sm font-medium text-text mb-1">Zajawka</label>
-          <textarea
-            id="excerpt"
-            name="excerpt"
-            rows="2"
-            placeholder="Krótki opis..."
-            class="w-full px-4 py-2 bg-bg border border-border rounded-lg text-text placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent resize-y"
-          ></textarea>
-        </div>
-
-        <div>
-          <label for="status" class="block text-sm font-medium text-text mb-1">Status</label>
-          <select
-            id="status"
-            name="status"
-            class="w-full px-4 py-2 bg-bg border border-border rounded-lg text-text focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-          >
-            <option value="draft">Szkic</option>
-            <option value="published">Opublikowany</option>
-          </select>
+          <div>
+            <label for="postsPerPage" class="block text-sm font-medium text-text mb-1">Liczba postów na stronie: <span id="postsPerPageValue">20</span></label>
+            <input
+              type="range"
+              id="postsPerPage"
+              min="5"
+              max="50"
+              value="20"
+              class="w-full h-2 bg-bg-secondary rounded-lg appearance-none cursor-pointer accent-primary"
+            />
+          </div>
         </div>
 
         <button
           type="submit"
-          class="w-full sm:w-auto px-6 py-2.5 bg-primary text-bg-card font-medium rounded-lg hover:bg-primary-hover transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-bg"
+          class="w-full sm:w-auto px-6 py-2.5 bg-accent text-bg-card font-medium rounded-lg hover:opacity-90 transition-opacity focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-bg"
         >
-          Dodaj post
+          Zapisz wszystkie ustawienia
         </button>
       </form>
     </div>
 
-    <!-- Posts List Card -->
+    <!-- Card Preview -->
     <div class="bg-bg-card rounded-xl p-6 border border-border">
-      <h2 class="text-xl font-semibold text-primary mb-6">Lista postów</h2>
-      <div id="posts" class="text-text-muted">Ładowanie...</div>
+      <h2 class="text-xl font-semibold text-primary mb-6">Podgląd karty</h2>
+      <div id="cardPreview" class="transition-all duration-300"></div>
     </div>
   </div>
 
   <script>
     const messageDiv = document.getElementById('message') as HTMLDivElement
-    const postsDiv = document.getElementById('posts') as HTMLDivElement
-    const form = document.getElementById('postForm') as HTMLFormElement
 
     function showMessage(text: string, type: 'success' | 'error'): void {
       messageDiv.textContent = text
@@ -160,140 +269,180 @@ import Layout from '../layouts/Layout.astro'
       }, 3000)
     }
 
-    interface PostData {
-      id: string
-      title: string
-      slug: string
-      status: 'draft' | 'published'
-    }
-
-    interface PostsResponse {
-      docs: PostData[]
-    }
-
-    async function loadPosts(): Promise<void> {
-      try {
-        const res = await fetch('/api/admin/posts')
-        const data: PostsResponse = await res.json()
-
-        if (data.docs.length === 0) {
-          postsDiv.innerHTML = '<p class="text-text-muted">Brak postów. Dodaj pierwszy post powyżej.</p>'
-          return
-        }
-
-        postsDiv.innerHTML = data.docs.map((post: PostData) => `
-          <div class="flex flex-wrap items-center justify-between gap-3 p-4 bg-bg-secondary rounded-lg mb-3">
-            <div class="flex-1 min-w-0">
-              <span class="block font-medium text-text truncate">${post.title}</span>
-              <span class="text-sm text-text-muted">/${post.slug}</span>
-              <span class="inline-block ml-2 px-2 py-0.5 text-xs rounded ${
-                post.status === 'published'
-                  ? 'bg-success/20 text-success'
-                  : 'bg-warning/20 text-warning'
-              }">
-                ${post.status === 'published' ? 'Opublikowany' : 'Szkic'}
-              </span>
-            </div>
-            <button
-              onclick="deletePost('${post.id}')"
-              class="px-4 py-1.5 bg-error/20 text-error rounded-lg hover:bg-error/30 transition-colors text-sm font-medium"
-            >
-              Usuń
-            </button>
-          </div>
-        `).join('')
-      } catch {
-        postsDiv.innerHTML = '<p class="text-error">Błąd ładowania postów</p>'
-      }
-    }
-
-    form.addEventListener('submit', async (e: SubmitEvent) => {
-      e.preventDefault()
-
-      const formData = new FormData(form)
-      const data = {
-        title: formData.get('title'),
-        slug: formData.get('slug'),
-        content: formData.get('content'),
-        excerpt: formData.get('excerpt'),
-        status: formData.get('status'),
-        publishedDate: new Date().toISOString()
-      }
-
-      try {
-        const res = await fetch('/api/admin/posts', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data)
-        })
-
-        if (res.ok) {
-          showMessage('Post dodany!', 'success')
-          form.reset()
-          loadPosts()
-        } else {
-          const error = await res.json()
-          showMessage('Błąd: ' + (error.error || 'Nie udało się dodać posta'), 'error')
-        }
-      } catch {
-        showMessage('Błąd połączenia z serwerem', 'error')
-      }
-    })
-
-    ;(window as Window & { deletePost: (id: string) => Promise<void> }).deletePost = async function(id: string): Promise<void> {
-      if (!confirm('Czy na pewno chcesz usunąć ten post?')) return
-
-      try {
-        const res = await fetch('/api/admin/posts/' + id, { method: 'DELETE' })
-        if (res.ok) {
-          showMessage('Post usunięty!', 'success')
-          loadPosts()
-        } else {
-          showMessage('Błąd usuwania posta', 'error')
-        }
-      } catch {
-        showMessage('Błąd połączenia z serwerem', 'error')
-      }
-    }
-
-    const titleInput = document.getElementById('title') as HTMLInputElement
-    const slugInput = document.getElementById('slug') as HTMLInputElement
-
-    titleInput.addEventListener('input', () => {
-      if (!slugInput.value || slugInput.dataset.autoGenerated === 'true') {
-        slugInput.value = titleInput.value
-          .toLowerCase()
-          .replace(/[ąą]/g, 'a')
-          .replace(/[ćć]/g, 'c')
-          .replace(/[ęę]/g, 'e')
-          .replace(/[łł]/g, 'l')
-          .replace(/[ńń]/g, 'n')
-          .replace(/[óó]/g, 'o')
-          .replace(/[śś]/g, 's')
-          .replace(/[źź]/g, 'z')
-          .replace(/[żż]/g, 'z')
-          .replace(/[^a-z0-9]+/g, '-')
-          .replace(/^-|-$/g, '')
-        slugInput.dataset.autoGenerated = 'true'
-      }
-    })
-
-    slugInput.addEventListener('input', () => {
-      slugInput.dataset.autoGenerated = 'false'
-    })
-
-    loadPosts()
-
-    // Settings handling
+    // Settings elements
     const settingsForm = document.getElementById('settingsForm') as HTMLFormElement
+    const cardSettingsForm = document.getElementById('cardSettingsForm') as HTMLFormElement
     const siteThemeSelect = document.getElementById('siteTheme') as HTMLSelectElement
     const siteNameInput = document.getElementById('siteName') as HTMLInputElement
     const siteDescriptionTextarea = document.getElementById('siteDescription') as HTMLTextAreaElement
+
+    // Card settings elements
+    const cardLayoutSelect = document.getElementById('cardLayout') as HTMLSelectElement
+    const thumbnailPositionSelect = document.getElementById('thumbnailPosition') as HTMLSelectElement
+    const thumbnailPositionWrapper = document.getElementById('thumbnailPositionWrapper') as HTMLDivElement
+    const thumbnailSizeSelect = document.getElementById('thumbnailSize') as HTMLSelectElement
+    const cardPaddingSelect = document.getElementById('cardPadding') as HTMLSelectElement
+    const cardBorderRadiusSelect = document.getElementById('cardBorderRadius') as HTMLSelectElement
+    const titleSizeSelect = document.getElementById('titleSize') as HTMLSelectElement
+    const showThumbnailCheckbox = document.getElementById('showThumbnail') as HTMLInputElement
+    const showDateCheckbox = document.getElementById('showDate') as HTMLInputElement
+    const showVotesCheckbox = document.getElementById('showVotes') as HTMLInputElement
+    const showCommentsCheckbox = document.getElementById('showComments') as HTMLInputElement
+    const showPayoutCheckbox = document.getElementById('showPayout') as HTMLInputElement
+    const showTagsCheckbox = document.getElementById('showTags') as HTMLInputElement
+    const cardBorderCheckbox = document.getElementById('cardBorder') as HTMLInputElement
+    const maxTagsSlider = document.getElementById('maxTags') as HTMLInputElement
+    const maxTagsValue = document.getElementById('maxTagsValue') as HTMLSpanElement
+    const maxTagsWrapper = document.getElementById('maxTagsWrapper') as HTMLDivElement
+    const cardPreview = document.getElementById('cardPreview') as HTMLDivElement
+
+    // Homepage settings elements
+    const homepageSettingsForm = document.getElementById('homepageSettingsForm') as HTMLFormElement
+    const showHeaderCheckbox = document.getElementById('showHeader') as HTMLInputElement
+    const showAuthorProfileCheckbox = document.getElementById('showAuthorProfile') as HTMLInputElement
+    const showPostCountCheckbox = document.getElementById('showPostCount') as HTMLInputElement
+    const showAuthorRewardsCheckbox = document.getElementById('showAuthorRewards') as HTMLInputElement
+    const authorAvatarSizeSelect = document.getElementById('authorAvatarSize') as HTMLSelectElement
+    const authorAvatarSizeWrapper = document.getElementById('authorAvatarSizeWrapper') as HTMLDivElement
+    const postsPerPageSlider = document.getElementById('postsPerPage') as HTMLInputElement
+    const postsPerPageValue = document.getElementById('postsPerPageValue') as HTMLSpanElement
 
     interface SettingsData {
       siteTheme: 'light' | 'dark' | 'green' | 'pink'
       siteName: string
       siteDescription: string
+      cardLayout: 'horizontal' | 'vertical'
+      thumbnailPosition: 'left' | 'right'
+      thumbnailSize: 'small' | 'medium' | 'large' | 'xlarge' | 'xxlarge'
+      cardPadding: 'compact' | 'normal' | 'spacious'
+      cardBorderRadius: 'none' | 'small' | 'medium' | 'large'
+      titleSize: 'small' | 'medium' | 'large'
+      showThumbnail: boolean
+      showDate: boolean
+      showVotes: boolean
+      showComments: boolean
+      showPayout: boolean
+      showTags: boolean
+      cardBorder: boolean
+      maxTags: number
+      showHeader: boolean
+      showAuthorProfile: boolean
+      authorAvatarSize: 'small' | 'medium' | 'large' | 'xlarge'
+      showPostCount: boolean
+      showAuthorRewards: boolean
+      postsPerPage: number
+    }
+
+    // CSS class mappings
+    const paddingClasses: Record<string, string> = {
+      compact: 'p-4',
+      normal: 'p-6',
+      spacious: 'p-8'
+    }
+
+    const borderRadiusClasses: Record<string, string> = {
+      none: 'rounded-none',
+      small: 'rounded-lg',
+      medium: 'rounded-xl',
+      large: 'rounded-2xl'
+    }
+
+    const thumbnailSizeClasses: Record<string, string> = {
+      small: 'w-16 h-16',
+      medium: 'w-24 h-24',
+      large: 'w-32 h-32',
+      xlarge: 'w-40 h-40',
+      xxlarge: 'w-52 h-52'
+    }
+
+    const titleSizeClasses: Record<string, string> = {
+      small: 'text-lg',
+      medium: 'text-xl',
+      large: 'text-2xl'
+    }
+
+    function updatePreview(): void {
+      const layout = cardLayoutSelect.value
+      const thumbPos = thumbnailPositionSelect.value
+      const thumbSize = thumbnailSizeSelect.value
+      const padding = cardPaddingSelect.value
+      const borderRadius = cardBorderRadiusSelect.value
+      const titleSize = titleSizeSelect.value
+      const showThumb = showThumbnailCheckbox.checked
+      const showDate = showDateCheckbox.checked
+      const showVotes = showVotesCheckbox.checked
+      const showComments = showCommentsCheckbox.checked
+      const showPayout = showPayoutCheckbox.checked
+      const showTags = showTagsCheckbox.checked
+      const showBorder = cardBorderCheckbox.checked
+      const maxTags = parseInt(maxTagsSlider.value)
+
+      // Update visibility of thumbnail position based on layout
+      thumbnailPositionWrapper.style.display = layout === 'horizontal' ? 'block' : 'none'
+      maxTagsWrapper.style.display = showTags ? 'block' : 'none'
+
+      const borderClass = showBorder ? 'border border-border' : ''
+      const flexDirection = layout === 'vertical' ? 'flex-col' : (thumbPos === 'right' ? 'flex-row-reverse' : 'flex-row')
+
+      const sampleTags = ['hive', 'blog', 'crypto', 'polska', 'news', 'technology', 'community', 'blockchain', 'web3', 'decentralized']
+      const displayedTags = sampleTags.slice(0, maxTags)
+
+      const thumbnailHtml = showThumb ? `
+        <img
+          src="https://images.hive.blog/256x512/https://files.peakd.com/file/peakd-hive/gtg/23tSWK86d3tpyJsGi39WaTEJqfREhvJ5BVuXsLBmMFMj6ZaSBxxMiLqxCChvf6ByV2vSu.png"
+          alt=""
+          class="${thumbnailSizeClasses[thumbSize]} object-cover rounded-lg flex-shrink-0"
+          onerror="this.src='/hive-logo.png'"
+        />
+      ` : ''
+
+      const dateHtml = showDate ? `<span>13 sty 2026</span>` : ''
+
+      const votesHtml = showVotes ? `
+        <span class="flex items-center gap-1">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" />
+          </svg>
+          156
+        </span>
+      ` : ''
+
+      const commentsHtml = showComments ? `
+        <span class="flex items-center gap-1">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+          </svg>
+          24
+        </span>
+      ` : ''
+
+      const payoutHtml = showPayout ? `<span class="text-success font-medium">$12.45</span>` : ''
+
+      const tagsHtml = showTags ? `
+        <div class="flex flex-wrap gap-2 ${layout === 'vertical' ? 'mt-3' : ''}">
+          ${displayedTags.map(tag => `<span class="px-2 py-0.5 text-xs bg-bg-secondary text-text-muted rounded">#${tag}</span>`).join('')}
+        </div>
+      ` : ''
+
+      const metaItems = [dateHtml, votesHtml, commentsHtml, payoutHtml].filter(Boolean).join('')
+      const metaHtml = metaItems ? `<div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-text-muted mb-3">${metaItems}</div>` : ''
+
+      cardPreview.innerHTML = `
+        <article class="bg-bg-card ${paddingClasses[padding]} ${borderRadiusClasses[borderRadius]} shadow-sm ${borderClass}">
+          <div class="flex ${flexDirection} gap-4">
+            ${thumbnailHtml}
+            <div class="flex-1 min-w-0">
+              <h2 class="${titleSizeClasses[titleSize]} font-semibold mb-2">
+                <span class="text-text hover:text-primary transition-colors cursor-pointer">
+                  Przykładowy tytuł posta na blogu
+                </span>
+              </h2>
+              ${metaHtml}
+              ${tagsHtml}
+            </div>
+          </div>
+        </article>
+      `
     }
 
     async function loadSettings(): Promise<void> {
@@ -301,24 +450,79 @@ import Layout from '../layouts/Layout.astro'
         const res = await fetch('/api/admin/settings')
         const data: SettingsData = await res.json()
 
+        // Site settings
         siteThemeSelect.value = data.siteTheme || 'light'
         siteNameInput.value = data.siteName || ''
         siteDescriptionTextarea.value = data.siteDescription || ''
 
+        // Card settings
+        cardLayoutSelect.value = data.cardLayout || 'horizontal'
+        thumbnailPositionSelect.value = data.thumbnailPosition || 'left'
+        thumbnailSizeSelect.value = data.thumbnailSize || 'medium'
+        cardPaddingSelect.value = data.cardPadding || 'normal'
+        cardBorderRadiusSelect.value = data.cardBorderRadius || 'large'
+        titleSizeSelect.value = data.titleSize || 'medium'
+        showThumbnailCheckbox.checked = data.showThumbnail !== false
+        showDateCheckbox.checked = data.showDate !== false
+        showVotesCheckbox.checked = data.showVotes !== false
+        showCommentsCheckbox.checked = data.showComments !== false
+        showPayoutCheckbox.checked = data.showPayout !== false
+        showTagsCheckbox.checked = data.showTags !== false
+        cardBorderCheckbox.checked = data.cardBorder !== false
+        maxTagsSlider.value = String(data.maxTags || 5)
+        maxTagsValue.textContent = String(data.maxTags || 5)
+
+        // Homepage settings
+        showHeaderCheckbox.checked = data.showHeader !== false
+        showAuthorProfileCheckbox.checked = data.showAuthorProfile !== false
+        showPostCountCheckbox.checked = data.showPostCount !== false
+        showAuthorRewardsCheckbox.checked = data.showAuthorRewards !== false
+        authorAvatarSizeSelect.value = data.authorAvatarSize || 'medium'
+        postsPerPageSlider.value = String(data.postsPerPage || 20)
+        postsPerPageValue.textContent = String(data.postsPerPage || 20)
+
+        // Update visibility
+        authorAvatarSizeWrapper.style.display = data.showAuthorProfile !== false ? 'block' : 'none'
+
         document.documentElement.setAttribute('data-theme', data.siteTheme || 'light')
+        updatePreview()
       } catch {
         console.error('Błąd ładowania ustawień')
       }
     }
 
-    settingsForm.addEventListener('submit', async (e: SubmitEvent) => {
-      e.preventDefault()
-
-      const data: SettingsData = {
+    function getSettingsData(): SettingsData {
+      return {
         siteTheme: siteThemeSelect.value as SettingsData['siteTheme'],
         siteName: siteNameInput.value,
         siteDescription: siteDescriptionTextarea.value,
+        cardLayout: cardLayoutSelect.value as SettingsData['cardLayout'],
+        thumbnailPosition: thumbnailPositionSelect.value as SettingsData['thumbnailPosition'],
+        thumbnailSize: thumbnailSizeSelect.value as SettingsData['thumbnailSize'],
+        cardPadding: cardPaddingSelect.value as SettingsData['cardPadding'],
+        cardBorderRadius: cardBorderRadiusSelect.value as SettingsData['cardBorderRadius'],
+        titleSize: titleSizeSelect.value as SettingsData['titleSize'],
+        showThumbnail: showThumbnailCheckbox.checked,
+        showDate: showDateCheckbox.checked,
+        showVotes: showVotesCheckbox.checked,
+        showComments: showCommentsCheckbox.checked,
+        showPayout: showPayoutCheckbox.checked,
+        showTags: showTagsCheckbox.checked,
+        cardBorder: cardBorderCheckbox.checked,
+        maxTags: parseInt(maxTagsSlider.value),
+        showHeader: showHeaderCheckbox.checked,
+        showAuthorProfile: showAuthorProfileCheckbox.checked,
+        authorAvatarSize: authorAvatarSizeSelect.value as SettingsData['authorAvatarSize'],
+        showPostCount: showPostCountCheckbox.checked,
+        showAuthorRewards: showAuthorRewardsCheckbox.checked,
+        postsPerPage: parseInt(postsPerPageSlider.value),
       }
+    }
+
+    async function saveSettings(e: SubmitEvent): Promise<void> {
+      e.preventDefault()
+
+      const data = getSettingsData()
 
       try {
         const res = await fetch('/api/admin/settings', {
@@ -336,6 +540,41 @@ import Layout from '../layouts/Layout.astro'
       } catch {
         showMessage('Błąd połączenia z serwerem', 'error')
       }
+    }
+
+    // Event listeners for live preview
+    const previewInputs = [
+      cardLayoutSelect, thumbnailPositionSelect, thumbnailSizeSelect,
+      cardPaddingSelect, cardBorderRadiusSelect, titleSizeSelect,
+      showThumbnailCheckbox, showDateCheckbox, showVotesCheckbox,
+      showCommentsCheckbox, showPayoutCheckbox, showTagsCheckbox,
+      cardBorderCheckbox, maxTagsSlider
+    ]
+
+    previewInputs.forEach(input => {
+      input.addEventListener('change', updatePreview)
+      input.addEventListener('input', updatePreview)
+    })
+
+    maxTagsSlider.addEventListener('input', () => {
+      maxTagsValue.textContent = maxTagsSlider.value
+    })
+
+    siteThemeSelect.addEventListener('change', () => {
+      document.documentElement.setAttribute('data-theme', siteThemeSelect.value)
+    })
+
+    settingsForm.addEventListener('submit', saveSettings)
+    cardSettingsForm.addEventListener('submit', saveSettings)
+    homepageSettingsForm.addEventListener('submit', saveSettings)
+
+    // Homepage settings visibility toggles
+    showAuthorProfileCheckbox.addEventListener('change', () => {
+      authorAvatarSizeWrapper.style.display = showAuthorProfileCheckbox.checked ? 'block' : 'none'
+    })
+
+    postsPerPageSlider.addEventListener('input', () => {
+      postsPerPageValue.textContent = postsPerPageSlider.value
     })
 
     loadSettings()
