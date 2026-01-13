@@ -6,6 +6,28 @@ import { getPayloadClient } from '../lib/payload'
 interface SiteSettings {
   siteName?: string
   siteDescription?: string
+  // Card settings
+  cardLayout?: 'horizontal' | 'vertical'
+  thumbnailPosition?: 'left' | 'right'
+  thumbnailSize?: 'small' | 'medium' | 'large' | 'xlarge' | 'xxlarge'
+  cardPadding?: 'compact' | 'normal' | 'spacious'
+  cardBorderRadius?: 'none' | 'small' | 'medium' | 'large'
+  titleSize?: 'small' | 'medium' | 'large'
+  showThumbnail?: boolean
+  showDate?: boolean
+  showVotes?: boolean
+  showComments?: boolean
+  showPayout?: boolean
+  showTags?: boolean
+  cardBorder?: boolean
+  maxTags?: number
+  // Homepage settings
+  showHeader?: boolean
+  showAuthorProfile?: boolean
+  authorAvatarSize?: 'small' | 'medium' | 'large' | 'xlarge'
+  showPostCount?: boolean
+  showAuthorRewards?: boolean
+  postsPerPage?: number
 }
 
 const hiveUsername = import.meta.env.HIVE_USERNAME
@@ -21,9 +43,11 @@ try {
     slug: 'settings',
   }) as SiteSettings
 
+  const postsLimit = settings.postsPerPage || 20
+
   if (hiveUsername) {
     [hivePosts, hiveAccount] = await Promise.all([
-      getHiveBlogPosts(hiveUsername, 20),
+      getHiveBlogPosts(hiveUsername, postsLimit),
       getHiveAccount(hiveUsername),
     ])
   }
@@ -44,24 +68,97 @@ function formatHiveAmount(amount: string): string {
   return amount.replace(' HIVE', '').replace(' HBD', '')
 }
 
+// Site settings
 const siteName = settings.siteName || 'Hive Blog'
 const siteDescription = settings.siteDescription || 'Posty z Hive blockchain'
+
+// Card settings with defaults
+const cardLayout = settings.cardLayout || 'horizontal'
+const thumbnailPosition = settings.thumbnailPosition || 'left'
+const thumbnailSize = settings.thumbnailSize || 'medium'
+const cardPadding = settings.cardPadding || 'normal'
+const cardBorderRadius = settings.cardBorderRadius || 'large'
+const titleSize = settings.titleSize || 'medium'
+const showThumbnail = settings.showThumbnail !== false
+const showDate = settings.showDate !== false
+const showVotes = settings.showVotes !== false
+const showComments = settings.showComments !== false
+const showPayout = settings.showPayout !== false
+const showTags = settings.showTags !== false
+const cardBorder = settings.cardBorder !== false
+const maxTags = settings.maxTags || 5
+
+// Homepage settings with defaults
+const showHeader = settings.showHeader !== false
+const showAuthorProfile = settings.showAuthorProfile !== false
+const authorAvatarSize = settings.authorAvatarSize || 'medium'
+const showPostCount = settings.showPostCount !== false
+const showAuthorRewards = settings.showAuthorRewards !== false
+const postsPerPage = settings.postsPerPage || 20
+
+// CSS class mappings
+const paddingClasses: Record<string, string> = {
+  compact: 'p-4',
+  normal: 'p-6',
+  spacious: 'p-8'
+}
+
+const borderRadiusClasses: Record<string, string> = {
+  none: 'rounded-none',
+  small: 'rounded-lg',
+  medium: 'rounded-xl',
+  large: 'rounded-2xl'
+}
+
+const thumbnailSizeClasses: Record<string, string> = {
+  small: 'w-16 h-16',
+  medium: 'w-24 h-24',
+  large: 'w-32 h-32',
+  xlarge: 'w-40 h-40',
+  xxlarge: 'w-52 h-52'
+}
+
+const authorAvatarSizeClasses: Record<string, string> = {
+  small: 'w-12 h-12',
+  medium: 'w-16 h-16',
+  large: 'w-20 h-20',
+  xlarge: 'w-24 h-24'
+}
+
+const titleSizeClasses: Record<string, string> = {
+  small: 'text-lg',
+  medium: 'text-xl',
+  large: 'text-2xl'
+}
+
+// Computed classes
+const cardPaddingClass = paddingClasses[cardPadding]
+const cardBorderRadiusClass = borderRadiusClasses[cardBorderRadius]
+const thumbnailSizeClass = thumbnailSizeClasses[thumbnailSize]
+const titleSizeClass = titleSizeClasses[titleSize]
+const cardBorderClass = cardBorder ? 'border border-border' : ''
+const flexDirectionClass = cardLayout === 'vertical'
+  ? 'flex-col'
+  : (thumbnailPosition === 'right' ? 'flex-row-reverse' : 'flex-row')
+const authorAvatarClass = authorAvatarSizeClasses[authorAvatarSize]
 ---
 
 <Layout title={siteName}>
   <div class="max-w-4xl mx-auto px-4 py-8">
-    <header class="flex justify-between items-center mb-8 pb-4 border-b-2 border-border">
-      <div>
-        <h1 class="text-3xl font-bold text-text">{siteName}</h1>
-        <p class="text-text-muted mt-1">{siteDescription}</p>
-      </div>
-      <a
-        href="/admin"
-        class="px-4 py-2 bg-bg-secondary text-text rounded-lg hover:bg-border transition-colors text-sm font-medium"
-      >
-        Admin
-      </a>
-    </header>
+    {showHeader && (
+      <header class="flex justify-between items-center mb-8 pb-4 border-b-2 border-border">
+        <div>
+          <h1 class="text-3xl font-bold text-text">{siteName}</h1>
+          <p class="text-text-muted mt-1">{siteDescription}</p>
+        </div>
+        <a
+          href="/admin"
+          class="px-4 py-2 bg-bg-secondary text-text rounded-lg hover:bg-border transition-colors text-sm font-medium"
+        >
+          Admin
+        </a>
+      </header>
+    )}
 
     {error && (
       <div class="bg-error/10 border border-error/30 text-error px-4 py-3 rounded-lg mb-6">
@@ -76,19 +173,20 @@ const siteDescription = settings.siteDescription || 'Posty z Hive blockchain'
       </div>
     )}
 
-    {hiveUsername && hiveAccount && (
+    {showAuthorProfile && hiveUsername && hiveAccount && (
       <div class="bg-bg-card rounded-xl p-6 mb-8 border border-border">
         <div class="flex items-center gap-4">
           <img
             src={`https://images.hive.blog/u/${hiveUsername}/avatar`}
             alt={hiveUsername}
-            class="w-16 h-16 rounded-full border-2 border-border"
+            class={`${authorAvatarClass} rounded-full border-2 border-border`}
+            onerror="this.src='/hive-logo.png'"
           />
           <div>
             <h2 class="text-xl font-semibold text-text">@{hiveUsername}</h2>
             <div class="text-text-muted text-sm space-x-4 mt-1">
-              <span>{hiveAccount.post_count} postów</span>
-              <span>{hiveAccount.posting_rewards} HP zarobionych</span>
+              {showPostCount && <span>{hiveAccount.post_count} postów</span>}
+              {showAuthorRewards && <span>{hiveAccount.posting_rewards} HP zarobionych</span>}
             </div>
           </div>
         </div>
@@ -103,17 +201,18 @@ const siteDescription = settings.siteDescription || 'Posty z Hive blockchain'
           const tags = metadata.tags || []
 
           return (
-            <article class="bg-bg-card p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow border border-border">
-              <div class="flex gap-4">
-                {thumbnail && (
+            <article class={`bg-bg-card ${cardPaddingClass} ${cardBorderRadiusClass} shadow-sm hover:shadow-md transition-shadow ${cardBorderClass}`}>
+              <div class={`flex ${flexDirectionClass} gap-4`}>
+                {showThumbnail && thumbnail && (
                   <img
                     src={`https://images.hive.blog/256x512/${thumbnail}`}
                     alt=""
-                    class="w-24 h-24 object-cover rounded-lg flex-shrink-0"
+                    class={`${thumbnailSizeClass} object-cover rounded-lg flex-shrink-0`}
+                    onerror="this.src='/hive-logo.png'"
                   />
                 )}
                 <div class="flex-1 min-w-0">
-                  <h2 class="text-xl font-semibold mb-2">
+                  <h2 class={`${titleSizeClass} font-semibold mb-2`}>
                     <a
                       href={`/${post.permlink}`}
                       class="text-text hover:text-primary transition-colors"
@@ -121,27 +220,37 @@ const siteDescription = settings.siteDescription || 'Posty z Hive blockchain'
                       {post.title}
                     </a>
                   </h2>
-                  <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-text-muted mb-3">
-                    <span>{new Date(post.created + 'Z').toLocaleDateString('pl-PL')}</span>
-                    <span class="flex items-center gap-1">
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" />
-                      </svg>
-                      {post.net_votes}
-                    </span>
-                    <span class="flex items-center gap-1">
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                      </svg>
-                      {post.children}
-                    </span>
-                    <span class="text-success font-medium">
-                      ${formatHiveAmount(post.pending_payout_value)}
-                    </span>
-                  </div>
-                  {tags.length > 0 && (
+                  {(showDate || showVotes || showComments || showPayout) && (
+                    <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-text-muted mb-3">
+                      {showDate && (
+                        <span>{new Date(post.created + 'Z').toLocaleDateString('pl-PL')}</span>
+                      )}
+                      {showVotes && (
+                        <span class="flex items-center gap-1">
+                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" />
+                          </svg>
+                          {post.net_votes}
+                        </span>
+                      )}
+                      {showComments && (
+                        <span class="flex items-center gap-1">
+                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                          </svg>
+                          {post.children}
+                        </span>
+                      )}
+                      {showPayout && (
+                        <span class="text-success font-medium">
+                          ${formatHiveAmount(post.pending_payout_value)}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                  {showTags && tags.length > 0 && (
                     <div class="flex flex-wrap gap-2">
-                      {tags.slice(0, 5).map((tag: string) => (
+                      {tags.slice(0, maxTags).map((tag: string) => (
                         <span class="px-2 py-0.5 text-xs bg-bg-secondary text-text-muted rounded">
                           #{tag}
                         </span>
