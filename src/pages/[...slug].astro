@@ -1,12 +1,18 @@
 ---
 import Layout from '../layouts/Layout.astro'
-import { getHivePost, type HiveComment } from '../lib/hive'
+import {
+  getHivePost,
+  getNetVotes,
+  parsePostMetadata,
+  formatHiveAmount,
+  type BridgePost,
+} from '../lib/hive'
 
 const { slug } = Astro.params
 const author = import.meta.env.HIVE_USERNAME
-const permlink = slug || ''
+const permlink = slug ?? ''
 
-let post: HiveComment | null = null
+let post: BridgePost | null = null
 let error: string | null = null
 
 if (!author || !permlink) {
@@ -21,18 +27,6 @@ if (!author || !permlink) {
     console.error('Error fetching Hive post:', e)
     error = 'Błąd pobierania posta z Hive blockchain.'
   }
-}
-
-function parseJsonMetadata(jsonString: string): { image?: string[]; tags?: string[] } {
-  try {
-    return JSON.parse(jsonString)
-  } catch {
-    return {}
-  }
-}
-
-function formatHiveAmount(amount: string): string {
-  return amount.replace(' HIVE', '').replace(' HBD', '')
 }
 
 // Convert markdown to basic HTML (simplified)
@@ -55,11 +49,11 @@ function markdownToHtml(markdown: string): string {
     .replace(/\n/gim, '<br />')
 }
 
-const metadata = post ? parseJsonMetadata(post.json_metadata) : {}
-const tags = metadata.tags || []
+const metadata = post ? parsePostMetadata(post.json_metadata) : {}
+const tags = metadata.tags ?? []
 ---
 
-<Layout title={`${post?.title || 'Post'} | Hive Blog`}>
+<Layout title={`${post?.title ?? 'Post'} | Hive Blog`}>
   <div class="max-w-3xl mx-auto px-4 py-8">
     <a
       href="/"
@@ -86,6 +80,7 @@ const tags = metadata.tags || []
             src={`https://images.hive.blog/u/${post.author}/avatar`}
             alt={post.author}
             class="w-10 h-10 rounded-full border border-border"
+            onerror="this.src='/hive-logo.png'"
           />
           <div>
             <a
@@ -116,7 +111,7 @@ const tags = metadata.tags || []
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" />
             </svg>
-            {post.net_votes} głosów
+            {getNetVotes(post)} głosów
           </span>
           <span class="flex items-center gap-1">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
