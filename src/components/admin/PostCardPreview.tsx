@@ -66,6 +66,8 @@ export const samplePosts: SamplePost[] = [
 interface PostCardProps {
   post: SamplePost
   compact?: boolean
+  /** Force list mode layout (ignores postsLayout setting) */
+  forceListMode?: boolean
 }
 
 export function PostCard(props: PostCardProps) {
@@ -82,6 +84,10 @@ export function PostCard(props: PostCardProps) {
   })
 
   const isVerticalLayout = createMemo(() => {
+    // When forceListMode is true, always use cardLayout setting (for card appearance preview)
+    if (props.forceListMode) {
+      return settings.cardLayout === 'vertical'
+    }
     // Force vertical for grid/masonry, otherwise respect cardLayout setting
     if (settings.postsLayout !== 'list') return true
     return settings.cardLayout === 'vertical'
@@ -193,6 +199,33 @@ export function PostCard(props: PostCardProps) {
         </div>
       </div>
     </article>
+  )
+}
+
+// ============================================
+// Single Card Preview (for card appearance settings)
+// Shows card in list mode to demonstrate orientation changes
+// ============================================
+
+interface SingleCardPreviewProps {
+  maxHeight?: string
+}
+
+export function SingleCardPreview(props: SingleCardPreviewProps) {
+  const post = samplePosts[0]
+
+  return (
+    <div
+      class="overflow-auto bg-bg rounded-lg border border-border"
+      style={{ 'max-height': props.maxHeight ?? '400px' }}
+    >
+      <div class="p-4">
+        <p class="text-xs text-text-muted mb-3 uppercase tracking-wide">
+          Podgląd karty (tryb listy)
+        </p>
+        <PostCard post={post} compact={false} forceListMode={true} />
+      </div>
+    </div>
   )
 }
 

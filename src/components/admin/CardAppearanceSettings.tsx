@@ -2,7 +2,7 @@ import { Show } from 'solid-js'
 import { settings, updateSettings } from './store'
 import { Select, Checkbox, Slider } from '../ui'
 import { cardLayoutOptions, thumbnailPositionOptions } from './types'
-import { LayoutPreview } from './PostCardPreview'
+import { SingleCardPreview } from './PostCardPreview'
 
 // ============================================
 // Card Appearance Settings Section
@@ -19,8 +19,8 @@ export function CardAppearanceSettings() {
           <CardVisibilitySection />
         </div>
 
-        {/* Unified Preview - shows cards in actual layout */}
-        <LayoutPreview postCount={3} maxHeight="450px" />
+        {/* Single card preview - shows card in list mode to demonstrate orientation */}
+        <SingleCardPreview maxHeight="450px" />
       </div>
     </div>
   )
