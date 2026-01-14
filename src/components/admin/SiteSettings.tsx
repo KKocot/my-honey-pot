@@ -10,12 +10,12 @@ import { Input, Select, Checkbox, Slider } from '../ui'
 export function SiteSettings() {
   return (
     <div class="bg-bg-card rounded-xl p-6 mb-6 border border-border">
-      <h2 class="text-xl font-semibold text-primary mb-6">Ustawienia strony</h2>
+      <h2 class="text-xl font-semibold text-primary mb-6">Site Settings</h2>
 
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div class="space-y-4">
           <Select
-            label="Motyw kolorystyczny"
+            label="Color Theme"
             options={themeOptions}
             value={settings.siteTheme}
             onChange={(e) => {
@@ -25,13 +25,13 @@ export function SiteSettings() {
           />
 
           <Input
-            label="Nazwa strony"
+            label="Site Name"
             value={settings.siteName}
             onInput={(e) => updateSettings({ siteName: e.currentTarget.value })}
           />
 
           <div>
-            <label class="block text-sm font-medium text-text mb-1">Opis strony</label>
+            <label class="block text-sm font-medium text-text mb-1">Site Description</label>
             <textarea
               rows={2}
               class="w-full px-4 py-2 bg-bg border border-border rounded-lg text-text resize-y focus:outline-none focus:ring-2 focus:ring-primary"
@@ -43,7 +43,7 @@ export function SiteSettings() {
           <div class="grid grid-cols-2 gap-4">
             <Input
               type="number"
-              label="Postów na stronie"
+              label="Posts per page"
               min={5}
               max={50}
               value={settings.postsPerPage}
@@ -51,7 +51,7 @@ export function SiteSettings() {
             />
             <Input
               type="number"
-              label="Szerokość sidebara (px)"
+              label="Sidebar width (px)"
               min={200}
               max={400}
               value={settings.sidebarWidthPx}
@@ -61,29 +61,29 @@ export function SiteSettings() {
 
           <div class="grid grid-cols-2 gap-4">
             <Checkbox
-              label="Nagłówek strony"
+              label="Page Header"
               checked={settings.showHeader}
               onChange={(e) => updateSettings({ showHeader: e.currentTarget.checked })}
             />
             <Checkbox
-              label="Profil autora"
+              label="Author Profile"
               checked={settings.showAuthorProfile}
               onChange={(e) => updateSettings({ showAuthorProfile: e.currentTarget.checked })}
             />
             <Checkbox
-              label="Liczba postów"
+              label="Post Count"
               checked={settings.showPostCount}
               onChange={(e) => updateSettings({ showPostCount: e.currentTarget.checked })}
             />
             <Checkbox
-              label="Nagrody autora"
+              label="Author Rewards"
               checked={settings.showAuthorRewards}
               onChange={(e) => updateSettings({ showAuthorRewards: e.currentTarget.checked })}
             />
           </div>
 
           <Slider
-            label="Rozmiar awatara:"
+            label="Avatar size:"
             unit="px"
             min={32}
             max={128}
@@ -106,13 +106,13 @@ export function SiteSettings() {
 function SiteSettingsPreview() {
   return (
     <div class="bg-bg rounded-lg p-4 border border-border">
-      <p class="text-xs text-text-muted mb-2 uppercase tracking-wide">Podgląd</p>
+      <p class="text-xs text-text-muted mb-2 uppercase tracking-wide">Preview</p>
       <div class="border-b-2 border-border pb-4 mb-4">
         <h1 class="text-2xl font-bold text-text">
           {settings.siteName || 'Hive Blog'}
         </h1>
         <p class="text-text-muted mt-1 text-sm">
-          {settings.siteDescription || 'Posty z Hive blockchain'}
+          {settings.siteDescription || 'Posts from Hive blockchain'}
         </p>
       </div>
 
@@ -130,10 +130,10 @@ function SiteSettingsPreview() {
               <h2 class="text-lg font-semibold text-text">@gtg</h2>
               <div class="text-text-muted text-sm space-x-4 mt-1">
                 <Show when={settings.showPostCount}>
-                  <span>1234 postów</span>
+                  <span>1234 posts</span>
                 </Show>
                 <Show when={settings.showAuthorRewards}>
-                  <span>5678 HP zarobionych</span>
+                  <span>5678 HP earned</span>
                 </Show>
               </div>
             </div>
