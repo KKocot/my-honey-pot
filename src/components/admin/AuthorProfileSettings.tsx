@@ -131,15 +131,14 @@ export function AuthorProfileSettings() {
 
 function AuthorProfilePreview() {
   const isVertical = createMemo(() => settings.authorProfileLayout === 'vertical')
+  const username = () => settings.hiveUsername || 'username'
 
   // Mock data for preview
   const mockData = {
-    username: 'gtg',
-    displayName: 'GTG',
     about: 'Hive witness and blockchain enthusiast. Building the decentralized future.',
     location: 'Poland',
-    website: 'https://gtg.openhive.network',
-    coverImage: 'https://images.hive.blog/DQmVHLKBHNgvVxu8qYbLxzgAFvV3YWVxfchkMhz1WFMKAbP/gtg-banner.png',
+    website: 'https://hive.blog',
+    coverImage: '',
     reputation: 78,
     followers: 12500,
     following: 340,
@@ -176,8 +175,8 @@ function AuthorProfilePreview() {
           >
             {/* Avatar */}
             <img
-              src={`https://images.hive.blog/u/${mockData.username}/avatar`}
-              alt={mockData.username}
+              src={`https://images.hive.blog/u/${username()}/avatar`}
+              alt={username()}
               style={{
                 width: `${settings.authorAvatarSizePx}px`,
                 height: `${settings.authorAvatarSizePx}px`,
@@ -192,9 +191,9 @@ function AuthorProfilePreview() {
               {/* Display Name & Username */}
               <div class={isVertical() ? 'mb-1' : ''}>
                 <h2 class={`font-bold text-text ${isVertical() ? 'text-base' : 'text-lg'}`}>
-                  {mockData.displayName}
+                  {username()}
                 </h2>
-                <p class="text-text-muted text-sm">@{mockData.username}</p>
+                <p class="text-text-muted text-sm">@{username()}</p>
               </div>
 
               {/* Reputation Badge */}
