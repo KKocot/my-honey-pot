@@ -16,16 +16,16 @@ let post: BridgePost | null = null
 let error: string | null = null
 
 if (!author || !permlink) {
-  error = 'Nieprawidłowy adres posta.'
+  error = 'Invalid post address.'
 } else {
   try {
     post = await getHivePost(author, permlink)
     if (!post || !post.author) {
-      error = 'Post nie został znaleziony.'
+      error = 'Post not found.'
     }
   } catch (e) {
     console.error('Error fetching Hive post:', e)
-    error = 'Błąd pobierania posta z Hive blockchain.'
+    error = 'Error fetching post from Hive blockchain.'
   }
 }
 
@@ -62,12 +62,12 @@ const tags = metadata.tags ?? []
       <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
       </svg>
-      Powrót do strony głównej
+      Back to homepage
     </a>
 
     {error && (
       <div class="bg-error/10 border border-error/30 text-error px-4 py-3 rounded-lg mb-6">
-        <strong>Błąd:</strong> {error}
+        <strong>Error:</strong> {error}
       </div>
     )}
 
@@ -92,7 +92,7 @@ const tags = metadata.tags ?? []
               @{post.author}
             </a>
             <p class="text-text-muted text-sm">
-              {new Date(post.created + 'Z').toLocaleDateString('pl-PL', {
+              {new Date(post.created + 'Z').toLocaleDateString('en-US', {
                 year: 'numeric',
                 month: 'long',
                 day: 'numeric',
@@ -111,13 +111,13 @@ const tags = metadata.tags ?? []
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" />
             </svg>
-            {getNetVotes(post)} głosów
+            {getNetVotes(post)} votes
           </span>
           <span class="flex items-center gap-1">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
             </svg>
-            {post.children} komentarzy
+            {post.children} comments
           </span>
           <span class="text-success font-medium">
             ${formatHiveAmount(post.pending_payout_value)} payout
@@ -141,7 +141,7 @@ const tags = metadata.tags ?? []
             rel="noopener"
             class="inline-flex items-center px-4 py-2 bg-primary text-bg-card rounded-lg hover:bg-primary-hover transition-colors font-medium"
           >
-            Zobacz na Hive.blog
+            View on Hive.blog
             <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
             </svg>
