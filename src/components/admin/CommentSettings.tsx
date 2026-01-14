@@ -83,6 +83,9 @@ export function CommentSettings() {
           value={settings.commentsGapPx}
           onInput={(e) => updateSettings({ commentsGapPx: parseInt(e.currentTarget.value) })}
         />
+
+        {/* Layout Preview */}
+        <CommentsLayoutPreview />
       </div>
 
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -173,7 +176,87 @@ export function CommentSettings() {
 }
 
 // ============================================
-// Comment Preview Component
+// Comments Layout Preview Component
+// ============================================
+
+const mockComments = [
+  { author: 'alice', body: 'Great post! Really enjoyed reading this.', timestamp: '1h' },
+  { author: 'bob', body: 'Thanks for sharing. This helped me understand the concept better. I was struggling with this for a while.', timestamp: '2h' },
+  { author: 'carol', body: 'Interesting perspective!', timestamp: '3h' },
+  { author: 'dave', body: 'Could you elaborate more on the second point? I think there might be some edge cases worth considering.', timestamp: '4h' },
+  { author: 'eve', body: 'Bookmarked for later reference.', timestamp: '5h' },
+  { author: 'frank', body: 'This is exactly what I was looking for. Well written and easy to follow.', timestamp: '6h' },
+]
+
+function CommentsLayoutPreview() {
+  const layoutStyle = () => {
+    if (settings.commentsLayout === 'list') {
+      return {}
+    } else if (settings.commentsLayout === 'masonry') {
+      return {
+        'column-count': settings.commentsGridColumns,
+        'column-gap': `${settings.commentsGapPx}px`,
+      }
+    } else {
+      return {
+        display: 'grid',
+        'grid-template-columns': `repeat(${settings.commentsGridColumns}, 1fr)`,
+        gap: `${settings.commentsGapPx}px`,
+      }
+    }
+  }
+
+  return (
+    <div class="mt-4 bg-bg rounded-lg p-4 border border-border">
+      <p class="text-xs text-text-muted mb-3 uppercase tracking-wide">Layout Preview</p>
+
+      <Show when={settings.commentsLayout === 'list'}>
+        <div class="space-y-0 divide-y divide-border rounded-lg border border-border overflow-hidden bg-bg-card">
+          <For each={mockComments.slice(0, 4)}>
+            {(comment) => (
+              <div class="p-3 text-xs">
+                <span class="font-medium text-text">@{comment.author}</span>
+                <span class="text-text-muted ml-2">{comment.timestamp}</span>
+                <p class="text-text-muted mt-1 line-clamp-1">{comment.body}</p>
+              </div>
+            )}
+          </For>
+        </div>
+      </Show>
+
+      <Show when={settings.commentsLayout === 'grid'}>
+        <div style={layoutStyle()}>
+          <For each={mockComments.slice(0, settings.commentsGridColumns * 2)}>
+            {(comment) => (
+              <div class="p-3 text-xs bg-bg-card rounded-lg border border-border">
+                <span class="font-medium text-text">@{comment.author}</span>
+                <span class="text-text-muted ml-2">{comment.timestamp}</span>
+                <p class="text-text-muted mt-1 line-clamp-2">{comment.body}</p>
+              </div>
+            )}
+          </For>
+        </div>
+      </Show>
+
+      <Show when={settings.commentsLayout === 'masonry'}>
+        <div style={layoutStyle()}>
+          <For each={mockComments}>
+            {(comment) => (
+              <div class="p-3 text-xs bg-bg-card rounded-lg border border-border mb-3 break-inside-avoid">
+                <span class="font-medium text-text">@{comment.author}</span>
+                <span class="text-text-muted ml-2">{comment.timestamp}</span>
+                <p class="text-text-muted mt-1">{comment.body}</p>
+              </div>
+            )}
+          </For>
+        </div>
+      </Show>
+    </div>
+  )
+}
+
+// ============================================
+// Comment Card Preview Component
 // ============================================
 
 function CommentPreview() {
