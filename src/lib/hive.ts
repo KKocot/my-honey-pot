@@ -320,6 +320,25 @@ type THiveApi = TBridgeApi & TDatabaseApi;
 /** Max limit for bridge API calls */
 const MAX_API_LIMIT = 20;
 
+/** Available sort options for posts */
+export type PostSortOption = "blog" | "posts" | "payout";
+
+/** Available sort options for comments */
+export type CommentSortOption = "comments" | "replies";
+
+/** Pagination cursor for cursor-based pagination */
+export interface PaginationCursor {
+  startAuthor?: string;
+  startPermlink?: string;
+}
+
+/** Result with pagination info */
+export interface PaginatedResult<T> {
+  items: readonly T[];
+  hasMore: boolean;
+  nextCursor?: PaginationCursor;
+}
+
 /**
  * Get blog posts for a user using bridge.get_account_posts
  * Returns posts authored by the user (blog sort includes reblogs)
@@ -340,6 +359,112 @@ export async function getHiveBlogPosts(
 
   // Filter to only include posts by this author (exclude reblogs)
   return posts.filter((post) => post.author === username);
+}
+
+/**
+ * Get posts for a user with pagination and sorting support
+ * @param username - Hive username
+ * @param sort - Sort option: "blog", "posts", "payout"
+ * @param limit - Number of posts to fetch (max 20)
+ * @param cursor - Pagination cursor (start_author, start_permlink)
+ * @param includeReblogs - Include reblogs in "blog" sort
+ */
+export async function getHivePostsPaginated(
+  username: string,
+  sort: PostSortOption = "blog",
+  limit = 20,
+  cursor?: PaginationCursor,
+  includeReblogs = false
+): Promise<PaginatedResult<BridgePost>> {
+  const chain = await getHiveChain();
+  // API has hard limit of 20, so we limit user's request to 19 to have room for +1 check
+  const safeLimit = Math.min(Math.max(1, limit), MAX_API_LIMIT - 1);
+  // Request one extra to check if there are more (still within API limit of 20)
+  const requestLimit = safeLimit + 1;
+
+  const params: GetAccountPostsParams = {
+    sort,
+    account: username,
+    limit: requestLimit,
+    ...(cursor?.startAuthor && cursor?.startPermlink ? {
+      start_author: cursor.startAuthor,
+      start_permlink: cursor.startPermlink,
+    } : {}),
+  };
+
+  const posts = await chain.api.bridge.get_account_posts(params);
+  // API already excludes the cursor post, so no need to skip first element
+
+  // Filter reblogs if needed for "blog" sort
+  let filteredPosts = posts;
+  if (sort === "blog" && !includeReblogs) {
+    filteredPosts = posts.filter((post) => post.author === username);
+  }
+
+  // Determine if there are more results
+  const hasMore = filteredPosts.length > safeLimit;
+  const items = hasMore ? filteredPosts.slice(0, safeLimit) : filteredPosts;
+
+  // Build next cursor from last item
+  const lastPost = items[items.length - 1];
+  const nextCursor = hasMore && lastPost ? {
+    startAuthor: lastPost.author,
+    startPermlink: lastPost.permlink,
+  } : undefined;
+
+  return {
+    items,
+    hasMore,
+    nextCursor,
+  };
+}
+
+/**
+ * Get comments for a user with pagination support
+ * @param username - Hive username
+ * @param sort - Sort option: "comments" or "replies"
+ * @param limit - Number of comments to fetch (max 20)
+ * @param cursor - Pagination cursor (start_author, start_permlink)
+ */
+export async function getHiveCommentsPaginated(
+  username: string,
+  sort: CommentSortOption = "comments",
+  limit = 20,
+  cursor?: PaginationCursor
+): Promise<PaginatedResult<BridgePost>> {
+  const chain = await getHiveChain();
+  // API has hard limit of 20, so we limit user's request to 19 to have room for +1 check
+  const safeLimit = Math.min(Math.max(1, limit), MAX_API_LIMIT - 1);
+  // Request one extra to check if there are more (still within API limit of 20)
+  const requestLimit = safeLimit + 1;
+
+  const params: GetAccountPostsParams = {
+    sort,
+    account: username,
+    limit: requestLimit,
+    ...(cursor?.startAuthor && cursor?.startPermlink ? {
+      start_author: cursor.startAuthor,
+      start_permlink: cursor.startPermlink,
+    } : {}),
+  };
+
+  const posts = await chain.api.bridge.get_account_posts(params);
+  // API already excludes the cursor post, so no need to skip first element
+
+  const hasMore = posts.length > safeLimit;
+  const items = hasMore ? posts.slice(0, safeLimit) : posts;
+
+  const lastPost = items[items.length - 1];
+  const nextCursor = hasMore && lastPost ? {
+    startAuthor: lastPost.author,
+    startPermlink: lastPost.permlink,
+  } : undefined;
+
+  return {
+    items,
+    hasMore,
+    nextCursor,
+  };
 }
 
 /**
