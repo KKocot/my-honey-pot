@@ -3,8 +3,10 @@ import Layout from '../layouts/Layout.astro'
 import {
   getHiveBlogPosts,
   getHiveAccount,
+  getHiveProfile,
   type BridgePost,
   type DatabaseAccount,
+  type BridgeProfile,
 } from '../lib/hive'
 import { getPayloadClient } from '../lib/payload'
 
@@ -22,6 +24,7 @@ const hiveUsername = import.meta.env.HIVE_USERNAME
 
 let hivePosts: readonly BridgePost[] = []
 let hiveAccount: DatabaseAccount | null = null
+let hiveProfile: BridgeProfile | null = null
 let settings: SiteSettings = {}
 let error: string | null = null
 
@@ -32,14 +35,15 @@ try {
   const postsLimit = settings.postsPerPage || 20
 
   if (hiveUsername) {
-    [hivePosts, hiveAccount] = await Promise.all([
+    [hivePosts, hiveAccount, hiveProfile] = await Promise.all([
       getHiveBlogPosts(hiveUsername, postsLimit),
       getHiveAccount(hiveUsername),
+      getHiveProfile(hiveUsername),
     ])
   }
 } catch (e) {
   console.error('Error fetching Hive data:', e)
-  error = 'Błąd pobierania danych z Hive blockchain.'
+  error = 'Error fetching data from Hive blockchain.'
 }
 
 // ============================================
@@ -47,7 +51,7 @@ try {
 // ============================================
 
 const siteName = settings.siteName || 'Hive Blog'
-const siteDescription = settings.siteDescription || 'Posty z Hive blockchain'
+const siteDescription = settings.siteDescription || 'Posts from Hive blockchain'
 
 const layoutSections = settings.layoutSections || defaultLayoutSections
 const sectionsByPosition: Record<string, LayoutSection[]> = {
@@ -94,6 +98,7 @@ function hasSection(position: string, sectionId: string): boolean {
             <AuthorProfile
               username={hiveUsername}
               account={hiveAccount}
+              profile={hiveProfile}
               avatarSize={authorAvatarSizePx}
               showPostCount={showPostCount}
               showRewards={showAuthorRewards}
@@ -114,8 +119,8 @@ function hasSection(position: string, sectionId: string): boolean {
 
     {!hiveUsername && !error && (
       <div class="text-center py-12 bg-bg-card rounded-xl shadow-sm border border-border">
-        <p class="text-text mb-2">Hive username nie jest skonfigurowany.</p>
-        <p class="text-text-muted">Ustaw zmienną HIVE_USERNAME w pliku .env</p>
+        <p class="text-text mb-2">Hive username is not configured.</p>
+        <p class="text-text-muted">Set the HIVE_USERNAME environment variable in .env file</p>
       </div>
     )}
 
@@ -136,6 +141,7 @@ function hasSection(position: string, sectionId: string): boolean {
                 <AuthorProfile
                   username={hiveUsername}
                   account={hiveAccount}
+                  profile={hiveProfile}
                   avatarSize={authorAvatarSizePx}
                   showPostCount={showPostCount}
                   showRewards={showAuthorRewards}
@@ -156,6 +162,7 @@ function hasSection(position: string, sectionId: string): boolean {
               <AuthorProfile
                 username={hiveUsername}
                 account={hiveAccount}
+                profile={hiveProfile}
                 avatarSize={authorAvatarSizePx}
                 showPostCount={showPostCount}
                 showRewards={showAuthorRewards}
@@ -168,7 +175,7 @@ function hasSection(position: string, sectionId: string): boolean {
 
           {hiveUsername && hivePosts.length === 0 && !error && (
             <div class="text-center py-12 bg-bg-card rounded-xl shadow-sm border border-border">
-              <p class="text-text">Brak postów dla użytkownika @{hiveUsername}</p>
+              <p class="text-text">No posts found for @{hiveUsername}</p>
             </div>
           )}
         </main>
@@ -187,6 +194,7 @@ function hasSection(position: string, sectionId: string): boolean {
                 <AuthorProfile
                   username={hiveUsername}
                   account={hiveAccount}
+                  profile={hiveProfile}
                   avatarSize={authorAvatarSizePx}
                   showPostCount={showPostCount}
                   showRewards={showAuthorRewards}
@@ -208,6 +216,7 @@ function hasSection(position: string, sectionId: string): boolean {
             <AuthorProfile
               username={hiveUsername}
               account={hiveAccount}
+              profile={hiveProfile}
               avatarSize={authorAvatarSizePx}
               showPostCount={showPostCount}
               showRewards={showAuthorRewards}
@@ -220,7 +229,7 @@ function hasSection(position: string, sectionId: string): boolean {
 
         {hiveUsername && hivePosts.length === 0 && !error && (
           <div class="text-center py-12 bg-bg-card rounded-xl shadow-sm border border-border">
-            <p class="text-text">Brak postów dla użytkownika @{hiveUsername}</p>
+            <p class="text-text">No posts found for @{hiveUsername}</p>
           </div>
         )}
       </>
@@ -240,6 +249,7 @@ function hasSection(position: string, sectionId: string): boolean {
             <AuthorProfile
               username={hiveUsername}
               account={hiveAccount}
+              profile={hiveProfile}
               avatarSize={authorAvatarSizePx}
               showPostCount={showPostCount}
               showRewards={showAuthorRewards}
