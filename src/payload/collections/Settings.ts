@@ -372,6 +372,36 @@ export const Settings: GlobalConfig = {
       type: 'checkbox',
       defaultValue: true,
     },
+    {
+      name: 'commentsLayout',
+      label: 'Układ komentarzy',
+      type: 'select',
+      defaultValue: 'list',
+      options: [
+        { label: 'Lista (pionowo)', value: 'list' },
+        { label: 'Grid (siatka)', value: 'grid' },
+        { label: 'Masonry (Pinterest)', value: 'masonry' },
+      ],
+    },
+    {
+      name: 'commentsGridColumns',
+      label: 'Liczba kolumn (dla grid/masonry)',
+      type: 'number',
+      defaultValue: 2,
+      min: 1,
+      max: 4,
+      admin: {
+        condition: (data) => data?.commentsLayout !== 'list',
+      },
+    },
+    {
+      name: 'commentsGapPx',
+      label: 'Odstęp między komentarzami (px)',
+      type: 'number',
+      defaultValue: 16,
+      min: 0,
+      max: 64,
+    },
 
     // ============================================
     // Comment Card Settings
