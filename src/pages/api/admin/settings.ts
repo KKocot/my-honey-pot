@@ -1,11 +1,6 @@
 import type { APIRoute } from 'astro'
 import { getPayloadClient } from '../../../lib/payload'
-
-interface UpdateSettingsData {
-  siteTheme?: 'light' | 'dark' | 'green' | 'pink'
-  siteName?: string
-  siteDescription?: string
-}
+import type { SettingsData } from '../../../components/admin/types'
 
 export const GET: APIRoute = async () => {
   try {
@@ -35,7 +30,7 @@ export const GET: APIRoute = async () => {
 
 export const PUT: APIRoute = async ({ request }) => {
   try {
-    const data: UpdateSettingsData = await request.json()
+    const data: Partial<SettingsData> = await request.json()
     const payload = await getPayloadClient()
 
     const updatedSettings = await payload.updateGlobal({
