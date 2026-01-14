@@ -80,7 +80,9 @@ export function PostCard(props: PostCardProps) {
 
   const cardStyle = createMemo(() => {
     const border = settings.cardBorder ? 'border: 1px solid var(--color-border);' : ''
-    return `padding: ${settings.cardPaddingPx}px; border-radius: ${settings.cardBorderRadiusPx}px; ${border}`
+    // For grid layout, make cards stretch to full height
+    const height = (settings.postsLayout === 'grid' && !props.forceListMode) ? 'height: 100%;' : ''
+    return `padding: ${settings.cardPaddingPx}px; border-radius: ${settings.cardBorderRadiusPx}px; ${border} ${height}`
   })
 
   const isVerticalLayout = createMemo(() => {
@@ -91,6 +93,11 @@ export function PostCard(props: PostCardProps) {
     // Force vertical for grid/masonry, otherwise respect cardLayout setting
     if (settings.postsLayout !== 'list') return true
     return settings.cardLayout === 'vertical'
+  })
+
+  // Whether to use flex column layout with footer at bottom (for grid mode)
+  const isGridCard = createMemo(() => {
+    return settings.postsLayout === 'grid' && !props.forceListMode && isVerticalLayout()
   })
 
   const flexDirectionClass = createMemo(() => {
@@ -134,12 +141,16 @@ export function PostCard(props: PostCardProps) {
     return settings.showDate || settings.showVotes || settings.showComments || settings.showPayout
   })
 
+  const showFooter = createMemo(() => {
+    return showMeta() || (settings.showTags && !props.compact)
+  })
+
   return (
     <article
-      class="bg-bg-card shadow-sm transition-all duration-200 overflow-hidden"
+      class="bg-bg-card shadow-sm transition-all duration-200 overflow-hidden flex flex-col"
       style={cardStyle()}
     >
-      <div class={`flex gap-3 ${flexDirectionClass()}`}>
+      <div class={`flex gap-3 ${flexDirectionClass()} ${isGridCard() ? 'flex-1' : ''}`}>
         <Show when={settings.showThumbnail}>
           <img
             src={props.post.imageUrl}
@@ -148,52 +159,60 @@ export function PostCard(props: PostCardProps) {
             onError={(e) => { e.currentTarget.src = '/hive-logo.png' }}
           />
         </Show>
-        <div class="flex-1 min-w-0">
-          <h2
-            class="font-semibold mb-2 line-clamp-2"
-            style={{ 'font-size': `${titleSize()}px` }}
-          >
-            <span class="text-text hover:text-primary transition-colors cursor-pointer">
-              {props.post.title}
-            </span>
-          </h2>
+        <div class={`flex-1 min-w-0 flex flex-col ${isGridCard() ? '' : ''}`}>
+          {/* Content section - grows to push footer down in grid mode */}
+          <div class={isGridCard() ? 'flex-1' : ''}>
+            <h2
+              class="font-semibold mb-2 line-clamp-2"
+              style={{ 'font-size': `${titleSize()}px` }}
+            >
+              <span class="text-text hover:text-primary transition-colors cursor-pointer">
+                {props.post.title}
+              </span>
+            </h2>
 
-          <Show when={settings.showSummary && !props.compact}>
-            <p class="text-text-muted text-sm mb-3 line-clamp-3">{truncatedSummary()}</p>
-          </Show>
+            <Show when={settings.showSummary && !props.compact}>
+              <p class="text-text-muted text-sm mb-3 line-clamp-3">{truncatedSummary()}</p>
+            </Show>
+          </div>
 
-          <Show when={showMeta()}>
-            <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-text-muted mb-2">
-              <Show when={settings.showDate}>
-                <span>{props.post.date}</span>
+          {/* Footer section - stays at bottom in grid mode */}
+          <Show when={showFooter()}>
+            <div class={isGridCard() ? 'mt-auto pt-2' : ''}>
+              <Show when={showMeta()}>
+                <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-text-muted mb-2">
+                  <Show when={settings.showDate}>
+                    <span>{props.post.date}</span>
+                  </Show>
+                  <Show when={settings.showVotes}>
+                    <span class="flex items-center gap-1">
+                      <VoteIcon />
+                      {props.post.votes}
+                    </span>
+                  </Show>
+                  <Show when={settings.showComments}>
+                    <span class="flex items-center gap-1">
+                      <CommentIcon />
+                      {props.post.comments}
+                    </span>
+                  </Show>
+                  <Show when={settings.showPayout}>
+                    <span class="text-success font-medium">{props.post.payout}</span>
+                  </Show>
+                </div>
               </Show>
-              <Show when={settings.showVotes}>
-                <span class="flex items-center gap-1">
-                  <VoteIcon />
-                  {props.post.votes}
-                </span>
-              </Show>
-              <Show when={settings.showComments}>
-                <span class="flex items-center gap-1">
-                  <CommentIcon />
-                  {props.post.comments}
-                </span>
-              </Show>
-              <Show when={settings.showPayout}>
-                <span class="text-success font-medium">{props.post.payout}</span>
-              </Show>
-            </div>
-          </Show>
 
-          <Show when={settings.showTags && !props.compact}>
-            <div class="flex flex-wrap gap-1">
-              <For each={visibleTags()}>
-                {(tag) => (
-                  <span class="px-2 py-0.5 text-xs bg-bg-secondary text-text-muted rounded">
-                    #{tag}
-                  </span>
-                )}
-              </For>
+              <Show when={settings.showTags && !props.compact}>
+                <div class="flex flex-wrap gap-1">
+                  <For each={visibleTags()}>
+                    {(tag) => (
+                      <span class="px-2 py-0.5 text-xs bg-bg-secondary text-text-muted rounded">
+                        #{tag}
+                      </span>
+                    )}
+                  </For>
+                </div>
+              </Show>
             </div>
           </Show>
         </div>
@@ -300,28 +319,54 @@ export function LayoutPreview(props: LayoutPreviewProps) {
 // Shows how it will look on different screen sizes
 // ============================================
 
+interface ViewportConfig {
+  name: string
+  width: number
+  scale: number
+}
+
+const viewports: ViewportConfig[] = [
+  { name: 'Desktop', width: 1200, scale: 0.35 },
+  { name: 'Tablet', width: 768, scale: 0.45 },
+  { name: 'Mobile', width: 375, scale: 0.55 },
+]
+
 export function ResponsivePreview() {
   return (
     <div class="space-y-4">
-      <div class="flex items-center justify-between">
-        <p class="text-xs text-text-muted uppercase tracking-wide">Responsive Preview</p>
-        <div class="flex gap-2 text-xs text-text-muted">
-          <span class="px-2 py-1 bg-bg-secondary rounded">Desktop</span>
-        </div>
-      </div>
+      <p class="text-xs text-text-muted uppercase tracking-wide">Responsive Preview</p>
 
-      <div
-        class="overflow-auto bg-bg rounded-lg border border-border"
-        style={{ 'max-height': '400px' }}
-      >
-        <div class="p-4 min-w-[600px]">
-          <LayoutPreview postCount={4} />
-        </div>
+      <div class="flex gap-4 justify-center flex-wrap">
+        <For each={viewports}>
+          {(viewport) => (
+            <div class="flex flex-col items-center">
+              <span class="text-xs text-text-muted mb-2 px-2 py-1 bg-bg-secondary rounded">
+                {viewport.name} ({viewport.width}px)
+              </span>
+              <div
+                class="bg-bg rounded-lg border border-border overflow-hidden"
+                style={{
+                  width: `${viewport.width * viewport.scale}px`,
+                  height: `${400 * viewport.scale}px`,
+                }}
+              >
+                <div
+                  style={{
+                    width: `${viewport.width}px`,
+                    transform: `scale(${viewport.scale})`,
+                    'transform-origin': 'top left',
+                    overflow: 'hidden',
+                  }}
+                >
+                  <div class="p-4">
+                    <LayoutPreview postCount={viewport.name === 'Mobile' ? 2 : 4} />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </For>
       </div>
-
-      <p class="text-xs text-text-muted text-center">
-        Scroll horizontally to see full preview
-      </p>
     </div>
   )
 }
