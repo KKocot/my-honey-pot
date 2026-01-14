@@ -20,7 +20,7 @@ export const samplePosts: SamplePost[] = [
   {
     title: 'Introduction to Hive Blockchain',
     summary: 'Hive is a decentralized social media platform built on blockchain technology. In this article you will learn how it works and what its advantages are.',
-    imageUrl: 'https://images.hive.blog/u/gtg/avatar',
+    imageUrl: '/hive-logo.png',
     date: 'Jan 13, 2026',
     votes: 156,
     comments: 24,
@@ -30,7 +30,7 @@ export const samplePosts: SamplePost[] = [
   {
     title: 'How to Earn on Hive?',
     summary: 'A complete guide to earning opportunities on the Hive platform - from content creation to curation and staking.',
-    imageUrl: 'https://images.hive.blog/u/blocktrades/avatar',
+    imageUrl: '/hive-logo.png',
     date: 'Jan 12, 2026',
     votes: 89,
     comments: 15,
@@ -40,7 +40,7 @@ export const samplePosts: SamplePost[] = [
   {
     title: 'News from the Hive Ecosystem',
     summary: 'An overview of the latest apps and projects being built on the Hive blockchain. See what new developments are emerging in the community.',
-    imageUrl: 'https://images.hive.blog/u/hiveio/avatar',
+    imageUrl: '/hive-logo.png',
     date: 'Jan 11, 2026',
     votes: 234,
     comments: 42,
@@ -50,7 +50,7 @@ export const samplePosts: SamplePost[] = [
   {
     title: 'Comparing Hive with Other Blockchains',
     summary: 'A technical analysis comparing Hive with Ethereum, Solana and other popular platforms. Check the differences in performance.',
-    imageUrl: 'https://images.hive.blog/u/therealwolf/avatar',
+    imageUrl: '/hive-logo.png',
     date: 'Jan 10, 2026',
     votes: 178,
     comments: 31,
