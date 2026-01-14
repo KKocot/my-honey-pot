@@ -1,0 +1,52 @@
+---
+import type { DatabaseAccount } from '../../lib/hive'
+
+interface Props {
+  username: string
+  account: DatabaseAccount
+  avatarSize: number
+  showPostCount: boolean
+  showRewards: boolean
+  layout?: 'horizontal' | 'vertical'
+}
+
+const {
+  username,
+  account,
+  avatarSize,
+  showPostCount,
+  showRewards,
+  layout = 'horizontal'
+} = Astro.props
+
+const isVertical = layout === 'vertical'
+---
+
+<div class="bg-bg-card rounded-xl p-4 md:p-6 border border-border">
+  <div class={isVertical ? 'flex flex-col items-center text-center' : 'flex items-center gap-4'}>
+    <img
+      src={`https://images.hive.blog/u/${username}/avatar`}
+      alt={username}
+      style={`width: ${avatarSize}px; height: ${avatarSize}px;`}
+      class={`rounded-full border-2 border-border ${isVertical ? 'mb-3' : ''}`}
+      onerror="this.src='/hive-logo.png'"
+    />
+    <div>
+      <h2 class={`font-semibold text-text ${isVertical ? 'text-lg' : 'text-xl'}`}>
+        @{username}
+      </h2>
+      <div class={`text-text-muted text-sm mt-1 ${isVertical ? '' : 'space-x-4'}`}>
+        {showPostCount && (
+          <span class={isVertical ? 'block' : ''}>
+            {account.post_count} postów
+          </span>
+        )}
+        {showRewards && (
+          <span class={isVertical ? 'block' : ''}>
+            {account.posting_rewards} HP{!isVertical && ' zarobionych'}
+          </span>
+        )}
+      </div>
+    </div>
+  </div>
+</div>

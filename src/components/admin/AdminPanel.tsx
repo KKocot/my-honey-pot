@@ -1,0 +1,53 @@
+import { onMount, createSignal } from 'solid-js'
+import { Toast, showToast, Button } from '../ui'
+import { LayoutEditor } from './LayoutEditor'
+import { SiteSettings } from './SiteSettings'
+import { PostsLayoutSettings } from './PostsLayoutSettings'
+import { CardAppearanceSettings } from './CardAppearanceSettings'
+import { loadSettings, saveSettings } from './store'
+
+// ============================================
+// Main Admin Panel Component
+// ============================================
+
+export function AdminPanel() {
+  const [saving, setSaving] = createSignal(false)
+
+  onMount(() => {
+    loadSettings()
+  })
+
+  const handleSave = async () => {
+    setSaving(true)
+    const success = await saveSettings()
+    setSaving(false)
+
+    if (success) {
+      showToast('Ustawienia zostały zapisane!', 'success')
+    } else {
+      showToast('Błąd zapisu ustawień', 'error')
+    }
+  }
+
+  return (
+    <>
+      <Toast />
+
+      <LayoutEditor />
+      <SiteSettings />
+      <PostsLayoutSettings />
+      <CardAppearanceSettings />
+
+      <div class="flex justify-end">
+        <Button
+          variant="accent"
+          size="lg"
+          loading={saving()}
+          onClick={handleSave}
+        >
+          Zapisz wszystkie ustawienia
+        </Button>
+      </div>
+    </>
+  )
+}

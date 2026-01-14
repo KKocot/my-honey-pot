@@ -1,0 +1,24 @@
+---
+interface Props {
+  siteName: string
+  siteDescription: string
+  showAdminLink?: boolean
+}
+
+const { siteName, siteDescription, showAdminLink = true } = Astro.props
+---
+
+<header class="flex justify-between items-center mb-8 pb-4 border-b-2 border-border">
+  <div>
+    <h1 class="text-3xl font-bold text-text">{siteName}</h1>
+    <p class="text-text-muted mt-1">{siteDescription}</p>
+  </div>
+  {showAdminLink && (
+    <a
+      href="/admin"
+      class="px-4 py-2 bg-bg-secondary text-text rounded-lg hover:bg-border transition-colors text-sm font-medium"
+    >
+      Admin
+    </a>
+  )}
+</header>

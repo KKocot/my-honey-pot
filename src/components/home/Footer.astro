@@ -1,0 +1,11 @@
+---
+interface Props {
+  class?: string
+}
+
+const { class: className = '' } = Astro.props
+---
+
+<footer class={`text-center py-8 text-text-muted text-sm border-t border-border ${className}`}>
+  Powered by Hive Blockchain
+</footer>
