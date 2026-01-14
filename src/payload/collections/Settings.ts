@@ -7,6 +7,9 @@ export const Settings: GlobalConfig = {
     read: () => true,
   },
   fields: [
+    // ============================================
+    // Site Settings
+    // ============================================
     {
       name: 'siteTheme',
       label: 'Motyw kolorystyczny',
@@ -14,37 +17,77 @@ export const Settings: GlobalConfig = {
       required: true,
       defaultValue: 'light',
       options: [
-        {
-          label: 'Jasny (Light)',
-          value: 'light',
-        },
-        {
-          label: 'Ciemny (Dark)',
-          value: 'dark',
-        },
-        {
-          label: 'Zielony (Green)',
-          value: 'green',
-        },
-        {
-          label: 'Różowy (Pink)',
-          value: 'pink',
-        },
+        { label: 'Jasny (Light)', value: 'light' },
+        { label: 'Ciemny (Dark)', value: 'dark' },
+        { label: 'Zielony (Green)', value: 'green' },
+        { label: 'Różowy (Pink)', value: 'pink' },
       ],
     },
     {
       name: 'siteName',
       label: 'Nazwa strony',
       type: 'text',
-      defaultValue: 'Astro + Payload CMS',
+      defaultValue: 'Hive Blog',
     },
     {
       name: 'siteDescription',
       label: 'Opis strony',
       type: 'textarea',
-      defaultValue: 'Projekt startowy z integracją Payload CMS',
+      defaultValue: 'Posty z Hive blockchain',
     },
-    // Card Layout Settings
+
+    // ============================================
+    // Layout Sections (Drag & Drop)
+    // ============================================
+    {
+      name: 'layoutSections',
+      label: 'Układ sekcji strony',
+      type: 'json',
+      defaultValue: [
+        { id: 'header', position: 'top', enabled: true },
+        { id: 'authorProfile', position: 'sidebar-left', enabled: true },
+        { id: 'posts', position: 'main', enabled: true },
+        { id: 'footer', position: 'bottom', enabled: false },
+      ],
+    },
+
+    // ============================================
+    // Posts Layout
+    // ============================================
+    {
+      name: 'postsLayout',
+      label: 'Układ postów',
+      type: 'select',
+      defaultValue: 'list',
+      options: [
+        { label: 'Lista (pionowo)', value: 'list' },
+        { label: 'Grid (siatka)', value: 'grid' },
+        { label: 'Masonry (Pinterest)', value: 'masonry' },
+      ],
+    },
+    {
+      name: 'gridColumns',
+      label: 'Liczba kolumn',
+      type: 'number',
+      defaultValue: 2,
+      min: 1,
+      max: 4,
+      admin: {
+        condition: (data) => data?.postsLayout !== 'list',
+      },
+    },
+    {
+      name: 'cardGapPx',
+      label: 'Odstęp między kartami (px)',
+      type: 'number',
+      defaultValue: 24,
+      min: 0,
+      max: 64,
+    },
+
+    // ============================================
+    // Card Layout - Dynamic Sizes (px)
+    // ============================================
     {
       name: 'cardLayout',
       label: 'Układ karty',
@@ -69,47 +112,63 @@ export const Settings: GlobalConfig = {
       },
     },
     {
-      name: 'thumbnailSize',
-      label: 'Rozmiar miniaturki',
-      type: 'select',
-      defaultValue: 'medium',
-      options: [
-        { label: 'Mały (64px)', value: 'small' },
-        { label: 'Średni (96px)', value: 'medium' },
-        { label: 'Duży (128px)', value: 'large' },
-        { label: 'Bardzo duży (160px)', value: 'xlarge' },
-        { label: 'Ogromny (200px)', value: 'xxlarge' },
-      ],
+      name: 'thumbnailSizePx',
+      label: 'Rozmiar miniaturki (px)',
+      type: 'number',
+      defaultValue: 96,
+      min: 32,
+      max: 400,
     },
     {
-      name: 'cardPadding',
-      label: 'Padding karty',
-      type: 'select',
-      defaultValue: 'normal',
-      options: [
-        { label: 'Kompaktowy', value: 'compact' },
-        { label: 'Normalny', value: 'normal' },
-        { label: 'Przestronny', value: 'spacious' },
-      ],
+      name: 'cardPaddingPx',
+      label: 'Padding karty (px)',
+      type: 'number',
+      defaultValue: 24,
+      min: 0,
+      max: 64,
     },
     {
-      name: 'cardBorderRadius',
-      label: 'Zaokrąglenie rogów',
-      type: 'select',
-      defaultValue: 'large',
-      options: [
-        { label: 'Brak', value: 'none' },
-        { label: 'Małe', value: 'small' },
-        { label: 'Średnie', value: 'medium' },
-        { label: 'Duże', value: 'large' },
-      ],
+      name: 'cardBorderRadiusPx',
+      label: 'Zaokrąglenie rogów (px)',
+      type: 'number',
+      defaultValue: 16,
+      min: 0,
+      max: 48,
     },
-    // Visibility Settings
+    {
+      name: 'titleSizePx',
+      label: 'Rozmiar tytułu (px)',
+      type: 'number',
+      defaultValue: 20,
+      min: 12,
+      max: 48,
+    },
+
+    // ============================================
+    // Card Visibility
+    // ============================================
     {
       name: 'showThumbnail',
       label: 'Pokaż miniaturkę',
       type: 'checkbox',
       defaultValue: true,
+    },
+    {
+      name: 'showSummary',
+      label: 'Pokaż streszczenie',
+      type: 'checkbox',
+      defaultValue: true,
+    },
+    {
+      name: 'summaryMaxLength',
+      label: 'Maksymalna długość streszczenia',
+      type: 'number',
+      defaultValue: 150,
+      min: 50,
+      max: 500,
+      admin: {
+        condition: (data) => data?.showSummary === true,
+      },
     },
     {
       name: 'showDate',
@@ -152,25 +211,16 @@ export const Settings: GlobalConfig = {
         condition: (data) => data?.showTags === true,
       },
     },
-    // Style Settings
-    {
-      name: 'titleSize',
-      label: 'Rozmiar tytułu',
-      type: 'select',
-      defaultValue: 'medium',
-      options: [
-        { label: 'Mały', value: 'small' },
-        { label: 'Średni', value: 'medium' },
-        { label: 'Duży', value: 'large' },
-      ],
-    },
     {
       name: 'cardBorder',
       label: 'Pokaż ramkę karty',
       type: 'checkbox',
       defaultValue: true,
     },
-    // Homepage Layout Settings
+
+    // ============================================
+    // Homepage Settings
+    // ============================================
     {
       name: 'showHeader',
       label: 'Pokaż nagłówek strony',
@@ -184,16 +234,12 @@ export const Settings: GlobalConfig = {
       defaultValue: true,
     },
     {
-      name: 'authorAvatarSize',
-      label: 'Rozmiar awatara autora',
-      type: 'select',
-      defaultValue: 'medium',
-      options: [
-        { label: 'Mały (48px)', value: 'small' },
-        { label: 'Średni (64px)', value: 'medium' },
-        { label: 'Duży (80px)', value: 'large' },
-        { label: 'Bardzo duży (96px)', value: 'xlarge' },
-      ],
+      name: 'authorAvatarSizePx',
+      label: 'Rozmiar awatara autora (px)',
+      type: 'number',
+      defaultValue: 64,
+      min: 32,
+      max: 128,
       admin: {
         condition: (data) => data?.showAuthorProfile === true,
       },
@@ -223,6 +269,18 @@ export const Settings: GlobalConfig = {
       defaultValue: 20,
       min: 5,
       max: 50,
+    },
+
+    // ============================================
+    // Sidebar Settings
+    // ============================================
+    {
+      name: 'sidebarWidthPx',
+      label: 'Szerokość sidebara (px)',
+      type: 'number',
+      defaultValue: 280,
+      min: 200,
+      max: 400,
     },
   ],
 }
