@@ -49,6 +49,25 @@ export type CommentCardElementId =
   | 'payout'
   | 'viewLink'
 
+// Author profile elements
+export type AuthorProfileElementId =
+  | 'coverImage'
+  | 'avatar'
+  | 'username'
+  | 'displayName'
+  | 'reputation'
+  | 'about'
+  | 'location'
+  | 'website'
+  | 'joinDate'
+  | 'followers'
+  | 'following'
+  | 'postCount'
+  | 'hpEarned'
+  | 'votingPower'
+  | 'hiveBalance'
+  | 'hbdBalance'
+
 export interface SettingsData {
   hiveUsername: string
   siteTheme: 'light' | 'dark' | 'green' | 'pink'
@@ -114,6 +133,7 @@ export interface SettingsData {
   // Card layout with sections (drag & drop)
   postCardLayout: CardLayout
   commentCardLayout: CardLayout
+  authorProfileLayout2: CardLayout
 }
 
 export const defaultSettings: SettingsData = {
@@ -200,6 +220,16 @@ export const defaultSettings: SettingsData = {
       { id: 'sec-4', orientation: 'horizontal', elements: ['replies', 'votes', 'payout', 'viewLink'] },
     ],
   },
+  authorProfileLayout2: {
+    sections: [
+      { id: 'sec-1', orientation: 'horizontal', elements: ['coverImage'] },
+      { id: 'sec-2', orientation: 'horizontal', elements: ['avatar', 'username', 'reputation'] },
+      { id: 'sec-3', orientation: 'vertical', elements: ['about'] },
+      { id: 'sec-4', orientation: 'horizontal', elements: ['location', 'website', 'joinDate'] },
+      { id: 'sec-5', orientation: 'horizontal', elements: ['followers', 'following', 'postCount', 'hpEarned'] },
+      { id: 'sec-6', orientation: 'horizontal', elements: ['votingPower', 'hiveBalance', 'hbdBalance'] },
+    ],
+  },
 }
 
 export const sectionLabels: Record<string, string> = {
@@ -255,4 +285,24 @@ export const commentCardElementLabels: Record<string, string> = {
   timestamp: 'Timestamp',
   body: 'Comment Body',
   actionBar: 'Action Bar (replies, votes, payout)',
+}
+
+// Labels for author profile elements
+export const authorProfileElementLabels: Record<string, string> = {
+  coverImage: 'Cover Image',
+  avatar: 'Avatar',
+  username: 'Username',
+  displayName: 'Display Name',
+  reputation: 'Reputation',
+  about: 'About / Bio',
+  location: 'Location',
+  website: 'Website',
+  joinDate: 'Join Date',
+  followers: 'Followers',
+  following: 'Following',
+  postCount: 'Post Count',
+  hpEarned: 'HP Earned',
+  votingPower: 'Voting Power',
+  hiveBalance: 'HIVE Balance',
+  hbdBalance: 'HBD Balance',
 }
