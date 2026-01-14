@@ -38,16 +38,16 @@ export function LayoutEditor() {
 
   return (
     <div class="bg-bg-card rounded-xl p-6 mb-6 border border-border">
-      <h2 class="text-xl font-semibold text-primary mb-6">Edytor layoutu strony</h2>
+      <h2 class="text-xl font-semibold text-primary mb-6">Page Layout Editor</h2>
       <p class="text-text-muted text-sm mb-4">
-        Przeciągnij sekcje na podglądzie, żeby zmienić ich położenie. Kliknij sekcję, żeby ją włączyć/wyłączyć.
+        Drag sections to the preview to change their position. Click a section to enable/disable it.
       </p>
 
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Available sections */}
         <div>
           <h3 class="text-sm font-medium text-text-muted uppercase tracking-wide mb-4">
-            Dostępne sekcje
+            Available Sections
           </h3>
           <div class="space-y-2">
             <For each={settings.layoutSections}>
@@ -67,12 +67,12 @@ export function LayoutEditor() {
         {/* Layout preview */}
         <div class="lg:col-span-2">
           <h3 class="text-sm font-medium text-text-muted uppercase tracking-wide mb-4">
-            Podgląd (przeciągnij sekcje tutaj)
+            Preview (drag sections here)
           </h3>
           <div class="border-2 border-dashed border-border rounded-xl overflow-hidden bg-bg min-h-[400px]">
             <DropZone
               position="top"
-              label="Góra (nagłówek)"
+              label="Top (header)"
               sections={getSectionsInPosition('top')}
               onDrop={() => handleDrop('top')}
               horizontal
@@ -81,7 +81,7 @@ export function LayoutEditor() {
             <div class="flex flex-1">
               <DropZone
                 position="sidebar-left"
-                label="Sidebar lewy"
+                label="Left Sidebar"
                 sections={getSectionsInPosition('sidebar-left')}
                 onDrop={() => handleDrop('sidebar-left')}
                 class="w-1/4 border-r-2 border-dashed border-border"
@@ -89,7 +89,7 @@ export function LayoutEditor() {
 
               <DropZone
                 position="main"
-                label="Główna treść"
+                label="Main Content"
                 sections={getSectionsInPosition('main')}
                 onDrop={() => handleDrop('main')}
                 class="flex-1"
@@ -97,7 +97,7 @@ export function LayoutEditor() {
 
               <DropZone
                 position="sidebar-right"
-                label="Sidebar prawy"
+                label="Right Sidebar"
                 sections={getSectionsInPosition('sidebar-right')}
                 onDrop={() => handleDrop('sidebar-right')}
                 class="w-1/4 border-l-2 border-dashed border-border"
@@ -106,7 +106,7 @@ export function LayoutEditor() {
 
             <DropZone
               position="bottom"
-              label="Dół (stopka)"
+              label="Bottom (footer)"
               sections={getSectionsInPosition('bottom')}
               onDrop={() => handleDrop('bottom')}
               horizontal
