@@ -100,6 +100,7 @@ export async function loadSettings(): Promise<void> {
           ...defaultSettings,
           ...data,
           layoutSections: data.layoutSections?.length ? data.layoutSections : defaultSettings.layoutSections,
+          pageLayout: data.pageLayout?.sections?.length ? data.pageLayout : defaultSettings.pageLayout,
         })
       }))
       document.documentElement.setAttribute('data-theme', data.siteTheme || 'light')
@@ -118,6 +119,7 @@ export async function loadSettings(): Promise<void> {
           ...defaultSettings,
           ...localData,
           layoutSections: localData.layoutSections?.length ? localData.layoutSections : defaultSettings.layoutSections,
+          pageLayout: localData.pageLayout?.sections?.length ? localData.pageLayout : defaultSettings.pageLayout,
         })
       }))
       document.documentElement.setAttribute('data-theme', localData.siteTheme || 'light')

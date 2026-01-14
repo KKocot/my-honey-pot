@@ -2,11 +2,35 @@
 // Shared types for admin panel
 // ============================================
 
+// Old layout section (kept for backwards compatibility)
 export interface LayoutSection {
   id: string
   position: 'top' | 'sidebar-left' | 'main' | 'sidebar-right' | 'bottom'
   enabled: boolean
 }
+
+// ============================================
+// Page Layout System (section-based drag & drop)
+// ============================================
+
+// Page slot positions
+export type PageSlotPosition = 'top' | 'sidebar-left' | 'main' | 'sidebar-right' | 'bottom'
+
+// Page section with slot, orientation, and elements
+export interface PageLayoutSection {
+  id: string
+  slot: PageSlotPosition
+  orientation: 'horizontal' | 'vertical'
+  elements: string[] // page element IDs
+}
+
+// Page layout with sections per slot
+export interface PageLayout {
+  sections: PageLayoutSection[]
+}
+
+// Page elements that can be placed in slots
+export type PageElementId = 'header' | 'authorProfile' | 'posts' | 'comments' | 'footer' | 'navigation' | 'search' | 'tags' | 'recentPosts'
 
 // Card element that can be reordered
 export interface CardElement {
@@ -134,6 +158,8 @@ export interface SettingsData {
   postCardLayout: CardLayout
   commentCardLayout: CardLayout
   authorProfileLayout2: CardLayout
+  // Page layout with sections (drag & drop)
+  pageLayout: PageLayout
 }
 
 export const defaultSettings: SettingsData = {
@@ -230,6 +256,15 @@ export const defaultSettings: SettingsData = {
       { id: 'sec-6', orientation: 'horizontal', elements: ['votingPower', 'hiveBalance', 'hbdBalance'] },
     ],
   },
+  // Default page layout with sections per slot
+  pageLayout: {
+    sections: [
+      { id: 'page-sec-1', slot: 'top', orientation: 'horizontal', elements: ['header'] },
+      { id: 'page-sec-2', slot: 'sidebar-left', orientation: 'vertical', elements: ['authorProfile'] },
+      { id: 'page-sec-3', slot: 'main', orientation: 'vertical', elements: ['posts', 'comments'] },
+      { id: 'page-sec-4', slot: 'bottom', orientation: 'horizontal', elements: ['footer'] },
+    ],
+  },
 }
 
 export const sectionLabels: Record<string, string> = {
@@ -306,3 +341,51 @@ export const authorProfileElementLabels: Record<string, string> = {
   hiveBalance: 'HIVE Balance',
   hbdBalance: 'HBD Balance',
 }
+
+// Labels for page elements
+export const pageElementLabels: Record<string, string> = {
+  header: 'Header',
+  authorProfile: 'Author Profile',
+  posts: 'Posts List',
+  comments: 'Comments List',
+  footer: 'Footer',
+  navigation: 'Navigation',
+  search: 'Search',
+  tags: 'Tags Cloud',
+  recentPosts: 'Recent Posts',
+}
+
+// Colors for page elements
+export const pageElementColors: Record<string, string> = {
+  header: 'bg-primary',
+  authorProfile: 'bg-accent',
+  posts: 'bg-success',
+  comments: 'bg-info',
+  footer: 'bg-text-muted',
+  navigation: 'bg-warning',
+  search: 'bg-info',
+  tags: 'bg-accent',
+  recentPosts: 'bg-success',
+}
+
+// Slot labels
+export const slotLabels: Record<string, string> = {
+  top: 'Top (Header Area)',
+  'sidebar-left': 'Left Sidebar',
+  main: 'Main Content',
+  'sidebar-right': 'Right Sidebar',
+  bottom: 'Bottom (Footer Area)',
+}
+
+// All available page element IDs
+export const ALL_PAGE_ELEMENT_IDS = [
+  'header',
+  'authorProfile',
+  'posts',
+  'comments',
+  'footer',
+  'navigation',
+  'search',
+  'tags',
+  'recentPosts',
+]
