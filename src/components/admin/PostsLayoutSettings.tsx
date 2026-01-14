@@ -8,7 +8,7 @@ import { LayoutPreview } from './PostCardPreview'
 // ============================================
 
 const layoutOptions = [
-  { value: 'list', label: 'Lista', icon: ListIcon },
+  { value: 'list', label: 'List', icon: ListIcon },
   { value: 'grid', label: 'Grid', icon: GridIcon },
   { value: 'masonry', label: 'Masonry', icon: MasonryIcon },
 ] as const
@@ -16,13 +16,13 @@ const layoutOptions = [
 export function PostsLayoutSettings() {
   return (
     <div class="bg-bg-card rounded-xl p-6 mb-6 border border-border">
-      <h2 class="text-xl font-semibold text-primary mb-6">Układ postów</h2>
+      <h2 class="text-xl font-semibold text-primary mb-6">Posts Layout</h2>
 
       <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
         <div class="space-y-6">
           {/* Layout Type Selection */}
           <div>
-            <label class="block text-sm font-medium text-text mb-3">Typ układu</label>
+            <label class="block text-sm font-medium text-text mb-3">Layout Type</label>
             <div class="grid grid-cols-3 gap-3">
               <For each={layoutOptions}>
                 {(option) => (
@@ -49,7 +49,7 @@ export function PostsLayoutSettings() {
           <Show when={settings.postsLayout !== 'list'}>
             <div class="space-y-4">
               <Slider
-                label="Liczba kolumn:"
+                label="Number of columns:"
                 min={1}
                 max={4}
                 value={settings.gridColumns}
@@ -59,7 +59,7 @@ export function PostsLayoutSettings() {
               <div class="flex items-center gap-2 p-3 bg-bg-secondary rounded-lg text-xs text-text-muted">
                 <InfoIcon />
                 <span>
-                  W trybie grid/masonry karty automatycznie przełączają się na orientację pionową
+                  In grid/masonry mode, cards automatically switch to vertical orientation
                 </span>
               </div>
             </div>
@@ -67,7 +67,7 @@ export function PostsLayoutSettings() {
 
           {/* Gap setting */}
           <Slider
-            label="Odstęp między kartami:"
+            label="Gap between cards:"
             unit="px"
             min={0}
             max={64}
