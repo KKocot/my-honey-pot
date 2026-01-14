@@ -9,18 +9,16 @@ interface Props {
   tabs: Tab[]
   activeTab: string
   baseUrl?: string
-  userParam?: string
 }
 
-const { tabs, activeTab, baseUrl = '', userParam } = Astro.props
+const { tabs, activeTab, baseUrl = '' } = Astro.props
 
-// Build query string preserving user param
+// Build href for tab - only add tab param if not default
 function buildHref(tabId: string): string {
-  const params = new URLSearchParams()
-  if (userParam) params.set('user', userParam)
-  if (tabId !== 'posts') params.set('tab', tabId)
-  const query = params.toString()
-  return query ? `${baseUrl || '/'}?${query}` : baseUrl || '/'
+  if (tabId === 'posts') {
+    return baseUrl || '/'
+  }
+  return `${baseUrl || '/'}?tab=${tabId}`
 }
 ---
 
