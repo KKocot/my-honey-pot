@@ -56,6 +56,9 @@ export interface SiteSettings {
   showAuthorCoverImage?: boolean
   // Comments Tab settings
   showCommentsTab?: boolean
+  commentsLayout?: 'list' | 'grid' | 'masonry'
+  commentsGridColumns?: number
+  commentsGapPx?: number
   // Comment Card settings
   commentShowAvatar?: boolean
   commentAvatarSizePx?: number

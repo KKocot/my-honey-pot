@@ -270,11 +270,33 @@ function hasSection(position: string, sectionId: string): boolean {
               ) : (
                 <>
                   {hiveComments.length > 0 ? (
-                    <div class="divide-y divide-border bg-bg-card rounded-xl shadow-sm border border-border overflow-hidden">
-                      {hiveComments.map(comment => (
-                        <CommentCard comment={comment} settings={settings} />
-                      ))}
-                    </div>
+                    settings.commentsLayout === 'list' ? (
+                      <div class="divide-y divide-border bg-bg-card rounded-xl shadow-sm border border-border overflow-hidden">
+                        {hiveComments.map(comment => (
+                          <CommentCard comment={comment} settings={settings} />
+                        ))}
+                      </div>
+                    ) : settings.commentsLayout === 'masonry' ? (
+                      <div
+                        class="bg-bg-card rounded-xl shadow-sm border border-border p-4"
+                        style={`column-count: ${settings.commentsGridColumns || 2}; column-gap: ${settings.commentsGapPx || 16}px;`}
+                      >
+                        {hiveComments.map(comment => (
+                          <div class="break-inside-avoid mb-4">
+                            <CommentCard comment={comment} settings={settings} />
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div
+                        class="bg-bg-card rounded-xl shadow-sm border border-border p-4"
+                        style={`display: grid; grid-template-columns: repeat(${settings.commentsGridColumns || 2}, 1fr); gap: ${settings.commentsGapPx || 16}px;`}
+                      >
+                        {hiveComments.map(comment => (
+                          <CommentCard comment={comment} settings={settings} />
+                        ))}
+                      </div>
+                    )
                   ) : (
                     <div class="text-center py-12 bg-bg-card rounded-xl shadow-sm border border-border">
                       <p class="text-text">No comments found for @{hiveUsername}</p>
@@ -369,11 +391,33 @@ function hasSection(position: string, sectionId: string): boolean {
             ) : (
               <>
                 {hiveComments.length > 0 ? (
-                  <div class="divide-y divide-border bg-bg-card rounded-xl shadow-sm border border-border overflow-hidden">
-                    {hiveComments.map(comment => (
-                      <CommentCard comment={comment} settings={settings} />
-                    ))}
-                  </div>
+                  settings.commentsLayout === 'list' ? (
+                    <div class="divide-y divide-border bg-bg-card rounded-xl shadow-sm border border-border overflow-hidden">
+                      {hiveComments.map(comment => (
+                        <CommentCard comment={comment} settings={settings} />
+                      ))}
+                    </div>
+                  ) : settings.commentsLayout === 'masonry' ? (
+                    <div
+                      class="bg-bg-card rounded-xl shadow-sm border border-border p-4"
+                      style={`column-count: ${settings.commentsGridColumns || 2}; column-gap: ${settings.commentsGapPx || 16}px;`}
+                    >
+                      {hiveComments.map(comment => (
+                        <div class="break-inside-avoid mb-4">
+                          <CommentCard comment={comment} settings={settings} />
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div
+                      class="bg-bg-card rounded-xl shadow-sm border border-border p-4"
+                      style={`display: grid; grid-template-columns: repeat(${settings.commentsGridColumns || 2}, 1fr); gap: ${settings.commentsGapPx || 16}px;`}
+                    >
+                      {hiveComments.map(comment => (
+                        <CommentCard comment={comment} settings={settings} />
+                      ))}
+                    </div>
+                  )
                 ) : (
                   <div class="text-center py-12 bg-bg-card rounded-xl shadow-sm border border-border">
                     <p class="text-text">No comments found for @{hiveUsername}</p>

@@ -1,6 +1,16 @@
-import { Show, createMemo } from 'solid-js'
+import { Show, createMemo, For } from 'solid-js'
 import { settings, updateSettings } from './store'
 import { Checkbox, Slider } from '../ui'
+
+// ============================================
+// Layout Options
+// ============================================
+
+const layoutOptions = [
+  { value: 'list', label: 'List', icon: ListIcon },
+  { value: 'grid', label: 'Grid', icon: GridIcon },
+  { value: 'masonry', label: 'Masonry', icon: MasonryIcon },
+] as const
 
 // ============================================
 // Comment Card Settings Section
@@ -23,8 +33,61 @@ export function CommentSettings() {
         </p>
       </div>
 
+      {/* Layout Settings */}
+      <div class="mb-6 pb-6 border-b border-border">
+        <h3 class="text-sm font-medium text-text mb-4">Comments Layout</h3>
+
+        {/* Layout Type Selection */}
+        <div class="mb-4">
+          <div class="grid grid-cols-3 gap-3">
+            <For each={layoutOptions}>
+              {(option) => (
+                <button
+                  type="button"
+                  onClick={() => updateSettings({ commentsLayout: option.value })}
+                  class={`
+                    flex flex-col items-center gap-2 p-3 rounded-lg border-2 transition-all
+                    ${settings.commentsLayout === option.value
+                      ? 'border-primary bg-primary/10 text-primary'
+                      : 'border-border hover:border-primary/50 text-text-muted hover:text-text'
+                    }
+                  `}
+                >
+                  <option.icon />
+                  <span class="text-xs font-medium">{option.label}</span>
+                </button>
+              )}
+            </For>
+          </div>
+        </div>
+
+        {/* Grid/Masonry specific settings */}
+        <Show when={settings.commentsLayout !== 'list'}>
+          <div class="mb-4">
+            <Slider
+              label="Number of columns:"
+              min={1}
+              max={4}
+              value={settings.commentsGridColumns}
+              onInput={(e) => updateSettings({ commentsGridColumns: parseInt(e.currentTarget.value) })}
+            />
+          </div>
+        </Show>
+
+        {/* Gap setting */}
+        <Slider
+          label="Gap between comments:"
+          unit="px"
+          min={0}
+          max={64}
+          value={settings.commentsGapPx}
+          onInput={(e) => updateSettings({ commentsGapPx: parseInt(e.currentTarget.value) })}
+        />
+      </div>
+
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div class="space-y-4">
+          <h3 class="text-sm font-medium text-text mb-2">Comment Card Settings</h3>
           <Slider
             label="Avatar size:"
             unit="px"
@@ -227,5 +290,33 @@ function CommentPreview() {
         </article>
       </div>
     </div>
+  )
+}
+
+// ============================================
+// Icons
+// ============================================
+
+function ListIcon() {
+  return (
+    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 6h16M4 12h16M4 18h16" />
+    </svg>
+  )
+}
+
+function GridIcon() {
+  return (
+    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zM14 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" />
+    </svg>
+  )
+}
+
+function MasonryIcon() {
+  return (
+    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 4h6v8H4zM14 4h6v5h-6zM14 13h6v7h-6zM4 16h6v4H4z" />
+    </svg>
   )
 }
