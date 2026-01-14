@@ -1,0 +1,149 @@
+---
+import type { BridgePost } from '../../lib/hive'
+
+interface Props {
+  comment: BridgePost
+}
+
+const { comment } = Astro.props
+
+// Format date to relative time
+function formatRelativeTime(dateStr: string): string {
+  const date = new Date(dateStr + 'Z')
+  const now = new Date()
+  const diffMs = now.getTime() - date.getTime()
+  const diffSec = Math.floor(diffMs / 1000)
+  const diffMin = Math.floor(diffSec / 60)
+  const diffHour = Math.floor(diffMin / 60)
+  const diffDay = Math.floor(diffHour / 24)
+
+  if (diffSec < 60) return `${diffSec}s`
+  if (diffMin < 60) return `${diffMin}m`
+  if (diffHour < 24) return `${diffHour}h`
+  if (diffDay < 7) return `${diffDay}d`
+
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+}
+
+// Get parent post info from URL
+// URL format: /category/@author/permlink#@commenter/comment-permlink
+const urlParts = comment.url.split('/')
+const parentAuthor = urlParts[2]?.replace('@', '') || ''
+const parentPermlink = urlParts[3]?.split('#')[0] || ''
+
+// Format payout
+const payout = comment.payout > 0 ? comment.payout : parseFloat(comment.pending_payout_value) || 0
+
+// Avatar URL
+const avatarUrl = `https://images.hive.blog/u/${comment.author}/avatar`
+
+// Process comment body - strip excessive markdown but keep readable
+function processBody(body: string): string {
+  return body
+    // Remove images
+    .replace(/!\[.*?\]\(.*?\)/g, '[image]')
+    // Remove links but keep text
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    // Remove HTML tags
+    .replace(/<[^>]+>/g, '')
+    // Remove markdown headers
+    .replace(/^#{1,6}\s+/gm, '')
+    // Remove horizontal rules
+    .replace(/^[-*_]{3,}\s*$/gm, '')
+    // Remove code blocks
+    .replace(/```[\s\S]*?```/g, '[code]')
+    .replace(/`[^`]+`/g, '[code]')
+    // Normalize whitespace
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+}
+
+const processedBody = processBody(comment.body)
+---
+
+<article class="border-b border-border hover:bg-bg-card/50 transition-colors">
+  <div class="p-4">
+    {/* Reply context */}
+    <div class="flex items-center gap-2 text-xs text-text-muted mb-2">
+      <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+      </svg>
+      <span>
+        Replying to
+        <a href={`/@${parentAuthor}/${parentPermlink}`} class="text-primary hover:underline">
+          @{parentAuthor}
+        </a>
+      </span>
+    </div>
+
+    <div class="flex gap-3">
+      {/* Avatar */}
+      <a href={`/@${comment.author}`} class="flex-shrink-0">
+        <img
+          src={avatarUrl}
+          alt={comment.author}
+          class="w-10 h-10 rounded-full border border-border hover:opacity-80 transition-opacity"
+          onerror="this.src='/hive-logo.png'"
+        />
+      </a>
+
+      <div class="flex-1 min-w-0">
+        {/* Author info & time */}
+        <div class="flex items-center gap-2 flex-wrap">
+          <a href={`/@${comment.author}`} class="font-semibold text-text hover:underline">
+            {comment.author}
+          </a>
+          <span class="text-text-muted">·</span>
+          <time class="text-text-muted text-sm" datetime={comment.created}>
+            {formatRelativeTime(comment.created)}
+          </time>
+        </div>
+
+        {/* Comment body */}
+        <div class="mt-2 text-text whitespace-pre-wrap break-words leading-relaxed">
+          {processedBody}
+        </div>
+
+        {/* Actions bar */}
+        <div class="flex items-center gap-6 mt-3 text-text-muted">
+          {/* Replies */}
+          <div class="flex items-center gap-1.5 text-sm hover:text-primary transition-colors cursor-pointer">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+            </svg>
+            <span>{comment.children}</span>
+          </div>
+
+          {/* Votes */}
+          <div class="flex items-center gap-1.5 text-sm hover:text-success transition-colors cursor-pointer">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
+            </svg>
+            <span>{comment.stats.total_votes}</span>
+          </div>
+
+          {/* Payout */}
+          {payout > 0 && (
+            <div class="flex items-center gap-1.5 text-sm">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span>${payout.toFixed(2)}</span>
+            </div>
+          )}
+
+          {/* Link to full discussion */}
+          <a
+            href={comment.url}
+            class="flex items-center gap-1.5 text-sm hover:text-primary transition-colors ml-auto"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+            </svg>
+            <span>View</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</article>

@@ -4,6 +4,7 @@ import {
   getHiveBlogPosts,
   getHiveAccount,
   getHiveProfile,
+  getHiveUserComments,
   type BridgePost,
   type DatabaseAccount,
   type BridgeProfile,
@@ -14,7 +15,16 @@ import Header from '../components/home/Header.astro'
 import AuthorProfile from '../components/home/AuthorProfile.astro'
 import PostsGrid from '../components/home/PostsGrid.astro'
 import Footer from '../components/home/Footer.astro'
+import ContentTabs from '../components/home/ContentTabs.astro'
+import CommentCard from '../components/home/CommentCard.astro'
 import { type SiteSettings, type LayoutSection, defaultLayoutSections } from '../components/home/types'
+
+// ============================================
+// Tab handling
+// ============================================
+
+const url = new URL(Astro.request.url)
+const activeTab = url.searchParams.get('tab') || 'posts'
 
 // ============================================
 // Data fetching
@@ -23,6 +33,7 @@ import { type SiteSettings, type LayoutSection, defaultLayoutSections } from '..
 const hiveUsername = import.meta.env.HIVE_USERNAME
 
 let hivePosts: readonly BridgePost[] = []
+let hiveComments: readonly BridgePost[] = []
 let hiveAccount: DatabaseAccount | null = null
 let hiveProfile: BridgeProfile | null = null
 let settings: SiteSettings = {}
@@ -35,16 +46,29 @@ try {
   const postsLimit = settings.postsPerPage || 20
 
   if (hiveUsername) {
-    [hivePosts, hiveAccount, hiveProfile] = await Promise.all([
-      getHiveBlogPosts(hiveUsername, postsLimit),
+    // Fetch account and profile always
+    [hiveAccount, hiveProfile] = await Promise.all([
       getHiveAccount(hiveUsername),
       getHiveProfile(hiveUsername),
     ])
+
+    // Fetch content based on active tab
+    if (activeTab === 'comments') {
+      hiveComments = await getHiveUserComments(hiveUsername, postsLimit)
+    } else {
+      hivePosts = await getHiveBlogPosts(hiveUsername, postsLimit)
+    }
   }
 } catch (e) {
   console.error('Error fetching Hive data:', e)
   error = 'Error fetching data from Hive blockchain.'
 }
+
+// Tab configuration
+const tabs = [
+  { id: 'posts', label: 'Posts', count: hiveProfile?.post_count },
+  { id: 'comments', label: 'Comments' },
+]
 
 // ============================================
 // Settings with defaults
@@ -218,14 +242,36 @@ function hasSection(position: string, sectionId: string): boolean {
               />
             </div>
           )}
-          {hasSection('main', 'posts') && hivePosts.length > 0 && (
-            <PostsGrid posts={hivePosts} settings={settings} />
-          )}
+          {hasSection('main', 'posts') && hiveUsername && (
+            <>
+              <ContentTabs tabs={tabs} activeTab={activeTab} />
 
-          {hiveUsername && hivePosts.length === 0 && !error && (
-            <div class="text-center py-12 bg-bg-card rounded-xl shadow-sm border border-border">
-              <p class="text-text">No posts found for @{hiveUsername}</p>
-            </div>
+              {activeTab === 'posts' ? (
+                <>
+                  {hivePosts.length > 0 ? (
+                    <PostsGrid posts={hivePosts} settings={settings} />
+                  ) : (
+                    <div class="text-center py-12 bg-bg-card rounded-xl shadow-sm border border-border">
+                      <p class="text-text">No posts found for @{hiveUsername}</p>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <>
+                  {hiveComments.length > 0 ? (
+                    <div class="divide-y divide-border bg-bg-card rounded-xl shadow-sm border border-border overflow-hidden">
+                      {hiveComments.map(comment => (
+                        <CommentCard comment={comment} />
+                      ))}
+                    </div>
+                  ) : (
+                    <div class="text-center py-12 bg-bg-card rounded-xl shadow-sm border border-border">
+                      <p class="text-text">No comments found for @{hiveUsername}</p>
+                    </div>
+                  )}
+                </>
+              )}
+            </>
           )}
         </main>
 
@@ -295,14 +341,36 @@ function hasSection(position: string, sectionId: string): boolean {
             />
           </div>
         )}
-        {hasSection('main', 'posts') && hivePosts.length > 0 && (
-          <PostsGrid posts={hivePosts} settings={settings} />
-        )}
+        {hasSection('main', 'posts') && hiveUsername && (
+          <>
+            <ContentTabs tabs={tabs} activeTab={activeTab} />
 
-        {hiveUsername && hivePosts.length === 0 && !error && (
-          <div class="text-center py-12 bg-bg-card rounded-xl shadow-sm border border-border">
-            <p class="text-text">No posts found for @{hiveUsername}</p>
-          </div>
+            {activeTab === 'posts' ? (
+              <>
+                {hivePosts.length > 0 ? (
+                  <PostsGrid posts={hivePosts} settings={settings} />
+                ) : (
+                  <div class="text-center py-12 bg-bg-card rounded-xl shadow-sm border border-border">
+                    <p class="text-text">No posts found for @{hiveUsername}</p>
+                  </div>
+                )}
+              </>
+            ) : (
+              <>
+                {hiveComments.length > 0 ? (
+                  <div class="divide-y divide-border bg-bg-card rounded-xl shadow-sm border border-border overflow-hidden">
+                    {hiveComments.map(comment => (
+                      <CommentCard comment={comment} />
+                    ))}
+                  </div>
+                ) : (
+                  <div class="text-center py-12 bg-bg-card rounded-xl shadow-sm border border-border">
+                    <p class="text-text">No comments found for @{hiveUsername}</p>
+                  </div>
+                )}
+              </>
+            )}
+          </>
         )}
       </>
     )}

@@ -439,6 +439,25 @@ export async function getHiveRankedPosts(
   });
 }
 
+/**
+ * Get comments made by a user using bridge.get_account_posts with sort="comments"
+ * Returns comments authored by the user (not replies to them)
+ * Note: API limit is max 20 per request
+ */
+export async function getHiveUserComments(
+  username: string,
+  limit = 20
+): Promise<readonly BridgePost[]> {
+  const chain = await getHiveChain();
+  const safeLimit = Math.min(Math.max(1, limit), MAX_API_LIMIT);
+
+  return chain.api.bridge.get_account_posts({
+    sort: "comments",
+    account: username,
+    limit: safeLimit,
+  });
+}
+
 // ============================================================================
 // Utility Functions
 // ============================================================================
