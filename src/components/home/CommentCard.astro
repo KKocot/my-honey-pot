@@ -5,9 +5,10 @@ import type { SiteSettings } from './types'
 interface Props {
   comment: BridgePost
   settings?: SiteSettings
+  layout?: 'list' | 'grid' | 'masonry'
 }
 
-const { comment, settings = {} } = Astro.props
+const { comment, settings = {}, layout = 'list' } = Astro.props
 
 // Settings with defaults
 const showAvatar = settings.commentShowAvatar !== false
@@ -83,9 +84,14 @@ const processedBody = processBody(comment.body, maxLength)
 
 // Check if action bar should be shown
 const showActionBar = showRepliesCount || showVotes || showPayout || showViewLink
+
+// Card classes based on layout
+const cardClasses = layout === 'list'
+  ? 'hover:bg-bg-card/50 transition-colors'
+  : 'bg-bg-card rounded-xl border border-border hover:shadow-md transition-all'
 ---
 
-<article class="border-b border-border hover:bg-bg-card/50 transition-colors">
+<article class={cardClasses}>
   <div style={`padding: ${padding}px;`}>
     {/* Reply context */}
     {showReplyContext && (
