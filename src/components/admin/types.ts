@@ -80,10 +80,10 @@ export const defaultSettings: SettingsData = {
 }
 
 export const sectionLabels: Record<string, string> = {
-  header: 'Nagłówek',
-  authorProfile: 'Profil autora',
-  posts: 'Lista postów',
-  footer: 'Stopka',
+  header: 'Header',
+  authorProfile: 'Author Profile',
+  posts: 'Posts List',
+  footer: 'Footer',
 }
 
 export const sectionColors: Record<string, string> = {
@@ -94,18 +94,18 @@ export const sectionColors: Record<string, string> = {
 }
 
 export const themeOptions = [
-  { value: 'light', label: 'Jasny (Light)' },
-  { value: 'dark', label: 'Ciemny (Dark)' },
-  { value: 'green', label: 'Zielony (Green)' },
-  { value: 'pink', label: 'Różowy (Pink)' },
+  { value: 'light', label: 'Light' },
+  { value: 'dark', label: 'Dark' },
+  { value: 'green', label: 'Green' },
+  { value: 'pink', label: 'Pink' },
 ]
 
 export const cardLayoutOptions = [
-  { value: 'horizontal', label: 'Poziomy' },
-  { value: 'vertical', label: 'Pionowy' },
+  { value: 'horizontal', label: 'Horizontal' },
+  { value: 'vertical', label: 'Vertical' },
 ]
 
 export const thumbnailPositionOptions = [
-  { value: 'left', label: 'Po lewej' },
-  { value: 'right', label: 'Po prawej' },
+  { value: 'left', label: 'Left' },
+  { value: 'right', label: 'Right' },
 ]
