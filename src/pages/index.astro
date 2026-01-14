@@ -1,13 +1,16 @@
 ---
 import Layout from '../layouts/Layout.astro'
 import {
-  getHiveBlogPosts,
+  getHivePostsPaginated,
+  getHiveCommentsPaginated,
   getHiveAccount,
   getHiveProfile,
-  getHiveUserComments,
   type BridgePost,
   type DatabaseAccount,
   type BridgeProfile,
+  type PostSortOption,
+  type CommentSortOption,
+  type PaginationCursor,
 } from '../lib/hive'
 import { getPayloadClient } from '../lib/payload'
 
@@ -33,6 +36,10 @@ let hiveProfile: BridgeProfile | null = null
 let settings: SiteSettings = {}
 let error: string | null = null
 let isDemoMode = false
+let hasMorePosts = false
+let hasMoreComments = false
+let nextPostsCursor: PaginationCursor | undefined
+let nextCommentsCursor: PaginationCursor | undefined
 
 // Try to load settings from MongoDB, fallback to localStorage data from cookie
 try {
@@ -74,11 +81,24 @@ const tabs = [
 ]
 
 // ============================================
+// Pagination cursor from URL
+// ============================================
+
+const startAuthor = url.searchParams.get('start_author') || undefined
+const startPermlink = url.searchParams.get('start_permlink') || undefined
+const cursor: PaginationCursor | undefined = (startAuthor && startPermlink)
+  ? { startAuthor, startPermlink }
+  : undefined
+
+// ============================================
 // Fetch Hive data
 // ============================================
 
 try {
   const postsLimit = settings.postsPerPage || 20
+  const postsSortOrder = (settings.postsSortOrder || 'blog') as PostSortOption
+  const commentsSortOrder = (settings.commentsSortOrder || 'comments') as CommentSortOption
+  const includeReblogs = settings.includeReblogs ?? false
 
   if (hiveUsername) {
     // Fetch account and profile always
@@ -87,11 +107,17 @@ try {
       getHiveProfile(hiveUsername),
     ])
 
-    // Fetch content based on active tab
+    // Fetch content based on active tab with pagination
     if (activeTab === 'comments' && showCommentsTab) {
-      hiveComments = await getHiveUserComments(hiveUsername, postsLimit)
+      const result = await getHiveCommentsPaginated(hiveUsername, commentsSortOrder, postsLimit, cursor)
+      hiveComments = result.items
+      hasMoreComments = result.hasMore
+      nextCommentsCursor = result.nextCursor
     } else {
-      hivePosts = await getHiveBlogPosts(hiveUsername, postsLimit)
+      const result = await getHivePostsPaginated(hiveUsername, postsSortOrder, postsLimit, cursor, includeReblogs)
+      hivePosts = result.items
+      hasMorePosts = result.hasMore
+      nextPostsCursor = result.nextCursor
     }
   }
 } catch (e) {
@@ -150,6 +176,24 @@ const showAuthorCoverImage = settings.showAuthorCoverImage !== false
 function hasSection(position: string, sectionId: string): boolean {
   return sectionsByPosition[position].some(s => s.id === sectionId)
 }
+
+// ============================================
+// Pagination URL helpers
+// ============================================
+
+function buildNextPageUrl(tab: string, nextCursor: PaginationCursor | undefined): string | null {
+  if (!nextCursor?.startAuthor || !nextCursor?.startPermlink) return null
+
+  const nextUrl = new URL(url)
+  nextUrl.searchParams.set('tab', tab)
+  nextUrl.searchParams.set('start_author', nextCursor.startAuthor)
+  nextUrl.searchParams.set('start_permlink', nextCursor.startPermlink)
+  return nextUrl.pathname + nextUrl.search
+}
+
+const nextPostsPageUrl = buildNextPageUrl('posts', nextPostsCursor)
+const nextCommentsPageUrl = buildNextPageUrl('comments', nextCommentsCursor)
+const isFirstPage = !cursor
 ---
 
 <Layout title={siteName}>
@@ -278,7 +322,32 @@ function hasSection(position: string, sectionId: string): boolean {
               {activeTab === 'posts' ? (
                 <>
                   {hivePosts.length > 0 ? (
-                    <PostsGrid posts={hivePosts} settings={settings} />
+                    <>
+                      <PostsGrid posts={hivePosts} settings={settings} />
+                      {/* Pagination controls for posts */}
+                      <div class="flex justify-between items-center mt-6 pt-4 border-t border-border">
+                        {!isFirstPage ? (
+                          <a
+                            href="/?tab=posts"
+                            class="px-4 py-2 bg-bg-card border border-border rounded-lg text-text hover:bg-primary hover:text-white hover:border-primary transition-colors"
+                          >
+                            First page
+                          </a>
+                        ) : (
+                          <span />
+                        )}
+                        {hasMorePosts && nextPostsPageUrl ? (
+                          <a
+                            href={nextPostsPageUrl}
+                            class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
+                          >
+                            Load more posts
+                          </a>
+                        ) : (
+                          <span />
+                        )}
+                      </div>
+                    </>
                   ) : (
                     <div class="text-center py-12 bg-bg-card rounded-xl shadow-sm border border-border">
                       <p class="text-text">No posts found for @{hiveUsername}</p>
@@ -288,31 +357,56 @@ function hasSection(position: string, sectionId: string): boolean {
               ) : (
                 <>
                   {hiveComments.length > 0 ? (
-                    settings.commentsLayout === 'list' ? (
-                      <div class="divide-y divide-border bg-bg-card rounded-xl shadow-sm border border-border overflow-hidden">
-                        {hiveComments.map(comment => (
-                          <CommentCard comment={comment} settings={settings} layout="list" />
-                        ))}
+                    <>
+                      {settings.commentsLayout === 'list' ? (
+                        <div class="divide-y divide-border bg-bg-card rounded-xl shadow-sm border border-border overflow-hidden">
+                          {hiveComments.map(comment => (
+                            <CommentCard comment={comment} settings={settings} layout="list" />
+                          ))}
+                        </div>
+                      ) : settings.commentsLayout === 'masonry' ? (
+                        <div
+                          style={`column-count: ${settings.commentsGridColumns || 2}; column-gap: ${settings.commentsGapPx || 16}px;`}
+                        >
+                          {hiveComments.map(comment => (
+                            <div class="break-inside-avoid" style={`margin-bottom: ${settings.commentsGapPx || 16}px;`}>
+                              <CommentCard comment={comment} settings={settings} layout="masonry" />
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div
+                          style={`display: grid; grid-template-columns: repeat(${settings.commentsGridColumns || 2}, 1fr); gap: ${settings.commentsGapPx || 16}px;`}
+                        >
+                          {hiveComments.map(comment => (
+                            <CommentCard comment={comment} settings={settings} layout="grid" />
+                          ))}
+                        </div>
+                      )}
+                      {/* Pagination controls for comments */}
+                      <div class="flex justify-between items-center mt-6 pt-4 border-t border-border">
+                        {!isFirstPage ? (
+                          <a
+                            href="/?tab=comments"
+                            class="px-4 py-2 bg-bg-card border border-border rounded-lg text-text hover:bg-primary hover:text-white hover:border-primary transition-colors"
+                          >
+                            First page
+                          </a>
+                        ) : (
+                          <span />
+                        )}
+                        {hasMoreComments && nextCommentsPageUrl ? (
+                          <a
+                            href={nextCommentsPageUrl}
+                            class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
+                          >
+                            Load more comments
+                          </a>
+                        ) : (
+                          <span />
+                        )}
                       </div>
-                    ) : settings.commentsLayout === 'masonry' ? (
-                      <div
-                        style={`column-count: ${settings.commentsGridColumns || 2}; column-gap: ${settings.commentsGapPx || 16}px;`}
-                      >
-                        {hiveComments.map(comment => (
-                          <div class="break-inside-avoid" style={`margin-bottom: ${settings.commentsGapPx || 16}px;`}>
-                            <CommentCard comment={comment} settings={settings} layout="masonry" />
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div
-                        style={`display: grid; grid-template-columns: repeat(${settings.commentsGridColumns || 2}, 1fr); gap: ${settings.commentsGapPx || 16}px;`}
-                      >
-                        {hiveComments.map(comment => (
-                          <CommentCard comment={comment} settings={settings} layout="grid" />
-                        ))}
-                      </div>
-                    )
+                    </>
                   ) : (
                     <div class="text-center py-12 bg-bg-card rounded-xl shadow-sm border border-border">
                       <p class="text-text">No comments found for @{hiveUsername}</p>
@@ -397,7 +491,32 @@ function hasSection(position: string, sectionId: string): boolean {
             {activeTab === 'posts' ? (
               <>
                 {hivePosts.length > 0 ? (
-                  <PostsGrid posts={hivePosts} settings={settings} />
+                  <>
+                    <PostsGrid posts={hivePosts} settings={settings} />
+                    {/* Pagination controls for posts */}
+                    <div class="flex justify-between items-center mt-6 pt-4 border-t border-border">
+                      {!isFirstPage ? (
+                        <a
+                          href="/?tab=posts"
+                          class="px-4 py-2 bg-bg-card border border-border rounded-lg text-text hover:bg-primary hover:text-white hover:border-primary transition-colors"
+                        >
+                          First page
+                        </a>
+                      ) : (
+                        <span />
+                      )}
+                      {hasMorePosts && nextPostsPageUrl ? (
+                        <a
+                          href={nextPostsPageUrl}
+                          class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
+                        >
+                          Load more posts
+                        </a>
+                      ) : (
+                        <span />
+                      )}
+                    </div>
+                  </>
                 ) : (
                   <div class="text-center py-12 bg-bg-card rounded-xl shadow-sm border border-border">
                     <p class="text-text">No posts found for @{hiveUsername}</p>
@@ -407,31 +526,56 @@ function hasSection(position: string, sectionId: string): boolean {
             ) : (
               <>
                 {hiveComments.length > 0 ? (
-                  settings.commentsLayout === 'list' ? (
-                    <div class="divide-y divide-border bg-bg-card rounded-xl shadow-sm border border-border overflow-hidden">
-                      {hiveComments.map(comment => (
-                        <CommentCard comment={comment} settings={settings} layout="list" />
-                      ))}
+                  <>
+                    {settings.commentsLayout === 'list' ? (
+                      <div class="divide-y divide-border bg-bg-card rounded-xl shadow-sm border border-border overflow-hidden">
+                        {hiveComments.map(comment => (
+                          <CommentCard comment={comment} settings={settings} layout="list" />
+                        ))}
+                      </div>
+                    ) : settings.commentsLayout === 'masonry' ? (
+                      <div
+                        style={`column-count: ${settings.commentsGridColumns || 2}; column-gap: ${settings.commentsGapPx || 16}px;`}
+                      >
+                        {hiveComments.map(comment => (
+                          <div class="break-inside-avoid" style={`margin-bottom: ${settings.commentsGapPx || 16}px;`}>
+                            <CommentCard comment={comment} settings={settings} layout="masonry" />
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div
+                        style={`display: grid; grid-template-columns: repeat(${settings.commentsGridColumns || 2}, 1fr); gap: ${settings.commentsGapPx || 16}px;`}
+                      >
+                        {hiveComments.map(comment => (
+                          <CommentCard comment={comment} settings={settings} layout="grid" />
+                        ))}
+                      </div>
+                    )}
+                    {/* Pagination controls for comments */}
+                    <div class="flex justify-between items-center mt-6 pt-4 border-t border-border">
+                      {!isFirstPage ? (
+                        <a
+                          href="/?tab=comments"
+                          class="px-4 py-2 bg-bg-card border border-border rounded-lg text-text hover:bg-primary hover:text-white hover:border-primary transition-colors"
+                        >
+                          First page
+                        </a>
+                      ) : (
+                        <span />
+                      )}
+                      {hasMoreComments && nextCommentsPageUrl ? (
+                        <a
+                          href={nextCommentsPageUrl}
+                          class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
+                        >
+                          Load more comments
+                        </a>
+                      ) : (
+                        <span />
+                      )}
                     </div>
-                  ) : settings.commentsLayout === 'masonry' ? (
-                    <div
-                      style={`column-count: ${settings.commentsGridColumns || 2}; column-gap: ${settings.commentsGapPx || 16}px;`}
-                    >
-                      {hiveComments.map(comment => (
-                        <div class="break-inside-avoid" style={`margin-bottom: ${settings.commentsGapPx || 16}px;`}>
-                          <CommentCard comment={comment} settings={settings} layout="masonry" />
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div
-                      style={`display: grid; grid-template-columns: repeat(${settings.commentsGridColumns || 2}, 1fr); gap: ${settings.commentsGapPx || 16}px;`}
-                    >
-                      {hiveComments.map(comment => (
-                        <CommentCard comment={comment} settings={settings} layout="grid" />
-                      ))}
-                    </div>
-                  )
+                  </>
                 ) : (
                   <div class="text-center py-12 bg-bg-card rounded-xl shadow-sm border border-border">
                     <p class="text-text">No comments found for @{hiveUsername}</p>
