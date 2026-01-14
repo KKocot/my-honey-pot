@@ -1,4 +1,4 @@
-import { For, Show } from 'solid-js'
+import { For, Show, createMemo } from 'solid-js'
 import { settings } from './store'
 
 // ============================================
@@ -69,34 +69,34 @@ interface PostCardProps {
 }
 
 export function PostCard(props: PostCardProps) {
-  const truncatedSummary = () => {
+  // All computed values as memos for reactivity
+  const truncatedSummary = createMemo(() => {
     const text = props.post.summary
     const maxLen = settings.summaryMaxLength
     return text.length > maxLen ? text.slice(0, maxLen) + '...' : text
-  }
+  })
 
-  const cardStyle = () => {
+  const cardStyle = createMemo(() => {
     const border = settings.cardBorder ? 'border: 1px solid var(--color-border);' : ''
     return `padding: ${settings.cardPaddingPx}px; border-radius: ${settings.cardBorderRadiusPx}px; ${border}`
-  }
+  })
 
-  const flexDirection = () => {
-    if (settings.cardLayout === 'vertical') return 'flex-col'
+  const isVerticalLayout = createMemo(() => {
+    // Force vertical for grid/masonry, otherwise respect cardLayout setting
+    if (settings.postsLayout !== 'list') return true
+    return settings.cardLayout === 'vertical'
+  })
+
+  const flexDirectionClass = createMemo(() => {
+    if (isVerticalLayout()) return 'flex-col'
     return settings.thumbnailPosition === 'right' ? 'flex-row-reverse' : 'flex-row'
-  }
+  })
 
-  // For grid/masonry, force vertical layout
-  const effectiveFlexDirection = () => {
-    if (settings.postsLayout !== 'list') return 'flex-col'
-    return flexDirection()
-  }
-
-  // Adjust thumbnail size for grid/masonry
-  const thumbnailStyle = () => {
+  const thumbnailStyle = createMemo(() => {
     const baseSize = settings.thumbnailSizePx
 
-    if (settings.postsLayout !== 'list' || settings.cardLayout === 'vertical') {
-      // Full width thumbnail for grid/masonry or vertical layout
+    if (isVerticalLayout()) {
+      // Full width thumbnail for vertical layout
       return {
         width: '100%',
         height: `${Math.min(baseSize, 200)}px`,
@@ -114,14 +114,26 @@ export function PostCard(props: PostCardProps) {
       'border-radius': '8px',
       'flex-shrink': '0',
     }
-  }
+  })
+
+  const titleSize = createMemo(() => {
+    return props.compact ? Math.max(14, settings.titleSizePx - 4) : settings.titleSizePx
+  })
+
+  const visibleTags = createMemo(() => {
+    return props.post.tags.slice(0, settings.maxTags)
+  })
+
+  const showMeta = createMemo(() => {
+    return settings.showDate || settings.showVotes || settings.showComments || settings.showPayout
+  })
 
   return (
     <article
-      class="bg-bg-card shadow-sm transition-all duration-300 overflow-hidden"
+      class="bg-bg-card shadow-sm transition-all duration-200 overflow-hidden"
       style={cardStyle()}
     >
-      <div class={`flex ${effectiveFlexDirection()} gap-3`}>
+      <div class={`flex gap-3 ${flexDirectionClass()}`}>
         <Show when={settings.showThumbnail}>
           <img
             src={props.post.imageUrl}
@@ -133,7 +145,7 @@ export function PostCard(props: PostCardProps) {
         <div class="flex-1 min-w-0">
           <h2
             class="font-semibold mb-2 line-clamp-2"
-            style={{ 'font-size': `${props.compact ? Math.max(14, settings.titleSizePx - 4) : settings.titleSizePx}px` }}
+            style={{ 'font-size': `${titleSize()}px` }}
           >
             <span class="text-text hover:text-primary transition-colors cursor-pointer">
               {props.post.title}
@@ -144,7 +156,7 @@ export function PostCard(props: PostCardProps) {
             <p class="text-text-muted text-sm mb-3 line-clamp-3">{truncatedSummary()}</p>
           </Show>
 
-          <Show when={settings.showDate || settings.showVotes || settings.showComments || settings.showPayout}>
+          <Show when={showMeta()}>
             <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-text-muted mb-2">
               <Show when={settings.showDate}>
                 <span>{props.post.date}</span>
@@ -169,7 +181,7 @@ export function PostCard(props: PostCardProps) {
 
           <Show when={settings.showTags && !props.compact}>
             <div class="flex flex-wrap gap-1">
-              <For each={props.post.tags.slice(0, settings.maxTags)}>
+              <For each={visibleTags()}>
                 {(tag) => (
                   <span class="px-2 py-0.5 text-xs bg-bg-secondary text-text-muted rounded">
                     #{tag}
@@ -194,9 +206,9 @@ interface LayoutPreviewProps {
 }
 
 export function LayoutPreview(props: LayoutPreviewProps) {
-  const count = () => props.postCount ?? 4
+  const count = createMemo(() => props.postCount ?? 4)
 
-  const getContainerStyle = () => {
+  const containerStyle = createMemo(() => {
     const gap = settings.cardGapPx
     const columns = settings.gridColumns
 
@@ -208,14 +220,24 @@ export function LayoutPreview(props: LayoutPreviewProps) {
     }
     // Masonry
     return `column-count: ${columns}; column-gap: ${gap}px;`
-  }
+  })
 
-  const getMasonryItemStyle = () => {
+  const masonryItemStyle = createMemo(() => {
     if (settings.postsLayout === 'masonry') {
       return `margin-bottom: ${settings.cardGapPx}px; break-inside: avoid;`
     }
     return ''
-  }
+  })
+
+  const layoutLabel = createMemo(() => {
+    if (settings.postsLayout === 'list') return 'lista'
+    if (settings.postsLayout === 'grid') return `grid ${settings.gridColumns} kol.`
+    return `masonry ${settings.gridColumns} kol.`
+  })
+
+  const isCompact = createMemo(() => settings.postsLayout !== 'list')
+
+  const visiblePosts = createMemo(() => samplePosts.slice(0, count()))
 
   return (
     <div
@@ -223,14 +245,14 @@ export function LayoutPreview(props: LayoutPreviewProps) {
       style={{ 'max-height': props.maxHeight ?? '500px' }}
     >
       <div class="p-4">
-        <p class="text-xs text-text-muted mb-3 uppercase tracking-wide sticky top-0 bg-bg pb-2">
-          Podgląd ({settings.postsLayout === 'list' ? 'lista' : settings.postsLayout === 'grid' ? `grid ${settings.gridColumns} kol.` : `masonry ${settings.gridColumns} kol.`})
+        <p class="text-xs text-text-muted mb-3 uppercase tracking-wide sticky top-0 bg-bg pb-2 z-10">
+          Podgląd ({layoutLabel()})
         </p>
-        <div style={getContainerStyle()}>
-          <For each={samplePosts.slice(0, count())}>
+        <div style={containerStyle()}>
+          <For each={visiblePosts()}>
             {(post) => (
-              <div style={getMasonryItemStyle()}>
-                <PostCard post={post} compact={settings.postsLayout !== 'list'} />
+              <div style={masonryItemStyle()}>
+                <PostCard post={post} compact={isCompact()} />
               </div>
             )}
           </For>
