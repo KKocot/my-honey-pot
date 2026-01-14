@@ -124,6 +124,11 @@ export function CommentSettings() {
             <p class="text-sm font-medium text-text-muted mb-3">Display Elements</p>
             <div class="grid grid-cols-2 gap-3">
               <Checkbox
+                label="Author"
+                checked={settings.commentShowAuthor}
+                onChange={(e) => updateSettings({ commentShowAuthor: e.currentTarget.checked })}
+              />
+              <Checkbox
                 label="Avatar"
                 checked={settings.commentShowAvatar}
                 onChange={(e) => updateSettings({ commentShowAvatar: e.currentTarget.checked })}
@@ -315,13 +320,19 @@ function CommentPreview() {
 
             <div class="flex-1 min-w-0">
               {/* Author & Timestamp */}
-              <div class="flex items-center gap-2 flex-wrap">
-                <span class="font-semibold text-text">{mockComment.author}</span>
-                <Show when={settings.commentShowTimestamp}>
-                  <span class="text-text-muted">·</span>
-                  <span class="text-text-muted text-sm">{mockComment.timestamp}</span>
-                </Show>
-              </div>
+              <Show when={settings.commentShowAuthor !== false || settings.commentShowTimestamp}>
+                <div class="flex items-center gap-2 flex-wrap">
+                  <Show when={settings.commentShowAuthor !== false}>
+                    <span class="font-semibold text-text">{mockComment.author}</span>
+                  </Show>
+                  <Show when={settings.commentShowTimestamp}>
+                    <Show when={settings.commentShowAuthor !== false}>
+                      <span class="text-text-muted">·</span>
+                    </Show>
+                    <span class="text-text-muted text-sm">{mockComment.timestamp}</span>
+                  </Show>
+                </div>
+              </Show>
 
               {/* Comment Body */}
               <div class="mt-2 text-text text-sm leading-relaxed">

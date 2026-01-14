@@ -60,6 +60,7 @@ export interface SiteSettings {
   commentsGridColumns?: number
   commentsGapPx?: number
   // Comment Card settings
+  commentShowAuthor?: boolean
   commentShowAvatar?: boolean
   commentAvatarSizePx?: number
   commentShowReplyContext?: boolean

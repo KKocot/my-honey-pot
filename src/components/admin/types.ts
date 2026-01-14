@@ -58,6 +58,7 @@ export interface SettingsData {
   commentsGridColumns: number
   commentsGapPx: number
   // Comment Card settings
+  commentShowAuthor: boolean
   commentShowAvatar: boolean
   commentAvatarSizePx: number
   commentShowReplyContext: boolean
@@ -125,6 +126,7 @@ export const defaultSettings: SettingsData = {
   commentsGridColumns: 2,
   commentsGapPx: 16,
   // Comment Card defaults
+  commentShowAuthor: true,
   commentShowAvatar: true,
   commentAvatarSizePx: 40,
   commentShowReplyContext: true,

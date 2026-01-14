@@ -11,6 +11,7 @@ interface Props {
 const { comment, settings = {}, layout = 'list' } = Astro.props
 
 // Settings with defaults
+const showAuthor = settings.commentShowAuthor !== false
 const showAvatar = settings.commentShowAvatar !== false
 const avatarSize = settings.commentAvatarSizePx ?? 40
 const showReplyContext = settings.commentShowReplyContext !== false
@@ -124,19 +125,23 @@ const cardClasses = layout === 'list'
 
       <div class="flex-1 min-w-0">
         {/* Author info & time */}
-        <div class="flex items-center gap-2 flex-wrap">
-          <a href={`/@${comment.author}`} class="font-semibold text-text hover:underline">
-            {comment.author}
-          </a>
-          {showTimestamp && (
-            <>
-              <span class="text-text-muted">·</span>
-              <time class="text-text-muted text-sm" datetime={comment.created}>
-                {formatRelativeTime(comment.created)}
-              </time>
-            </>
-          )}
-        </div>
+        {(showAuthor || showTimestamp) && (
+          <div class="flex items-center gap-2 flex-wrap">
+            {showAuthor && (
+              <a href={`/@${comment.author}`} class="font-semibold text-text hover:underline">
+                {comment.author}
+              </a>
+            )}
+            {showTimestamp && (
+              <>
+                {showAuthor && <span class="text-text-muted">·</span>}
+                <time class="text-text-muted text-sm" datetime={comment.created}>
+                  {formatRelativeTime(comment.created)}
+                </time>
+              </>
+            )}
+          </div>
+        )}
 
         {/* Comment body */}
         <div class="mt-2 text-text whitespace-pre-wrap break-words leading-relaxed">
