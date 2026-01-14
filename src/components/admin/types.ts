@@ -160,6 +160,10 @@ export interface SettingsData {
   authorProfileLayout2: CardLayout
   // Page layout with sections (drag & drop)
   pageLayout: PageLayout
+  // Sorting settings
+  postsSortOrder: 'blog' | 'posts' | 'payout'
+  commentsSortOrder: 'comments' | 'replies'
+  includeReblogs: boolean
 }
 
 export const defaultSettings: SettingsData = {
@@ -265,6 +269,10 @@ export const defaultSettings: SettingsData = {
       { id: 'page-sec-4', slot: 'bottom', orientation: 'horizontal', elements: ['footer'] },
     ],
   },
+  // Sorting defaults
+  postsSortOrder: 'blog',
+  commentsSortOrder: 'comments',
+  includeReblogs: false,
 }
 
 export const sectionLabels: Record<string, string> = {
@@ -301,6 +309,17 @@ export const thumbnailPositionOptions = [
 export const authorProfileLayoutOptions = [
   { value: 'horizontal', label: 'Horizontal' },
   { value: 'vertical', label: 'Vertical' },
+]
+
+export const postsSortOptions = [
+  { value: 'blog', label: 'Blog (chronological)' },
+  { value: 'posts', label: 'Posts only (no reblogs)' },
+  { value: 'payout', label: 'By payout' },
+]
+
+export const commentsSortOptions = [
+  { value: 'comments', label: 'Comments by user' },
+  { value: 'replies', label: 'Replies to user' },
 ]
 
 // Labels for post card elements
