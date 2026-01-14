@@ -52,6 +52,8 @@ export interface SettingsData {
   showAuthorHiveBalance: boolean
   showAuthorHbdBalance: boolean
   showAuthorCoverImage: boolean
+  // Comments Tab settings
+  showCommentsTab: boolean
   // Comment Card settings
   commentShowAvatar: boolean
   commentAvatarSizePx: number
@@ -114,6 +116,8 @@ export const defaultSettings: SettingsData = {
   showAuthorHiveBalance: false,
   showAuthorHbdBalance: false,
   showAuthorCoverImage: true,
+  // Comments Tab defaults
+  showCommentsTab: true,
   // Comment Card defaults
   commentShowAvatar: true,
   commentAvatarSizePx: 40,

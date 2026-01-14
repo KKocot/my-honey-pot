@@ -54,6 +54,8 @@ export interface SiteSettings {
   showAuthorHiveBalance?: boolean
   showAuthorHbdBalance?: boolean
   showAuthorCoverImage?: boolean
+  // Comments Tab settings
+  showCommentsTab?: boolean
   // Comment Card settings
   commentShowAvatar?: boolean
   commentAvatarSizePx?: number

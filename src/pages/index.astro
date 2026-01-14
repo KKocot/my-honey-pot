@@ -20,13 +20,6 @@ import CommentCard from '../components/home/CommentCard.astro'
 import { type SiteSettings, type LayoutSection, defaultLayoutSections } from '../components/home/types'
 
 // ============================================
-// Tab handling
-// ============================================
-
-const url = new URL(Astro.request.url)
-const activeTab = url.searchParams.get('tab') || 'posts'
-
-// ============================================
 // Data fetching
 // ============================================
 
@@ -42,7 +35,31 @@ let error: string | null = null
 try {
   const payload = await getPayloadClient()
   settings = await payload.findGlobal({ slug: 'settings' }) as SiteSettings
+} catch (e) {
+  console.error('Error fetching settings:', e)
+}
 
+// ============================================
+// Tab handling
+// ============================================
+
+const showCommentsTab = settings.showCommentsTab !== false
+const url = new URL(Astro.request.url)
+const requestedTab = url.searchParams.get('tab') || 'posts'
+// If comments tab is disabled but user requested it, fall back to posts
+const activeTab = (requestedTab === 'comments' && !showCommentsTab) ? 'posts' : requestedTab
+
+// Tab configuration
+const tabs = [
+  { id: 'posts', label: 'Posts', count: hiveProfile?.post_count },
+  ...(showCommentsTab ? [{ id: 'comments', label: 'Comments' }] : []),
+]
+
+// ============================================
+// Fetch Hive data
+// ============================================
+
+try {
   const postsLimit = settings.postsPerPage || 20
 
   if (hiveUsername) {
@@ -53,7 +70,7 @@ try {
     ])
 
     // Fetch content based on active tab
-    if (activeTab === 'comments') {
+    if (activeTab === 'comments' && showCommentsTab) {
       hiveComments = await getHiveUserComments(hiveUsername, postsLimit)
     } else {
       hivePosts = await getHiveBlogPosts(hiveUsername, postsLimit)
@@ -63,12 +80,6 @@ try {
   console.error('Error fetching Hive data:', e)
   error = 'Error fetching data from Hive blockchain.'
 }
-
-// Tab configuration
-const tabs = [
-  { id: 'posts', label: 'Posts', count: hiveProfile?.post_count },
-  { id: 'comments', label: 'Comments' },
-]
 
 // ============================================
 // Settings with defaults
@@ -244,7 +255,7 @@ function hasSection(position: string, sectionId: string): boolean {
           )}
           {hasSection('main', 'posts') && hiveUsername && (
             <>
-              <ContentTabs tabs={tabs} activeTab={activeTab} />
+              {tabs.length > 1 && <ContentTabs tabs={tabs} activeTab={activeTab} />}
 
               {activeTab === 'posts' ? (
                 <>
@@ -343,7 +354,7 @@ function hasSection(position: string, sectionId: string): boolean {
         )}
         {hasSection('main', 'posts') && hiveUsername && (
           <>
-            <ContentTabs tabs={tabs} activeTab={activeTab} />
+            {tabs.length > 1 && <ContentTabs tabs={tabs} activeTab={activeTab} />}
 
             {activeTab === 'posts' ? (
               <>

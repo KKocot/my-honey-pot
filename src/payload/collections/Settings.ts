@@ -364,6 +364,16 @@ export const Settings: GlobalConfig = {
     },
 
     // ============================================
+    // Comments Tab Settings
+    // ============================================
+    {
+      name: 'showCommentsTab',
+      label: 'Pokaż zakładkę Comments',
+      type: 'checkbox',
+      defaultValue: true,
+    },
+
+    // ============================================
     // Comment Card Settings
     // ============================================
     {
