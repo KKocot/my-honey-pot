@@ -41,6 +41,19 @@ export interface SiteSettings {
   showAuthorRewards?: boolean
   postsPerPage?: number
   sidebarWidthPx?: number
+  // Author Profile extended settings
+  authorProfileLayout?: 'horizontal' | 'vertical'
+  showAuthorAbout?: boolean
+  showAuthorLocation?: boolean
+  showAuthorWebsite?: boolean
+  showAuthorJoinDate?: boolean
+  showAuthorReputation?: boolean
+  showAuthorFollowers?: boolean
+  showAuthorFollowing?: boolean
+  showAuthorVotingPower?: boolean
+  showAuthorHiveBalance?: boolean
+  showAuthorHbdBalance?: boolean
+  showAuthorCoverImage?: boolean
 }
 
 export interface HomePageData {

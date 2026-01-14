@@ -4,6 +4,7 @@ import { LayoutEditor } from './LayoutEditor'
 import { SiteSettings } from './SiteSettings'
 import { PostsLayoutSettings } from './PostsLayoutSettings'
 import { CardAppearanceSettings } from './CardAppearanceSettings'
+import { AuthorProfileSettings } from './AuthorProfileSettings'
 import { loadSettings, saveSettings } from './store'
 
 // ============================================
@@ -35,6 +36,7 @@ export function AdminPanel() {
 
       <LayoutEditor />
       <SiteSettings />
+      <AuthorProfileSettings />
       <PostsLayoutSettings />
       <CardAppearanceSettings />
 

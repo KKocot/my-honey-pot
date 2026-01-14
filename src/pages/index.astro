@@ -76,6 +76,20 @@ const showPostCount = settings.showPostCount !== false
 const showAuthorRewards = settings.showAuthorRewards !== false
 const sidebarWidthPx = settings.sidebarWidthPx || 280
 
+// Author Profile extended settings
+const authorProfileLayout = settings.authorProfileLayout || 'horizontal'
+const showAuthorAbout = settings.showAuthorAbout !== false
+const showAuthorLocation = settings.showAuthorLocation !== false
+const showAuthorWebsite = settings.showAuthorWebsite !== false
+const showAuthorJoinDate = settings.showAuthorJoinDate !== false
+const showAuthorReputation = settings.showAuthorReputation !== false
+const showAuthorFollowers = settings.showAuthorFollowers !== false
+const showAuthorFollowing = settings.showAuthorFollowing !== false
+const showAuthorVotingPower = settings.showAuthorVotingPower ?? false
+const showAuthorHiveBalance = settings.showAuthorHiveBalance ?? false
+const showAuthorHbdBalance = settings.showAuthorHbdBalance ?? false
+const showAuthorCoverImage = settings.showAuthorCoverImage !== false
+
 // ============================================
 // Helper: Render section content
 // ============================================
@@ -102,6 +116,18 @@ function hasSection(position: string, sectionId: string): boolean {
               avatarSize={authorAvatarSizePx}
               showPostCount={showPostCount}
               showRewards={showAuthorRewards}
+              layout={authorProfileLayout}
+              showAbout={showAuthorAbout}
+              showLocation={showAuthorLocation}
+              showWebsite={showAuthorWebsite}
+              showJoinDate={showAuthorJoinDate}
+              showReputation={showAuthorReputation}
+              showFollowers={showAuthorFollowers}
+              showFollowing={showAuthorFollowing}
+              showVotingPower={showAuthorVotingPower}
+              showHiveBalance={showAuthorHiveBalance}
+              showHbdBalance={showAuthorHbdBalance}
+              showCoverImage={showAuthorCoverImage}
             />
           </div>
         )}
@@ -146,6 +172,17 @@ function hasSection(position: string, sectionId: string): boolean {
                   showPostCount={showPostCount}
                   showRewards={showAuthorRewards}
                   layout="vertical"
+                  showAbout={showAuthorAbout}
+                  showLocation={showAuthorLocation}
+                  showWebsite={showAuthorWebsite}
+                  showJoinDate={showAuthorJoinDate}
+                  showReputation={showAuthorReputation}
+                  showFollowers={showAuthorFollowers}
+                  showFollowing={showAuthorFollowing}
+                  showVotingPower={showAuthorVotingPower}
+                  showHiveBalance={showAuthorHiveBalance}
+                  showHbdBalance={showAuthorHbdBalance}
+                  showCoverImage={showAuthorCoverImage}
                 />
               </div>
             )}
@@ -166,6 +203,18 @@ function hasSection(position: string, sectionId: string): boolean {
                 avatarSize={authorAvatarSizePx}
                 showPostCount={showPostCount}
                 showRewards={showAuthorRewards}
+                layout={authorProfileLayout}
+                showAbout={showAuthorAbout}
+                showLocation={showAuthorLocation}
+                showWebsite={showAuthorWebsite}
+                showJoinDate={showAuthorJoinDate}
+                showReputation={showAuthorReputation}
+                showFollowers={showAuthorFollowers}
+                showFollowing={showAuthorFollowing}
+                showVotingPower={showAuthorVotingPower}
+                showHiveBalance={showAuthorHiveBalance}
+                showHbdBalance={showAuthorHbdBalance}
+                showCoverImage={showAuthorCoverImage}
               />
             </div>
           )}
@@ -199,6 +248,17 @@ function hasSection(position: string, sectionId: string): boolean {
                   showPostCount={showPostCount}
                   showRewards={showAuthorRewards}
                   layout="vertical"
+                  showAbout={showAuthorAbout}
+                  showLocation={showAuthorLocation}
+                  showWebsite={showAuthorWebsite}
+                  showJoinDate={showAuthorJoinDate}
+                  showReputation={showAuthorReputation}
+                  showFollowers={showAuthorFollowers}
+                  showFollowing={showAuthorFollowing}
+                  showVotingPower={showAuthorVotingPower}
+                  showHiveBalance={showAuthorHiveBalance}
+                  showHbdBalance={showAuthorHbdBalance}
+                  showCoverImage={showAuthorCoverImage}
                 />
               </div>
             )}
@@ -220,6 +280,18 @@ function hasSection(position: string, sectionId: string): boolean {
               avatarSize={authorAvatarSizePx}
               showPostCount={showPostCount}
               showRewards={showAuthorRewards}
+              layout={authorProfileLayout}
+              showAbout={showAuthorAbout}
+              showLocation={showAuthorLocation}
+              showWebsite={showAuthorWebsite}
+              showJoinDate={showAuthorJoinDate}
+              showReputation={showAuthorReputation}
+              showFollowers={showAuthorFollowers}
+              showFollowing={showAuthorFollowing}
+              showVotingPower={showAuthorVotingPower}
+              showHiveBalance={showAuthorHiveBalance}
+              showHbdBalance={showAuthorHbdBalance}
+              showCoverImage={showAuthorCoverImage}
             />
           </div>
         )}
@@ -253,6 +325,18 @@ function hasSection(position: string, sectionId: string): boolean {
               avatarSize={authorAvatarSizePx}
               showPostCount={showPostCount}
               showRewards={showAuthorRewards}
+              layout={authorProfileLayout}
+              showAbout={showAuthorAbout}
+              showLocation={showAuthorLocation}
+              showWebsite={showAuthorWebsite}
+              showJoinDate={showAuthorJoinDate}
+              showReputation={showAuthorReputation}
+              showFollowers={showAuthorFollowers}
+              showFollowing={showAuthorFollowing}
+              showVotingPower={showAuthorVotingPower}
+              showHiveBalance={showAuthorHiveBalance}
+              showHbdBalance={showAuthorHbdBalance}
+              showCoverImage={showAuthorCoverImage}
             />
           </div>
         )}

@@ -39,6 +39,19 @@ export interface SettingsData {
   showAuthorRewards: boolean
   postsPerPage: number
   sidebarWidthPx: number
+  // Author Profile extended settings
+  authorProfileLayout: 'horizontal' | 'vertical'
+  showAuthorAbout: boolean
+  showAuthorLocation: boolean
+  showAuthorWebsite: boolean
+  showAuthorJoinDate: boolean
+  showAuthorReputation: boolean
+  showAuthorFollowers: boolean
+  showAuthorFollowing: boolean
+  showAuthorVotingPower: boolean
+  showAuthorHiveBalance: boolean
+  showAuthorHbdBalance: boolean
+  showAuthorCoverImage: boolean
 }
 
 export const defaultSettings: SettingsData = {
@@ -77,6 +90,19 @@ export const defaultSettings: SettingsData = {
   showAuthorRewards: true,
   postsPerPage: 20,
   sidebarWidthPx: 280,
+  // Author Profile extended defaults
+  authorProfileLayout: 'horizontal',
+  showAuthorAbout: true,
+  showAuthorLocation: true,
+  showAuthorWebsite: true,
+  showAuthorJoinDate: true,
+  showAuthorReputation: true,
+  showAuthorFollowers: true,
+  showAuthorFollowing: true,
+  showAuthorVotingPower: false,
+  showAuthorHiveBalance: false,
+  showAuthorHbdBalance: false,
+  showAuthorCoverImage: true,
 }
 
 export const sectionLabels: Record<string, string> = {
@@ -108,4 +134,9 @@ export const cardLayoutOptions = [
 export const thumbnailPositionOptions = [
   { value: 'left', label: 'Left' },
   { value: 'right', label: 'Right' },
+]
+
+export const authorProfileLayoutOptions = [
+  { value: 'horizontal', label: 'Horizontal' },
+  { value: 'vertical', label: 'Vertical' },
 ]
