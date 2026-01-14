@@ -6,7 +6,6 @@ import { defaultSettings, type SettingsData, type LayoutSection } from './types'
 // ============================================
 
 const STORAGE_KEY = 'hive-blog-settings'
-const USERNAME_KEY = 'hive-blog-username'
 
 // ============================================
 // Demo Mode Detection
@@ -25,33 +24,6 @@ export function isInDemoMode(): boolean {
 const [settings, setSettings] = createStore<SettingsData>(defaultSettings)
 
 export { settings }
-
-// ============================================
-// Hive Username Store
-// ============================================
-
-let hiveUsername = ''
-
-export function getHiveUsername(): string {
-  return hiveUsername
-}
-
-export function setHiveUsername(username: string): void {
-  hiveUsername = username.replace('@', '').trim()
-  if (typeof localStorage !== 'undefined') {
-    localStorage.setItem(USERNAME_KEY, hiveUsername)
-  }
-}
-
-export function loadHiveUsername(): string {
-  if (typeof localStorage !== 'undefined') {
-    const stored = localStorage.getItem(USERNAME_KEY)
-    if (stored) {
-      hiveUsername = stored
-    }
-  }
-  return hiveUsername
-}
 
 // ============================================
 // Settings Operations
@@ -77,13 +49,25 @@ export function setLayoutSections(sections: LayoutSection[]) {
 }
 
 // ============================================
-// localStorage helpers
+// localStorage & cookie helpers
 // ============================================
+
+function saveToCookie(data: SettingsData): void {
+  if (typeof document !== 'undefined') {
+    // Save to cookie so SSR can read it (demo mode)
+    const json = JSON.stringify(data)
+    // Cookie expires in 1 year
+    const expires = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toUTCString()
+    document.cookie = `${STORAGE_KEY}=${encodeURIComponent(json)}; path=/; expires=${expires}; SameSite=Lax`
+  }
+}
 
 function saveToLocalStorage(data: SettingsData): void {
   if (typeof localStorage !== 'undefined') {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
   }
+  // Also sync to cookie for SSR access
+  saveToCookie(data)
 }
 
 function loadFromLocalStorage(): SettingsData | null {
@@ -105,9 +89,6 @@ function loadFromLocalStorage(): SettingsData | null {
 // ============================================
 
 export async function loadSettings(): Promise<void> {
-  // Also load username
-  loadHiveUsername()
-
   try {
     const res = await fetch('/api/admin/settings')
 

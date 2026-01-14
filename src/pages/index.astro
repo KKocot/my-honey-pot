@@ -26,10 +26,6 @@ import { type SiteSettings, type LayoutSection, defaultLayoutSections } from '..
 // Get URL for parsing query params
 const url = new URL(Astro.request.url)
 
-// Support ?user= query param for demo mode (overrides HIVE_USERNAME)
-const userParam = url.searchParams.get('user')?.replace('@', '').trim()
-const hiveUsername = userParam || import.meta.env.HIVE_USERNAME
-
 let hivePosts: readonly BridgePost[] = []
 let hiveComments: readonly BridgePost[] = []
 let hiveAccount: DatabaseAccount | null = null
@@ -38,13 +34,29 @@ let settings: SiteSettings = {}
 let error: string | null = null
 let isDemoMode = false
 
+// Try to load settings from MongoDB, fallback to localStorage data from cookie
 try {
   const payload = await getPayloadClient()
   settings = await payload.findGlobal({ slug: 'settings' }) as SiteSettings
 } catch (e) {
   console.warn('MongoDB unavailable, using default settings (demo mode)')
   isDemoMode = true
+
+  // In demo mode, try to read settings from cookie (set by client-side localStorage sync)
+  const settingsCookie = Astro.cookies.get('hive-blog-settings')
+  if (settingsCookie) {
+    try {
+      // Cookie value is URL encoded
+      const decoded = decodeURIComponent(settingsCookie.value)
+      settings = JSON.parse(decoded)
+    } catch {
+      // Invalid cookie, use defaults
+    }
+  }
 }
+
+// Determine hive username from settings, fallback to env variable
+const hiveUsername = settings.hiveUsername || import.meta.env.HIVE_USERNAME
 
 // ============================================
 // Tab handling
@@ -261,7 +273,7 @@ function hasSection(position: string, sectionId: string): boolean {
           )}
           {hasSection('main', 'posts') && hiveUsername && (
             <>
-              {tabs.length > 1 && <ContentTabs tabs={tabs} activeTab={activeTab} userParam={userParam} />}
+              {tabs.length > 1 && <ContentTabs tabs={tabs} activeTab={activeTab} />}
 
               {activeTab === 'posts' ? (
                 <>
@@ -380,7 +392,7 @@ function hasSection(position: string, sectionId: string): boolean {
         )}
         {hasSection('main', 'posts') && hiveUsername && (
           <>
-            {tabs.length > 1 && <ContentTabs tabs={tabs} activeTab={activeTab} userParam={userParam} />}
+            {tabs.length > 1 && <ContentTabs tabs={tabs} activeTab={activeTab} />}
 
             {activeTab === 'posts' ? (
               <>
