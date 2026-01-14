@@ -1,15 +1,16 @@
 import { For, Show } from 'solid-js'
 import { settings, updateSettings } from './store'
 import { Slider } from '../ui'
+import { LayoutPreview } from './PostCardPreview'
 
 // ============================================
 // Posts Layout Settings Section
 // ============================================
 
 const layoutOptions = [
-  { value: 'list', label: 'Lista' },
-  { value: 'grid', label: 'Grid' },
-  { value: 'masonry', label: 'Masonry' },
+  { value: 'list', label: 'Lista', icon: ListIcon },
+  { value: 'grid', label: 'Grid', icon: GridIcon },
+  { value: 'masonry', label: 'Masonry', icon: MasonryIcon },
 ] as const
 
 export function PostsLayoutSettings() {
@@ -17,39 +18,54 @@ export function PostsLayoutSettings() {
     <div class="bg-bg-card rounded-xl p-6 mb-6 border border-border">
       <h2 class="text-xl font-semibold text-primary mb-6">Układ postów</h2>
 
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div class="space-y-4">
+      <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <div class="space-y-6">
+          {/* Layout Type Selection */}
           <div>
-            <label class="block text-sm font-medium text-text mb-2">Typ układu</label>
-            <div class="flex gap-4">
+            <label class="block text-sm font-medium text-text mb-3">Typ układu</label>
+            <div class="grid grid-cols-3 gap-3">
               <For each={layoutOptions}>
                 {(option) => (
-                  <label class="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="postsLayout"
-                      value={option.value}
-                      checked={settings.postsLayout === option.value}
-                      onChange={() => updateSettings({ postsLayout: option.value })}
-                      class="w-5 h-5 text-primary focus:ring-primary"
-                    />
-                    <span class="text-sm text-text">{option.label}</span>
-                  </label>
+                  <button
+                    type="button"
+                    onClick={() => updateSettings({ postsLayout: option.value })}
+                    class={`
+                      flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition-all
+                      ${settings.postsLayout === option.value
+                        ? 'border-primary bg-primary/10 text-primary'
+                        : 'border-border hover:border-primary/50 text-text-muted hover:text-text'
+                      }
+                    `}
+                  >
+                    <option.icon />
+                    <span class="text-sm font-medium">{option.label}</span>
+                  </button>
                 )}
               </For>
             </div>
           </div>
 
+          {/* Grid/Masonry specific settings */}
           <Show when={settings.postsLayout !== 'list'}>
-            <Slider
-              label="Liczba kolumn:"
-              min={1}
-              max={4}
-              value={settings.gridColumns}
-              onInput={(e) => updateSettings({ gridColumns: parseInt(e.currentTarget.value) })}
-            />
+            <div class="space-y-4">
+              <Slider
+                label="Liczba kolumn:"
+                min={1}
+                max={4}
+                value={settings.gridColumns}
+                onInput={(e) => updateSettings({ gridColumns: parseInt(e.currentTarget.value) })}
+              />
+
+              <div class="flex items-center gap-2 p-3 bg-bg-secondary rounded-lg text-xs text-text-muted">
+                <InfoIcon />
+                <span>
+                  W trybie grid/masonry karty automatycznie przełączają się na orientację pionową
+                </span>
+              </div>
+            </div>
           </Show>
 
+          {/* Gap setting */}
           <Slider
             label="Odstęp między kartami:"
             unit="px"
@@ -60,53 +76,45 @@ export function PostsLayoutSettings() {
           />
         </div>
 
-        {/* Preview */}
-        <PostsLayoutPreview />
+        {/* Unified Preview - shows actual cards in layout */}
+        <LayoutPreview postCount={4} maxHeight="400px" />
       </div>
     </div>
   )
 }
 
 // ============================================
-// Preview Component
+// Icons
 // ============================================
 
-function PostsLayoutPreview() {
-  const getGridStyle = () => {
-    const gap = settings.cardGapPx
-    const columns = settings.gridColumns
-
-    if (settings.postsLayout === 'list') {
-      return `display: flex; flex-direction: column; gap: ${gap}px;`
-    }
-    if (settings.postsLayout === 'grid') {
-      return `display: grid; grid-template-columns: repeat(${columns}, 1fr); gap: ${gap}px;`
-    }
-    return `column-count: ${columns}; column-gap: ${gap}px;`
-  }
-
-  const getMasonryItemStyle = () => {
-    if (settings.postsLayout === 'masonry') {
-      return `margin-bottom: ${settings.cardGapPx}px; break-inside: avoid;`
-    }
-    return ''
-  }
-
+function ListIcon() {
   return (
-    <div class="bg-bg rounded-lg p-4 border border-border">
-      <p class="text-xs text-text-muted mb-2 uppercase tracking-wide">Podgląd układu</p>
-      <div class="min-h-[200px]" style={getGridStyle()}>
-        <For each={Array(6).fill(null)}>
-          {(_, i) => (
-            <div
-              class="bg-bg-secondary rounded p-3 text-xs text-text-muted"
-              style={getMasonryItemStyle()}
-            >
-              Post {i() + 1}
-            </div>
-          )}
-        </For>
-      </div>
-    </div>
+    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 6h16M4 12h16M4 18h16" />
+    </svg>
+  )
+}
+
+function GridIcon() {
+  return (
+    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zM14 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" />
+    </svg>
+  )
+}
+
+function MasonryIcon() {
+  return (
+    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 4h6v8H4zM14 4h6v5h-6zM14 13h6v7h-6zM4 16h6v4H4z" />
+    </svg>
+  )
+}
+
+function InfoIcon() {
+  return (
+    <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
   )
 }
