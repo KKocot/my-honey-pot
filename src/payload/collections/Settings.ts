@@ -282,5 +282,155 @@ export const Settings: GlobalConfig = {
       min: 200,
       max: 400,
     },
+
+    // ============================================
+    // Author Profile Extended Settings
+    // ============================================
+    {
+      name: 'authorProfileLayout',
+      label: 'Układ profilu autora',
+      type: 'select',
+      defaultValue: 'horizontal',
+      options: [
+        { label: 'Poziomy', value: 'horizontal' },
+        { label: 'Pionowy', value: 'vertical' },
+      ],
+    },
+    {
+      name: 'showAuthorAbout',
+      label: 'Pokaż bio/opis autora',
+      type: 'checkbox',
+      defaultValue: true,
+    },
+    {
+      name: 'showAuthorLocation',
+      label: 'Pokaż lokalizację autora',
+      type: 'checkbox',
+      defaultValue: true,
+    },
+    {
+      name: 'showAuthorWebsite',
+      label: 'Pokaż stronę autora',
+      type: 'checkbox',
+      defaultValue: true,
+    },
+    {
+      name: 'showAuthorJoinDate',
+      label: 'Pokaż datę dołączenia',
+      type: 'checkbox',
+      defaultValue: true,
+    },
+    {
+      name: 'showAuthorReputation',
+      label: 'Pokaż reputację',
+      type: 'checkbox',
+      defaultValue: true,
+    },
+    {
+      name: 'showAuthorFollowers',
+      label: 'Pokaż liczbę obserwujących',
+      type: 'checkbox',
+      defaultValue: true,
+    },
+    {
+      name: 'showAuthorFollowing',
+      label: 'Pokaż liczbę obserwowanych',
+      type: 'checkbox',
+      defaultValue: true,
+    },
+    {
+      name: 'showAuthorVotingPower',
+      label: 'Pokaż voting power',
+      type: 'checkbox',
+      defaultValue: false,
+    },
+    {
+      name: 'showAuthorHiveBalance',
+      label: 'Pokaż saldo HIVE',
+      type: 'checkbox',
+      defaultValue: false,
+    },
+    {
+      name: 'showAuthorHbdBalance',
+      label: 'Pokaż saldo HBD',
+      type: 'checkbox',
+      defaultValue: false,
+    },
+    {
+      name: 'showAuthorCoverImage',
+      label: 'Pokaż cover image',
+      type: 'checkbox',
+      defaultValue: true,
+    },
+
+    // ============================================
+    // Comment Card Settings
+    // ============================================
+    {
+      name: 'commentShowAvatar',
+      label: 'Pokaż avatar w komentarzu',
+      type: 'checkbox',
+      defaultValue: true,
+    },
+    {
+      name: 'commentAvatarSizePx',
+      label: 'Rozmiar avatara komentarza (px)',
+      type: 'number',
+      defaultValue: 40,
+      min: 24,
+      max: 64,
+    },
+    {
+      name: 'commentShowReplyContext',
+      label: 'Pokaż kontekst odpowiedzi',
+      type: 'checkbox',
+      defaultValue: true,
+    },
+    {
+      name: 'commentShowTimestamp',
+      label: 'Pokaż znacznik czasu',
+      type: 'checkbox',
+      defaultValue: true,
+    },
+    {
+      name: 'commentShowRepliesCount',
+      label: 'Pokaż liczbę odpowiedzi',
+      type: 'checkbox',
+      defaultValue: true,
+    },
+    {
+      name: 'commentShowVotes',
+      label: 'Pokaż głosy komentarza',
+      type: 'checkbox',
+      defaultValue: true,
+    },
+    {
+      name: 'commentShowPayout',
+      label: 'Pokaż payout komentarza',
+      type: 'checkbox',
+      defaultValue: true,
+    },
+    {
+      name: 'commentShowViewLink',
+      label: 'Pokaż link "View"',
+      type: 'checkbox',
+      defaultValue: true,
+    },
+    {
+      name: 'commentMaxLength',
+      label: 'Maksymalna długość komentarza (0 = bez limitu)',
+      type: 'number',
+      defaultValue: 0,
+      min: 0,
+      max: 1000,
+    },
+    {
+      name: 'commentPaddingPx',
+      label: 'Padding komentarza (px)',
+      type: 'number',
+      defaultValue: 16,
+      min: 8,
+      max: 32,
+    },
   ],
 }
