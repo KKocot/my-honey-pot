@@ -8,6 +8,18 @@ export const Settings: GlobalConfig = {
   },
   fields: [
     // ============================================
+    // Hive User Settings
+    // ============================================
+    {
+      name: 'hiveUsername',
+      label: 'Użytkownik Hive',
+      type: 'text',
+      admin: {
+        description: 'Nazwa użytkownika Hive, którego posty będą wyświetlane (bez @)',
+      },
+    },
+
+    // ============================================
     // Site Settings
     // ============================================
     {
@@ -406,6 +418,12 @@ export const Settings: GlobalConfig = {
     // ============================================
     // Comment Card Settings
     // ============================================
+    {
+      name: 'commentShowAuthor',
+      label: 'Pokaż autora komentarza',
+      type: 'checkbox',
+      defaultValue: true,
+    },
     {
       name: 'commentShowAvatar',
       label: 'Pokaż avatar w komentarzu',

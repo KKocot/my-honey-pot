@@ -9,6 +9,7 @@ export interface LayoutSection {
 }
 
 export interface SettingsData {
+  hiveUsername: string
   siteTheme: 'light' | 'dark' | 'green' | 'pink'
   siteName: string
   siteDescription: string
@@ -72,6 +73,7 @@ export interface SettingsData {
 }
 
 export const defaultSettings: SettingsData = {
+  hiveUsername: '',
   siteTheme: 'light',
   siteName: '',
   siteDescription: '',

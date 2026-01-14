@@ -11,6 +11,7 @@ export interface LayoutSection {
 }
 
 export interface SiteSettings {
+  hiveUsername?: string
   siteName?: string
   siteDescription?: string
   siteTheme?: string

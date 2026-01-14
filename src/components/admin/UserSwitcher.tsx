@@ -1,39 +1,21 @@
-import { createSignal, onMount } from 'solid-js'
-import { Input, Button } from '../ui'
-import { getHiveUsername, setHiveUsername, loadHiveUsername, isInDemoMode } from './store'
+import { Input } from '../ui'
+import { settings, updateSettings, isInDemoMode } from './store'
 
 // ============================================
 // User Switcher Component
 // ============================================
 
 export function UserSwitcher() {
-  const [username, setUsername] = createSignal('')
-  const [loading, setLoading] = createSignal(false)
-
-  onMount(() => {
-    const stored = loadHiveUsername()
-    if (stored) {
-      setUsername(stored)
-    }
-  })
-
-  const handleApply = () => {
-    const user = username().trim().replace('@', '')
-    if (user) {
-      setLoading(true)
-      setHiveUsername(user)
-      // Redirect to homepage with the username
-      window.location.href = `/?user=${user}`
-    }
-  }
-
-  const handleKeyDown = (e: KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      handleApply()
-    }
-  }
-
   const popularUsers = ['blocktrades', 'acidyo', 'gtg', 'arcange', 'theycallmedan']
+
+  const handleInput = (e: Event) => {
+    const value = (e.currentTarget as HTMLInputElement).value.replace('@', '')
+    updateSettings({ hiveUsername: value })
+  }
+
+  const selectUser = (user: string) => {
+    updateSettings({ hiveUsername: user })
+  }
 
   return (
     <div class="bg-bg-card rounded-xl p-6 mb-6 border border-border">
@@ -47,7 +29,7 @@ export function UserSwitcher() {
       </div>
 
       <p class="text-sm text-text-muted mb-4">
-        Enter a Hive username to preview their blog. Changes will be reflected on the homepage.
+        Enter a Hive username to display their blog. Save settings to apply changes.
       </p>
 
       <div class="flex gap-3">
@@ -55,19 +37,10 @@ export function UserSwitcher() {
           <Input
             type="text"
             placeholder="Enter Hive username (e.g., blocktrades)"
-            value={username()}
-            onInput={(e) => setUsername(e.currentTarget.value)}
-            onKeyDown={handleKeyDown}
+            value={settings.hiveUsername || ''}
+            onInput={handleInput}
           />
         </div>
-        <Button
-          variant="primary"
-          loading={loading()}
-          onClick={handleApply}
-          disabled={!username().trim()}
-        >
-          Apply & View
-        </Button>
       </div>
 
       <div class="mt-4">
@@ -76,12 +49,12 @@ export function UserSwitcher() {
           {popularUsers.map((user) => (
             <button
               type="button"
-              onClick={() => {
-                setUsername(user)
-                setHiveUsername(user)
-                window.location.href = `/?user=${user}`
-              }}
-              class="text-xs px-3 py-1.5 rounded-full border border-border hover:border-primary hover:text-primary transition-colors"
+              onClick={() => selectUser(user)}
+              class={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
+                settings.hiveUsername === user
+                  ? 'border-primary bg-primary/10 text-primary'
+                  : 'border-border hover:border-primary hover:text-primary'
+              }`}
             >
               @{user}
             </button>
@@ -89,10 +62,13 @@ export function UserSwitcher() {
         </div>
       </div>
 
-      {getHiveUsername() && (
-        <div class="mt-4 p-3 bg-success/10 rounded-lg border border-success/30">
-          <p class="text-sm text-success">
-            Currently viewing: <strong>@{getHiveUsername()}</strong>
+      {settings.hiveUsername && (
+        <div class="mt-4 p-3 bg-primary/10 rounded-lg border border-primary/30">
+          <p class="text-sm text-primary">
+            Selected user: <strong>@{settings.hiveUsername}</strong>
+          </p>
+          <p class="text-xs text-text-muted mt-1">
+            Click "Save All Settings" to apply this change.
           </p>
         </div>
       )}
