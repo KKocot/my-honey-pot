@@ -23,7 +23,12 @@ import { type SiteSettings, type LayoutSection, defaultLayoutSections } from '..
 // Data fetching
 // ============================================
 
-const hiveUsername = import.meta.env.HIVE_USERNAME
+// Get URL for parsing query params
+const url = new URL(Astro.request.url)
+
+// Support ?user= query param for demo mode (overrides HIVE_USERNAME)
+const userParam = url.searchParams.get('user')?.replace('@', '').trim()
+const hiveUsername = userParam || import.meta.env.HIVE_USERNAME
 
 let hivePosts: readonly BridgePost[] = []
 let hiveComments: readonly BridgePost[] = []
@@ -31,12 +36,14 @@ let hiveAccount: DatabaseAccount | null = null
 let hiveProfile: BridgeProfile | null = null
 let settings: SiteSettings = {}
 let error: string | null = null
+let isDemoMode = false
 
 try {
   const payload = await getPayloadClient()
   settings = await payload.findGlobal({ slug: 'settings' }) as SiteSettings
 } catch (e) {
-  console.error('Error fetching settings:', e)
+  console.warn('MongoDB unavailable, using default settings (demo mode)')
+  isDemoMode = true
 }
 
 // ============================================
@@ -44,7 +51,6 @@ try {
 // ============================================
 
 const showCommentsTab = settings.showCommentsTab !== false
-const url = new URL(Astro.request.url)
 const requestedTab = url.searchParams.get('tab') || 'posts'
 // If comments tab is disabled but user requested it, fall back to posts
 const activeTab = (requestedTab === 'comments' && !showCommentsTab) ? 'posts' : requestedTab

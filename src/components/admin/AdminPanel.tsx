@@ -1,5 +1,6 @@
 import { onMount, createSignal } from 'solid-js'
 import { Toast, showToast, Button } from '../ui'
+import { UserSwitcher } from './UserSwitcher'
 import { LayoutEditor } from './LayoutEditor'
 import { SiteSettings } from './SiteSettings'
 import { PostsLayoutSettings } from './PostsLayoutSettings'
@@ -35,6 +36,7 @@ export function AdminPanel() {
     <>
       <Toast />
 
+      <UserSwitcher />
       <LayoutEditor />
       <SiteSettings />
       <AuthorProfileSettings />
