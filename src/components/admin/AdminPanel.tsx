@@ -23,9 +23,9 @@ export function AdminPanel() {
     setSaving(false)
 
     if (success) {
-      showToast('Ustawienia zostały zapisane!', 'success')
+      showToast('Settings saved successfully!', 'success')
     } else {
-      showToast('Błąd zapisu ustawień', 'error')
+      showToast('Error saving settings', 'error')
     }
   }
 
@@ -45,7 +45,7 @@ export function AdminPanel() {
           loading={saving()}
           onClick={handleSave}
         >
-          Zapisz wszystkie ustawienia
+          Save All Settings
         </Button>
       </div>
     </>
