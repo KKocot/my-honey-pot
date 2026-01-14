@@ -1,7 +1,7 @@
 import { Show, createMemo, For } from 'solid-js'
 import { settings, updateSettings } from './store'
 import { Slider } from '../ui'
-import { commentCardElementLabels, type CardLayout } from './types'
+import { commentCardElementLabels, type CardLayout, type CardSection, type CardSectionChild } from './types'
 import { CardLayoutEditor } from './CardLayoutEditor'
 
 // All available comment card element IDs
@@ -277,9 +277,19 @@ function CommentPreview() {
     }
   }
 
-  // Render a section with its orientation
-  const renderSection = (section: { id: string; orientation: 'horizontal' | 'vertical'; elements: string[] }) => {
-    if (section.elements.length === 0) return null
+  // Render a child (element or nested section)
+  const renderChild = (child: CardSectionChild): ReturnType<typeof renderElement> => {
+    if (child.type === 'element') {
+      return renderElement(child.id)
+    } else {
+      // Nested section - recursive render
+      return renderSection(child.section)
+    }
+  }
+
+  // Render a section with its orientation (recursive)
+  const renderSection = (section: CardSection): ReturnType<typeof renderElement> => {
+    if (!section.children || section.children.length === 0) return null
 
     return (
       <div
@@ -287,7 +297,7 @@ function CommentPreview() {
           ${section.orientation === 'horizontal' ? 'flex flex-wrap items-center gap-2' : 'flex flex-col gap-1'}
         `}
       >
-        <For each={section.elements}>{(elementId) => renderElement(elementId)}</For>
+        <For each={section.children}>{(child) => renderChild(child)}</For>
       </div>
     )
   }

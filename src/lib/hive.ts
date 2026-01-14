@@ -305,9 +305,66 @@ type TBridgeApi = {
   };
 };
 
+// ============================================================================
+// Database API Types - Dynamic Global Properties
+// ============================================================================
+
+/** Dynamic global properties for VESTS to HP conversion */
+export interface DynamicGlobalProperties {
+  readonly head_block_number: number;
+  readonly head_block_id: string;
+  readonly time: string;
+  readonly current_witness: string;
+  readonly total_pow: number;
+  readonly num_pow_witnesses: number;
+  readonly virtual_supply: string;
+  readonly current_supply: string;
+  readonly init_hbd_supply: string;
+  readonly current_hbd_supply: string;
+  readonly total_vesting_fund_hive: string;
+  readonly total_vesting_shares: string;
+  readonly total_reward_fund_hive: string;
+  readonly total_reward_shares2: string;
+  readonly pending_rewarded_vesting_shares: string;
+  readonly pending_rewarded_vesting_hive: string;
+  readonly hbd_interest_rate: number;
+  readonly hbd_print_rate: number;
+  readonly maximum_block_size: number;
+  readonly required_actions_partition_percent: number;
+  readonly current_aslot: number;
+  readonly recent_slots_filled: string;
+  readonly participation_count: number;
+  readonly last_irreversible_block_num: number;
+  readonly vote_power_reserve_rate: number;
+  readonly delegation_return_period: number;
+  readonly reverse_auction_seconds: number;
+  readonly available_account_subsidies: number;
+  readonly hbd_stop_percent: number;
+  readonly hbd_start_percent: number;
+  readonly next_maintenance_time: string;
+  readonly last_budget_time: string;
+  readonly next_daily_maintenance_time: string;
+  readonly content_reward_percent: number;
+  readonly vesting_reward_percent: number;
+  readonly proposal_fund_percent: number;
+  readonly dhf_interval_ledger: string;
+  readonly downvote_pool_percent: number;
+  readonly current_remove_threshold: number;
+  readonly early_voting_seconds: number;
+  readonly mid_voting_seconds: number;
+  readonly max_consecutive_recurrent_transfer_failures: number;
+  readonly max_recurrent_transfer_end_date: number;
+  readonly min_recurrent_transfers_recurrence: number;
+  readonly max_open_recurrent_transfers: number;
+}
+
+/** Result of get_dynamic_global_properties */
+export interface GetDynamicGlobalPropertiesResult extends DynamicGlobalProperties {}
+
 type TDatabaseApi = {
   database_api: {
     find_accounts: TWaxApiRequest<FindAccountsParams, FindAccountsResult>;
+    get_dynamic_global_properties: TWaxApiRequest<Record<string, never>, GetDynamicGlobalPropertiesResult>;
   };
 };
 
@@ -546,6 +603,14 @@ export async function getHiveDiscussion(
 }
 
 /**
+ * Get dynamic global properties (needed for VESTS to HP conversion)
+ */
+export async function getDynamicGlobalProperties(): Promise<DynamicGlobalProperties> {
+  const chain = await getHiveChain();
+  return chain.api.database_api.get_dynamic_global_properties({});
+}
+
+/**
  * Get ranked posts (trending, hot, created, etc.)
  * Note: API limit is max 20 per request
  */
@@ -658,6 +723,74 @@ export function getNetVotes(post: BridgePost): number {
     post.active_votes.filter((v) => v.rshares > 0).length -
     post.active_votes.filter((v) => v.rshares < 0).length
   );
+}
+
+/**
+ * Parse VESTS amount string to number
+ * e.g., "123456.789012 VESTS" -> 123456.789012
+ */
+export function parseVests(vests: string): number {
+  return parseFloat(vests.replace(" VESTS", ""));
+}
+
+/**
+ * Parse HIVE amount string to number
+ * e.g., "123.456 HIVE" -> 123.456
+ */
+export function parseHive(hive: string): number {
+  return parseFloat(hive.replace(" HIVE", ""));
+}
+
+/**
+ * Convert VESTS to HP (Hive Power) using dynamic global properties
+ * Formula: HP = VESTS * (total_vesting_fund_hive / total_vesting_shares)
+ *
+ * @param vests - VESTS amount (as string like "123456.789012 VESTS" or number)
+ * @param totalVestingFundHive - From getDynamicGlobalProperties (e.g., "123456789.012 HIVE")
+ * @param totalVestingShares - From getDynamicGlobalProperties (e.g., "123456789012.345678 VESTS")
+ */
+export function convertVestsToHP(
+  vests: string | number,
+  totalVestingFundHive: string,
+  totalVestingShares: string
+): number {
+  const vestsNum = typeof vests === "string" ? parseVests(vests) : vests;
+  const fundHive = parseHive(totalVestingFundHive);
+  const totalShares = parseVests(totalVestingShares);
+
+  if (totalShares === 0) return 0;
+
+  return vestsNum * (fundHive / totalShares);
+}
+
+/**
+ * Calculate effective HP for a user (own HP + received - delegated)
+ */
+export function calculateEffectiveHP(
+  vestingShares: string,
+  delegatedVestingShares: string,
+  receivedVestingShares: string,
+  totalVestingFundHive: string,
+  totalVestingShares: string
+): number {
+  const own = parseVests(vestingShares);
+  const delegated = parseVests(delegatedVestingShares);
+  const received = parseVests(receivedVestingShares);
+
+  const effectiveVests = own - delegated + received;
+
+  return convertVestsToHP(effectiveVests, totalVestingFundHive, totalVestingShares);
+}
+
+/**
+ * Calculate own HP for a user (without delegations)
+ */
+export function calculateOwnHP(
+  vestingShares: string,
+  totalVestingFundHive: string,
+  totalVestingShares: string
+): number {
+  return convertVestsToHP(vestingShares, totalVestingFundHive, totalVestingShares);
 }
 
 // ============================================================================

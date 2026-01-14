@@ -38,16 +38,79 @@ export interface CardElement {
   enabled: boolean
 }
 
-// Card section with orientation and elements
+// ============================================
+// Recursive nested sections system
+// ============================================
+
+// Child of a section - can be an element or a nested section
+export type CardSectionChild =
+  | { type: 'element'; id: string }
+  | { type: 'section'; section: CardSection }
+
+// Card section with orientation and recursive children
 export interface CardSection {
   id: string
   orientation: 'horizontal' | 'vertical'
-  elements: string[] // element IDs
+  children: CardSectionChild[]
 }
 
-// Card layout with multiple sections
+// Card layout with multiple top-level sections
 export interface CardLayout {
   sections: CardSection[]
+}
+
+// Legacy section format (for backwards compatibility)
+export interface LegacyCardSection {
+  id: string
+  orientation: 'horizontal' | 'vertical'
+  elements: string[]
+}
+
+// Migrate legacy layout to new format
+export function migrateCardSection(section: CardSection | LegacyCardSection): CardSection {
+  // If already has children array, it's new format
+  if ('children' in section && Array.isArray(section.children)) {
+    return section as CardSection
+  }
+  // Convert elements array to children array
+  const legacySection = section as LegacyCardSection
+  return {
+    id: legacySection.id,
+    orientation: legacySection.orientation,
+    children: (legacySection.elements || []).map((elementId) => ({
+      type: 'element' as const,
+      id: elementId,
+    })),
+  }
+}
+
+// Migrate entire layout
+export function migrateCardLayout(layout: CardLayout): CardLayout {
+  return {
+    sections: layout.sections.map(migrateCardSection),
+  }
+}
+
+// Helper to collect all element IDs from a section (recursively)
+export function collectElementIds(section: CardSection): string[] {
+  const ids: string[] = []
+  for (const child of section.children) {
+    if (child.type === 'element') {
+      ids.push(child.id)
+    } else {
+      ids.push(...collectElementIds(child.section))
+    }
+  }
+  return ids
+}
+
+// Helper to collect all element IDs from a layout
+export function collectAllElementIds(layout: CardLayout): string[] {
+  const ids: string[] = []
+  for (const section of layout.sections) {
+    ids.push(...collectElementIds(section))
+  }
+  return ids
 }
 
 // Post card elements
@@ -233,31 +296,31 @@ export const defaultSettings: SettingsData = {
   commentShowViewLink: true,
   commentMaxLength: 0,
   commentPaddingPx: 16,
-  // Default card layouts with sections
+  // Default card layouts with sections (using new recursive children format)
   postCardLayout: {
     sections: [
-      { id: 'sec-1', orientation: 'horizontal', elements: ['thumbnail'] },
-      { id: 'sec-2', orientation: 'vertical', elements: ['title', 'summary'] },
-      { id: 'sec-3', orientation: 'horizontal', elements: ['date', 'votes', 'comments', 'payout'] },
-      { id: 'sec-4', orientation: 'horizontal', elements: ['tags'] },
+      { id: 'sec-1', orientation: 'horizontal', children: [{ type: 'element', id: 'thumbnail' }] },
+      { id: 'sec-2', orientation: 'vertical', children: [{ type: 'element', id: 'title' }, { type: 'element', id: 'summary' }] },
+      { id: 'sec-3', orientation: 'horizontal', children: [{ type: 'element', id: 'date' }, { type: 'element', id: 'votes' }, { type: 'element', id: 'comments' }, { type: 'element', id: 'payout' }] },
+      { id: 'sec-4', orientation: 'horizontal', children: [{ type: 'element', id: 'tags' }] },
     ],
   },
   commentCardLayout: {
     sections: [
-      { id: 'sec-1', orientation: 'horizontal', elements: ['replyContext'] },
-      { id: 'sec-2', orientation: 'horizontal', elements: ['avatar', 'author', 'timestamp'] },
-      { id: 'sec-3', orientation: 'vertical', elements: ['body'] },
-      { id: 'sec-4', orientation: 'horizontal', elements: ['replies', 'votes', 'payout', 'viewLink'] },
+      { id: 'sec-1', orientation: 'horizontal', children: [{ type: 'element', id: 'replyContext' }] },
+      { id: 'sec-2', orientation: 'horizontal', children: [{ type: 'element', id: 'avatar' }, { type: 'element', id: 'author' }, { type: 'element', id: 'timestamp' }] },
+      { id: 'sec-3', orientation: 'vertical', children: [{ type: 'element', id: 'body' }] },
+      { id: 'sec-4', orientation: 'horizontal', children: [{ type: 'element', id: 'replies' }, { type: 'element', id: 'votes' }, { type: 'element', id: 'payout' }, { type: 'element', id: 'viewLink' }] },
     ],
   },
   authorProfileLayout2: {
     sections: [
-      { id: 'sec-1', orientation: 'horizontal', elements: ['coverImage'] },
-      { id: 'sec-2', orientation: 'horizontal', elements: ['avatar', 'username', 'reputation'] },
-      { id: 'sec-3', orientation: 'vertical', elements: ['about'] },
-      { id: 'sec-4', orientation: 'horizontal', elements: ['location', 'website', 'joinDate'] },
-      { id: 'sec-5', orientation: 'horizontal', elements: ['followers', 'following', 'postCount', 'hpEarned'] },
-      { id: 'sec-6', orientation: 'horizontal', elements: ['votingPower', 'hiveBalance', 'hbdBalance'] },
+      { id: 'sec-1', orientation: 'horizontal', children: [{ type: 'element', id: 'coverImage' }] },
+      { id: 'sec-2', orientation: 'horizontal', children: [{ type: 'element', id: 'avatar' }, { type: 'element', id: 'username' }, { type: 'element', id: 'reputation' }] },
+      { id: 'sec-3', orientation: 'vertical', children: [{ type: 'element', id: 'about' }] },
+      { id: 'sec-4', orientation: 'horizontal', children: [{ type: 'element', id: 'location' }, { type: 'element', id: 'website' }, { type: 'element', id: 'joinDate' }] },
+      { id: 'sec-5', orientation: 'horizontal', children: [{ type: 'element', id: 'followers' }, { type: 'element', id: 'following' }, { type: 'element', id: 'postCount' }, { type: 'element', id: 'hpEarned' }] },
+      { id: 'sec-6', orientation: 'horizontal', children: [{ type: 'element', id: 'votingPower' }, { type: 'element', id: 'hiveBalance' }, { type: 'element', id: 'hbdBalance' }] },
     ],
   },
   // Default page layout with sections per slot
@@ -355,6 +418,7 @@ export const authorProfileElementLabels: Record<string, string> = {
   followers: 'Followers',
   following: 'Following',
   postCount: 'Post Count',
+  hivePower: 'Hive Power',
   hpEarned: 'HP Earned',
   votingPower: 'Voting Power',
   hiveBalance: 'HIVE Balance',

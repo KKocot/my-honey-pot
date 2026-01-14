@@ -1,6 +1,6 @@
 import { For } from 'solid-js'
 import { settings, updateSettings } from './store'
-import { authorProfileElementLabels, type CardLayout } from './types'
+import { authorProfileElementLabels, type CardLayout, type CardSection, type CardSectionChild } from './types'
 import { Slider } from '../ui'
 import { CardLayoutEditor } from './CardLayoutEditor'
 
@@ -18,6 +18,7 @@ const AUTHOR_PROFILE_ELEMENT_IDS = [
   'followers',
   'following',
   'postCount',
+  'hivePower',
   'hpEarned',
   'votingPower',
   'hiveBalance',
@@ -90,6 +91,7 @@ function AuthorProfilePreview() {
     followers: 12500,
     following: 340,
     postCount: 1234,
+    hivePower: 12345.678,
     hpEarned: 567890,
     votingPower: 85.5,
     hiveBalance: 1234.567,
@@ -223,6 +225,14 @@ function AuthorProfilePreview() {
           </div>
         )
 
+      case 'hivePower':
+        return (
+          <div class="text-center">
+            <p class="text-xs font-bold text-text">{mockData.hivePower.toFixed(3)}</p>
+            <p class="text-xs text-text-muted">Hive Power</p>
+          </div>
+        )
+
       case 'hpEarned':
         return (
           <div class="text-center">
@@ -260,9 +270,19 @@ function AuthorProfilePreview() {
     }
   }
 
-  // Render a section with its orientation
-  const renderSection = (section: { id: string; orientation: 'horizontal' | 'vertical'; elements: string[] }) => {
-    if (section.elements.length === 0) return null
+  // Render a child (element or nested section)
+  const renderChild = (child: CardSectionChild): ReturnType<typeof renderElement> => {
+    if (child.type === 'element') {
+      return renderElement(child.id)
+    } else {
+      // Nested section - recursive render
+      return renderSection(child.section)
+    }
+  }
+
+  // Render a section with its orientation (recursive)
+  const renderSection = (section: CardSection): ReturnType<typeof renderElement> => {
+    if (!section.children || section.children.length === 0) return null
 
     return (
       <div
@@ -270,7 +290,7 @@ function AuthorProfilePreview() {
           ${section.orientation === 'horizontal' ? 'flex flex-wrap items-center gap-2' : 'flex flex-col gap-1'}
         `}
       >
-        <For each={section.elements}>{(elementId) => renderElement(elementId)}</For>
+        <For each={section.children}>{(child) => renderChild(child)}</For>
       </div>
     )
   }

@@ -1,9 +1,10 @@
 import { createSignal, For, Show } from 'solid-js'
-import type { CardLayout, CardSection } from './types'
+import type { CardLayout, CardSection, CardSectionChild } from './types'
+import { collectAllElementIds } from './types'
 
 // ============================================
-// Section-based Drag & Drop Card Layout Editor
-// Like shadcn-drag-and-drop with sections and orientation
+// Recursive Section-based Drag & Drop Card Layout Editor
+// Supports unlimited nesting depth
 // ============================================
 
 interface CardLayoutEditorProps {
@@ -13,343 +14,441 @@ interface CardLayoutEditorProps {
   onUpdate: (layout: CardLayout) => void
 }
 
+// Depth colors for visual distinction
+const depthColors = [
+  'border-primary',
+  'border-accent',
+  'border-success',
+  'border-warning',
+  'border-info',
+]
+
+const depthBgColors = [
+  'bg-primary/5',
+  'bg-accent/5',
+  'bg-success/5',
+  'bg-warning/5',
+  'bg-info/5',
+]
+
 export function CardLayoutEditor(props: CardLayoutEditorProps) {
-  const [draggedElement, setDraggedElement] = createSignal<{ elementId: string; fromSectionId: string } | null>(null)
-  const [draggedSection, setDraggedSection] = createSignal<string | null>(null)
-  const [dragOverSection, setDragOverSection] = createSignal<string | null>(null)
-  const [dragOverElementZone, setDragOverElementZone] = createSignal<{ sectionId: string; index: number } | null>(null)
+  const [draggedItem, setDraggedItem] = createSignal<{
+    type: 'element' | 'section'
+    id: string
+    path: number[] // path to the item in the tree
+  } | null>(null)
+  const [dragOverZone, setDragOverZone] = createSignal<{
+    path: number[]
+    position: 'before' | 'after' | 'inside'
+  } | null>(null)
 
   // Get elements not in any section
   const unusedElements = () => {
-    const usedIds = new Set(props.layout.sections.flatMap((s) => s.elements))
+    const usedIds = new Set(collectAllElementIds(props.layout))
     return props.allElementIds.filter((id) => !usedIds.has(id))
+  }
+
+  // ============================================
+  // Deep update helpers
+  // ============================================
+
+  // Update a section at a given path
+  const updateSectionAtPath = (
+    sections: CardSection[],
+    path: number[],
+    updater: (section: CardSection) => CardSection
+  ): CardSection[] => {
+    if (path.length === 0) return sections
+
+    const [index, ...rest] = path
+    return sections.map((section, i) => {
+      if (i !== index) return section
+      if (rest.length === 0) {
+        return updater(section)
+      }
+      // Navigate deeper into nested sections
+      return {
+        ...section,
+        children: updateChildrenAtPath(section.children, rest, updater),
+      }
+    })
+  }
+
+  const updateChildrenAtPath = (
+    children: CardSectionChild[],
+    path: number[],
+    updater: (section: CardSection) => CardSection
+  ): CardSectionChild[] => {
+    if (path.length === 0) return children
+
+    const [index, ...rest] = path
+    return children.map((child, i) => {
+      if (i !== index) return child
+      if (child.type !== 'section') return child
+      if (rest.length === 0) {
+        return { type: 'section', section: updater(child.section) }
+      }
+      return {
+        type: 'section',
+        section: {
+          ...child.section,
+          children: updateChildrenAtPath(child.section.children, rest, updater),
+        },
+      }
+    })
+  }
+
+  // Remove item at path
+  const removeAtPath = (path: number[]): void => {
+    if (path.length === 1) {
+      // Top-level section
+      props.onUpdate({
+        sections: props.layout.sections.filter((_, i) => i !== path[0]),
+      })
+      return
+    }
+
+    // Nested item
+    const parentPath = path.slice(0, -1)
+    const childIndex = path[path.length - 1]
+
+    props.onUpdate({
+      sections: updateSectionAtPath(props.layout.sections, parentPath, (section) => ({
+        ...section,
+        children: section.children.filter((_, i) => i !== childIndex),
+      })),
+    })
+  }
+
+  // Insert item at path
+  const insertAtPath = (path: number[], item: CardSectionChild, position: 'before' | 'after' | 'inside'): void => {
+    if (position === 'inside') {
+      // Insert as child of section at path
+      props.onUpdate({
+        sections: updateSectionAtPath(props.layout.sections, path, (section) => ({
+          ...section,
+          children: [...section.children, item],
+        })),
+      })
+      return
+    }
+
+    const parentPath = path.slice(0, -1)
+    const targetIndex = path[path.length - 1]
+    const insertIndex = position === 'before' ? targetIndex : targetIndex + 1
+
+    if (parentPath.length === 0) {
+      // Inserting at top level
+      if (item.type === 'section') {
+        const newSections = [...props.layout.sections]
+        newSections.splice(insertIndex, 0, item.section)
+        props.onUpdate({ sections: newSections })
+      }
+      return
+    }
+
+    // Inserting in nested section
+    props.onUpdate({
+      sections: updateSectionAtPath(props.layout.sections, parentPath, (section) => {
+        const newChildren = [...section.children]
+        newChildren.splice(insertIndex, 0, item)
+        return { ...section, children: newChildren }
+      }),
+    })
   }
 
   // ============================================
   // Section operations
   // ============================================
 
-  const addSection = () => {
+  const addTopLevelSection = () => {
     const newSection: CardSection = {
       id: `sec-${Date.now()}`,
       orientation: 'horizontal',
-      elements: [],
+      children: [],
     }
     props.onUpdate({
       sections: [...props.layout.sections, newSection],
     })
   }
 
-  const removeSection = (sectionId: string) => {
+  const addSubsection = (parentPath: number[]) => {
+    const newSection: CardSection = {
+      id: `sec-${Date.now()}`,
+      orientation: 'horizontal',
+      children: [],
+    }
     props.onUpdate({
-      sections: props.layout.sections.filter((s) => s.id !== sectionId),
+      sections: updateSectionAtPath(props.layout.sections, parentPath, (section) => ({
+        ...section,
+        children: [...section.children, { type: 'section', section: newSection }],
+      })),
     })
   }
 
-  const toggleOrientation = (sectionId: string) => {
+  const toggleOrientation = (path: number[]) => {
     props.onUpdate({
-      sections: props.layout.sections.map((s) =>
-        s.id === sectionId
-          ? { ...s, orientation: s.orientation === 'horizontal' ? 'vertical' : 'horizontal' }
-          : s
-      ),
+      sections: updateSectionAtPath(props.layout.sections, path, (section) => ({
+        ...section,
+        orientation: section.orientation === 'horizontal' ? 'vertical' : 'horizontal',
+      })),
     })
   }
 
+  const removeSection = (path: number[]) => {
+    removeAtPath(path)
+  }
+
   // ============================================
-  // Element drag handlers
+  // Drag handlers
   // ============================================
 
-  const handleElementDragStart = (e: DragEvent, elementId: string, fromSectionId: string) => {
-    setDraggedElement({ elementId, fromSectionId })
+  const handleDragStart = (e: DragEvent, type: 'element' | 'section', id: string, path: number[]) => {
+    setDraggedItem({ type, id, path })
     if (e.dataTransfer) {
       e.dataTransfer.effectAllowed = 'move'
-      e.dataTransfer.setData('text/plain', `element:${elementId}:${fromSectionId}`)
+      e.dataTransfer.setData('text/plain', `${type}:${id}:${path.join(',')}`)
     }
   }
 
-  const handleElementDragOver = (e: DragEvent, sectionId: string, index: number) => {
+  const handleDragOver = (e: DragEvent, path: number[], position: 'before' | 'after' | 'inside') => {
     e.preventDefault()
-    if (draggedElement()) {
-      setDragOverElementZone({ sectionId, index })
+    e.stopPropagation()
+    if (draggedItem()) {
+      setDragOverZone({ path, position })
     }
   }
 
-  const handleElementDrop = (e: DragEvent, targetSectionId: string, targetIndex: number) => {
+  const handleDragLeave = () => {
+    setDragOverZone(null)
+  }
+
+  const handleDrop = (e: DragEvent, targetPath: number[], position: 'before' | 'after' | 'inside') => {
     e.preventDefault()
     e.stopPropagation()
 
-    const dragged = draggedElement()
+    const dragged = draggedItem()
     if (!dragged) return
 
-    const { elementId, fromSectionId } = dragged
+    // Remove from old position first
+    if (dragged.path.length > 0) {
+      removeAtPath(dragged.path)
+    }
 
-    // Build new sections
-    const newSections = props.layout.sections.map((section) => {
-      if (section.id === fromSectionId && fromSectionId !== targetSectionId) {
-        // Remove from source section
-        return { ...section, elements: section.elements.filter((id) => id !== elementId) }
+    // Build the item to insert
+    let item: CardSectionChild
+    if (dragged.type === 'element') {
+      item = { type: 'element', id: dragged.id }
+    } else {
+      // Find the section at the old path
+      // Since we already removed it, we need to store it before removal
+      // For now, just create a new empty section
+      item = {
+        type: 'section',
+        section: { id: dragged.id, orientation: 'horizontal', children: [] },
       }
-      if (section.id === targetSectionId) {
-        // Add to target section
-        const newElements = section.elements.filter((id) => id !== elementId)
-        newElements.splice(targetIndex, 0, elementId)
-        return { ...section, elements: newElements }
-      }
-      return section
-    })
+    }
 
-    props.onUpdate({ sections: newSections })
-    setDraggedElement(null)
-    setDragOverElementZone(null)
+    // Insert at new position
+    insertAtPath(targetPath, item, position)
+
+    setDraggedItem(null)
+    setDragOverZone(null)
   }
 
-  const handleElementDragEnd = () => {
-    setDraggedElement(null)
-    setDragOverElementZone(null)
+  const handleDragEnd = () => {
+    setDraggedItem(null)
+    setDragOverZone(null)
   }
 
-  // ============================================
-  // Unused element drag (from pool)
-  // ============================================
-
+  // Handle drop from unused elements pool
   const handleUnusedElementDragStart = (e: DragEvent, elementId: string) => {
-    setDraggedElement({ elementId, fromSectionId: '__unused__' })
+    setDraggedItem({ type: 'element', id: elementId, path: [] })
     if (e.dataTransfer) {
       e.dataTransfer.effectAllowed = 'move'
-      e.dataTransfer.setData('text/plain', `element:${elementId}:__unused__`)
+      e.dataTransfer.setData('text/plain', `element:${elementId}:unused`)
     }
-  }
-
-  const handleDropOnSection = (e: DragEvent, sectionId: string) => {
-    e.preventDefault()
-    const dragged = draggedElement()
-    if (!dragged) return
-
-    const { elementId, fromSectionId } = dragged
-
-    if (fromSectionId === '__unused__') {
-      // Add from unused pool
-      const newSections = props.layout.sections.map((section) => {
-        if (section.id === sectionId) {
-          return { ...section, elements: [...section.elements, elementId] }
-        }
-        return section
-      })
-      props.onUpdate({ sections: newSections })
-    }
-
-    setDraggedElement(null)
-    setDragOverElementZone(null)
-    setDragOverSection(null)
   }
 
   // ============================================
-  // Section drag handlers
+  // Recursive Section Renderer
   // ============================================
 
-  const handleSectionDragStart = (e: DragEvent, sectionId: string) => {
-    setDraggedSection(sectionId)
-    if (e.dataTransfer) {
-      e.dataTransfer.effectAllowed = 'move'
-      e.dataTransfer.setData('text/plain', `section:${sectionId}`)
-    }
-  }
+  const SectionNode = (nodeProps: {
+    section: CardSection
+    path: number[]
+    depth: number
+  }) => {
+    const borderColor = depthColors[nodeProps.depth % depthColors.length]
+    const bgColor = depthBgColors[nodeProps.depth % depthBgColors.length]
 
-  const handleSectionDragOver = (e: DragEvent, sectionId: string) => {
-    e.preventDefault()
-    if (draggedSection() && draggedSection() !== sectionId) {
-      setDragOverSection(sectionId)
-    }
-  }
+    return (
+      <div
+        class={`
+          rounded-lg border-2 p-3 transition-all ${bgColor}
+          ${draggedItem()?.id === nodeProps.section.id ? 'opacity-50' : ''}
+          ${borderColor}
+        `}
+        onDragOver={(e) => handleDragOver(e, nodeProps.path, 'inside')}
+        onDragLeave={handleDragLeave}
+        onDrop={(e) => handleDrop(e, nodeProps.path, 'inside')}
+      >
+        {/* Section header */}
+        <div class="flex items-center gap-2 mb-2">
+          {/* Drag handle */}
+          <div
+            draggable={true}
+            onDragStart={(e) => handleDragStart(e, 'section', nodeProps.section.id, nodeProps.path)}
+            onDragEnd={handleDragEnd}
+            class="cursor-grab active:cursor-grabbing text-text-muted hover:text-text"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16" />
+            </svg>
+          </div>
 
-  const handleSectionDrop = (e: DragEvent, targetSectionId: string) => {
-    e.preventDefault()
-    const sourceId = draggedSection()
-    if (!sourceId || sourceId === targetSectionId) {
-      setDraggedSection(null)
-      setDragOverSection(null)
-      return
-    }
+          {/* Section label with depth indicator */}
+          <span class="text-xs font-medium text-text-muted">
+            Section {nodeProps.depth > 0 ? `(depth ${nodeProps.depth})` : ''}
+          </span>
 
-    const sections = [...props.layout.sections]
-    const sourceIndex = sections.findIndex((s) => s.id === sourceId)
-    const targetIndex = sections.findIndex((s) => s.id === targetSectionId)
+          {/* Orientation toggle */}
+          <button
+            type="button"
+            onClick={() => toggleOrientation(nodeProps.path)}
+            class={`
+              flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-colors
+              ${nodeProps.section.orientation === 'horizontal'
+                ? 'bg-primary/20 text-primary'
+                : 'bg-accent/20 text-accent'}
+            `}
+            title={`Click to switch to ${nodeProps.section.orientation === 'horizontal' ? 'vertical' : 'horizontal'}`}
+          >
+            {nodeProps.section.orientation === 'horizontal' ? (
+              <>
+                <HorizontalIcon />
+                <span>H</span>
+              </>
+            ) : (
+              <>
+                <VerticalIcon />
+                <span>V</span>
+              </>
+            )}
+          </button>
 
-    if (sourceIndex !== -1 && targetIndex !== -1) {
-      const [removed] = sections.splice(sourceIndex, 1)
-      sections.splice(targetIndex, 0, removed)
-      props.onUpdate({ sections })
-    }
+          {/* Add subsection button */}
+          <button
+            type="button"
+            onClick={() => addSubsection(nodeProps.path)}
+            class="px-2 py-1 rounded text-xs font-medium bg-bg-secondary text-text-muted hover:text-text hover:bg-bg transition-colors"
+            title="Add nested section"
+          >
+            + Section
+          </button>
 
-    setDraggedSection(null)
-    setDragOverSection(null)
-  }
+          {/* Remove section */}
+          <button
+            type="button"
+            onClick={() => removeSection(nodeProps.path)}
+            class="ml-auto p-1 rounded text-text-muted hover:text-error hover:bg-error/10 transition-colors"
+            title="Remove section"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
 
-  const handleSectionDragEnd = () => {
-    setDraggedSection(null)
-    setDragOverSection(null)
+        {/* Children container */}
+        <div
+          class={`
+            min-h-[40px] rounded border border-dashed border-border p-2
+            ${nodeProps.section.orientation === 'horizontal' ? 'flex flex-wrap gap-2' : 'flex flex-col gap-2'}
+          `}
+        >
+          <Show when={nodeProps.section.children.length === 0}>
+            <span class="text-xs text-text-muted italic">Drop elements or sections here</span>
+          </Show>
+
+          <For each={nodeProps.section.children}>
+            {(child, childIndex) => {
+              const childPath = [...nodeProps.path, childIndex()]
+
+              if (child.type === 'element') {
+                return (
+                  <div
+                    draggable={true}
+                    onDragStart={(e) => handleDragStart(e, 'element', child.id, childPath)}
+                    onDragOver={(e) => handleDragOver(e, childPath, 'before')}
+                    onDragLeave={handleDragLeave}
+                    onDrop={(e) => handleDrop(e, childPath, 'before')}
+                    onDragEnd={handleDragEnd}
+                    class={`
+                      flex items-center gap-1 px-2 py-1.5 rounded bg-bg border border-border
+                      cursor-grab active:cursor-grabbing transition-all
+                      ${draggedItem()?.id === child.id ? 'opacity-50 border-primary' : ''}
+                      ${dragOverZone()?.path.join(',') === childPath.join(',') ? 'border-primary border-2' : ''}
+                    `}
+                  >
+                    <span class="text-sm text-text">{props.elementLabels[child.id] || child.id}</span>
+                    <button
+                      type="button"
+                      onClick={() => removeAtPath(childPath)}
+                      class="ml-1 p-0.5 rounded text-text-muted hover:text-error hover:bg-error/10"
+                      title="Remove element"
+                    >
+                      <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                )
+              } else {
+                // Nested section - recursive call
+                return (
+                  <SectionNode
+                    section={child.section}
+                    path={childPath}
+                    depth={nodeProps.depth + 1}
+                  />
+                )
+              }
+            }}
+          </For>
+
+          {/* Drop zone at end */}
+          <Show when={nodeProps.section.children.length > 0}>
+            <div
+              class={`
+                w-8 h-8 rounded border-2 border-dashed border-border flex items-center justify-center
+                ${draggedItem() ? 'border-primary/50 bg-primary/5' : ''}
+              `}
+              onDragOver={(e) => handleDragOver(e, [...nodeProps.path, nodeProps.section.children.length], 'before')}
+              onDragLeave={handleDragLeave}
+              onDrop={(e) => handleDrop(e, [...nodeProps.path, nodeProps.section.children.length], 'before')}
+            >
+              <svg class="w-4 h-4 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+              </svg>
+            </div>
+          </Show>
+        </div>
+      </div>
+    )
   }
 
   // ============================================
-  // Remove element (back to unused pool)
+  // Main render
   // ============================================
-
-  const removeElement = (sectionId: string, elementId: string) => {
-    props.onUpdate({
-      sections: props.layout.sections.map((section) =>
-        section.id === sectionId
-          ? { ...section, elements: section.elements.filter((id) => id !== elementId) }
-          : section
-      ),
-    })
-  }
 
   return (
     <div class="space-y-4">
-      {/* Sections */}
+      {/* Top-level sections */}
       <div class="space-y-2">
         <For each={props.layout.sections}>
           {(section, sectionIndex) => (
-            <div
-              draggable={true}
-              onDragStart={(e) => handleSectionDragStart(e, section.id)}
-              onDragOver={(e) => handleSectionDragOver(e, section.id)}
-              onDrop={(e) => {
-                if (draggedSection()) {
-                  handleSectionDrop(e, section.id)
-                } else {
-                  handleDropOnSection(e, section.id)
-                }
-              }}
-              onDragEnd={handleSectionDragEnd}
-              class={`
-                rounded-lg border-2 p-3 transition-all bg-bg-card
-                ${draggedSection() === section.id ? 'opacity-50 border-primary' : ''}
-                ${dragOverSection() === section.id ? 'border-primary border-dashed bg-primary/5' : 'border-border'}
-              `}
-            >
-              {/* Section header */}
-              <div class="flex items-center gap-2 mb-2">
-                {/* Drag handle */}
-                <div class="cursor-grab active:cursor-grabbing text-text-muted hover:text-text">
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16" />
-                  </svg>
-                </div>
-
-                {/* Section number */}
-                <span class="text-xs font-medium text-text-muted">Section {sectionIndex() + 1}</span>
-
-                {/* Orientation toggle */}
-                <button
-                  type="button"
-                  onClick={() => toggleOrientation(section.id)}
-                  class={`
-                    flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-colors
-                    ${section.orientation === 'horizontal'
-                      ? 'bg-primary/20 text-primary'
-                      : 'bg-accent/20 text-accent'}
-                  `}
-                  title={`Click to switch to ${section.orientation === 'horizontal' ? 'vertical' : 'horizontal'}`}
-                >
-                  {section.orientation === 'horizontal' ? (
-                    <>
-                      <HorizontalIcon />
-                      <span>Horizontal</span>
-                    </>
-                  ) : (
-                    <>
-                      <VerticalIcon />
-                      <span>Vertical</span>
-                    </>
-                  )}
-                </button>
-
-                {/* Remove section */}
-                <button
-                  type="button"
-                  onClick={() => removeSection(section.id)}
-                  class="ml-auto p-1 rounded text-text-muted hover:text-error hover:bg-error/10 transition-colors"
-                  title="Remove section"
-                >
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-
-              {/* Elements container */}
-              <div
-                class={`
-                  min-h-[40px] rounded border border-dashed border-border p-2
-                  ${section.orientation === 'horizontal' ? 'flex flex-wrap gap-2' : 'flex flex-col gap-2'}
-                `}
-                onDragOver={(e) => {
-                  e.preventDefault()
-                  if (draggedElement()) {
-                    setDragOverSection(section.id)
-                  }
-                }}
-                onDragLeave={() => setDragOverSection(null)}
-                onDrop={(e) => handleDropOnSection(e, section.id)}
-              >
-                <Show when={section.elements.length === 0}>
-                  <span class="text-xs text-text-muted italic">Drop elements here</span>
-                </Show>
-
-                <For each={section.elements}>
-                  {(elementId, elementIndex) => (
-                    <div
-                      draggable={true}
-                      onDragStart={(e) => handleElementDragStart(e, elementId, section.id)}
-                      onDragOver={(e) => handleElementDragOver(e, section.id, elementIndex())}
-                      onDrop={(e) => handleElementDrop(e, section.id, elementIndex())}
-                      onDragEnd={handleElementDragEnd}
-                      class={`
-                        flex items-center gap-1 px-2 py-1.5 rounded bg-bg border border-border
-                        cursor-grab active:cursor-grabbing transition-all
-                        ${draggedElement()?.elementId === elementId ? 'opacity-50 border-primary' : ''}
-                        ${dragOverElementZone()?.sectionId === section.id && dragOverElementZone()?.index === elementIndex()
-                          ? 'border-primary border-2'
-                          : ''}
-                      `}
-                    >
-                      <span class="text-sm text-text">{props.elementLabels[elementId] || elementId}</span>
-                      <button
-                        type="button"
-                        onClick={() => removeElement(section.id, elementId)}
-                        class="ml-1 p-0.5 rounded text-text-muted hover:text-error hover:bg-error/10"
-                        title="Remove element"
-                      >
-                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                      </button>
-                    </div>
-                  )}
-                </For>
-
-                {/* Drop zone at end */}
-                <Show when={section.elements.length > 0}>
-                  <div
-                    class={`
-                      w-8 h-8 rounded border-2 border-dashed border-border flex items-center justify-center
-                      ${draggedElement() ? 'border-primary/50 bg-primary/5' : ''}
-                    `}
-                    onDragOver={(e) => {
-                      e.preventDefault()
-                      handleElementDragOver(e, section.id, section.elements.length)
-                    }}
-                    onDrop={(e) => handleElementDrop(e, section.id, section.elements.length)}
-                  >
-                    <svg class="w-4 h-4 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                    </svg>
-                  </div>
-                </Show>
-              </div>
-            </div>
+            <SectionNode section={section} path={[sectionIndex()]} depth={0} />
           )}
         </For>
       </div>
@@ -357,7 +456,7 @@ export function CardLayoutEditor(props: CardLayoutEditorProps) {
       {/* Add section button */}
       <button
         type="button"
-        onClick={addSection}
+        onClick={addTopLevelSection}
         class="w-full py-2 rounded-lg border-2 border-dashed border-border text-text-muted hover:border-primary hover:text-primary transition-colors flex items-center justify-center gap-2"
       >
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -376,11 +475,11 @@ export function CardLayoutEditor(props: CardLayoutEditorProps) {
                 <div
                   draggable={true}
                   onDragStart={(e) => handleUnusedElementDragStart(e, elementId)}
-                  onDragEnd={handleElementDragEnd}
+                  onDragEnd={handleDragEnd}
                   class={`
                     flex items-center gap-1 px-2 py-1.5 rounded bg-bg-secondary border border-border
                     cursor-grab active:cursor-grabbing transition-all hover:border-primary
-                    ${draggedElement()?.elementId === elementId ? 'opacity-50 border-primary' : ''}
+                    ${draggedItem()?.id === elementId ? 'opacity-50 border-primary' : ''}
                   `}
                 >
                   <span class="text-sm text-text-muted">{props.elementLabels[elementId] || elementId}</span>

@@ -1,10 +1,12 @@
 ---
-import type { DatabaseAccount, BridgeProfile } from '../../lib/hive'
+import type { DatabaseAccount, BridgeProfile, DynamicGlobalProperties } from '../../lib/hive'
+import { convertVestsToHP, calculateEffectiveHP } from '../../lib/hive'
 
 interface Props {
   username: string
   account: DatabaseAccount
   profile: BridgeProfile | null
+  globalProperties: DynamicGlobalProperties | null
   avatarSize: number
   showPostCount: boolean
   showRewards: boolean
@@ -18,6 +20,7 @@ interface Props {
   showVotingPower?: boolean
   showHiveBalance?: boolean
   showHbdBalance?: boolean
+  showHivePower?: boolean
   showCoverImage?: boolean
   layout?: 'horizontal' | 'vertical'
 }
@@ -26,6 +29,7 @@ const {
   username,
   account,
   profile,
+  globalProperties,
   avatarSize,
   showPostCount,
   showRewards,
@@ -39,6 +43,7 @@ const {
   showVotingPower = false,
   showHiveBalance = false,
   showHbdBalance = false,
+  showHivePower = false,
   showCoverImage = true,
   layout = 'horizontal'
 } = Astro.props
@@ -61,9 +66,9 @@ const joinDate = profile?.created ? new Date(profile.created) : null
 
 // Financial data from database_api
 const postCount = account.post_count
-const postingRewards = account.posting_rewards
-const curationRewards = account.curation_rewards
-const totalRewards = postingRewards + curationRewards
+const postingRewardsVests = account.posting_rewards
+const curationRewardsVests = account.curation_rewards
+const totalRewardsVests = postingRewardsVests + curationRewardsVests
 
 // Parse balance amounts
 function parseBalance(balance: { amount: string; precision: number }): number {
@@ -72,6 +77,30 @@ function parseBalance(balance: { amount: string; precision: number }): number {
 
 const hiveBalance = parseBalance(account.balance as { amount: string; precision: number })
 const hbdBalance = parseBalance(account.hbd_balance as { amount: string; precision: number })
+
+// Calculate HP values using global properties
+let hivePower = 0
+let hpEarned = 0
+if (globalProperties) {
+  const { total_vesting_fund_hive, total_vesting_shares } = globalProperties
+
+  // Effective HP (own + received - delegated)
+  hivePower = calculateEffectiveHP(
+    account.vesting_shares,
+    account.delegated_vesting_shares,
+    account.received_vesting_shares,
+    total_vesting_fund_hive,
+    total_vesting_shares
+  )
+
+  // HP Earned (posting + curation rewards converted from VESTS to HP)
+  // Note: posting_rewards and curation_rewards are in VESTS (as numbers, not strings)
+  hpEarned = convertVestsToHP(
+    totalRewardsVests,
+    total_vesting_fund_hive,
+    total_vesting_shares
+  )
+}
 
 // Calculate voting power percentage
 function getVotingPower(): number {
@@ -225,15 +254,21 @@ const avatarUrl = profileImage || `https://images.hive.blog/u/${username}/avatar
       )}
       {showRewards && (
         <div class={isVertical ? 'text-center' : ''}>
-          <p class="text-lg font-bold text-success">{formatNumber(totalRewards)}</p>
+          <p class="text-lg font-bold text-success">{formatNumber(Math.round(hpEarned))}</p>
           <p class="text-xs text-text-muted">HP Earned</p>
         </div>
       )}
     </div>
 
     {/* Financial Stats (optional) */}
-    {(showVotingPower || showHiveBalance || showHbdBalance) && (
+    {(showVotingPower || showHiveBalance || showHbdBalance || showHivePower) && (
       <div class={`grid gap-3 mt-3 pt-3 border-t border-border/50 ${isVertical ? 'grid-cols-2' : 'grid-cols-3'}`}>
+        {showHivePower && (
+          <div class={isVertical ? 'text-center' : ''}>
+            <p class="text-sm font-semibold text-text">{hivePower.toFixed(3)}</p>
+            <p class="text-xs text-text-muted">Hive Power</p>
+          </div>
+        )}
         {showVotingPower && (
           <div class={isVertical ? 'text-center' : ''}>
             <p class="text-sm font-semibold text-text">{votingPower.toFixed(1)}%</p>

@@ -15,6 +15,7 @@
     "@payloadcms/db-mongodb": "^3.70.0",
     "@payloadcms/richtext-lexical": "^3.70.0",
     "@tailwindcss/vite": "^4.1.18",
+    "@tanstack/solid-query": "^5.90.20",
     "astro": "^5.16.9",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",

@@ -5,9 +5,11 @@ import {
   getHiveCommentsPaginated,
   getHiveAccount,
   getHiveProfile,
+  getDynamicGlobalProperties,
   type BridgePost,
   type DatabaseAccount,
   type BridgeProfile,
+  type DynamicGlobalProperties,
   type PostSortOption,
   type CommentSortOption,
   type PaginationCursor,
@@ -33,6 +35,7 @@ let hivePosts: readonly BridgePost[] = []
 let hiveComments: readonly BridgePost[] = []
 let hiveAccount: DatabaseAccount | null = null
 let hiveProfile: BridgeProfile | null = null
+let globalProperties: DynamicGlobalProperties | null = null
 let settings: SiteSettings = {}
 let error: string | null = null
 let isDemoMode = false
@@ -101,10 +104,11 @@ try {
   const includeReblogs = settings.includeReblogs ?? false
 
   if (hiveUsername) {
-    // Fetch account and profile always
-    [hiveAccount, hiveProfile] = await Promise.all([
+    // Fetch account, profile, and global properties for HP conversion
+    [hiveAccount, hiveProfile, globalProperties] = await Promise.all([
       getHiveAccount(hiveUsername),
       getHiveProfile(hiveUsername),
+      getDynamicGlobalProperties(),
     ])
 
     // Fetch content based on active tab with pagination
@@ -210,6 +214,7 @@ const isFirstPage = !cursor
               username={hiveUsername}
               account={hiveAccount}
               profile={hiveProfile}
+              globalProperties={globalProperties}
               avatarSize={authorAvatarSizePx}
               showPostCount={showPostCount}
               showRewards={showAuthorRewards}
@@ -466,6 +471,7 @@ const isFirstPage = !cursor
               username={hiveUsername}
               account={hiveAccount}
               profile={hiveProfile}
+              globalProperties={globalProperties}
               avatarSize={authorAvatarSizePx}
               showPostCount={showPostCount}
               showRewards={showAuthorRewards}
@@ -603,6 +609,7 @@ const isFirstPage = !cursor
               username={hiveUsername}
               account={hiveAccount}
               profile={hiveProfile}
+              globalProperties={globalProperties}
               avatarSize={authorAvatarSizePx}
               showPostCount={showPostCount}
               showRewards={showAuthorRewards}
