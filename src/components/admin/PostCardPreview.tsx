@@ -18,44 +18,44 @@ export interface SamplePost {
 
 export const samplePosts: SamplePost[] = [
   {
-    title: 'Wprowadzenie do blockchain Hive',
-    summary: 'Hive to zdecentralizowana platforma społecznościowa oparta na technologii blockchain. W tym artykule dowiesz się jak działa i jakie ma zalety.',
+    title: 'Introduction to Hive Blockchain',
+    summary: 'Hive is a decentralized social media platform built on blockchain technology. In this article you will learn how it works and what its advantages are.',
     imageUrl: 'https://images.hive.blog/u/gtg/avatar',
-    date: '13 sty 2026',
+    date: 'Jan 13, 2026',
     votes: 156,
     comments: 24,
     payout: '$12.45',
-    tags: ['hive', 'blockchain', 'crypto', 'wprowadzenie', 'poradnik'],
+    tags: ['hive', 'blockchain', 'crypto', 'introduction', 'guide'],
   },
   {
-    title: 'Jak zarabiać na Hive?',
-    summary: 'Kompletny przewodnik po możliwościach zarobku na platformie Hive - od publikowania treści po kuratorstwo i staking.',
+    title: 'How to Earn on Hive?',
+    summary: 'A complete guide to earning opportunities on the Hive platform - from content creation to curation and staking.',
     imageUrl: 'https://images.hive.blog/u/blocktrades/avatar',
-    date: '12 sty 2026',
+    date: 'Jan 12, 2026',
     votes: 89,
     comments: 15,
     payout: '$8.32',
-    tags: ['zarobek', 'hive', 'tutorial'],
+    tags: ['earnings', 'hive', 'tutorial'],
   },
   {
-    title: 'Nowości w ekosystemie Hive',
-    summary: 'Przegląd najnowszych aplikacji i projektów budowanych na blockchainie Hive. Zobacz co nowego pojawia się w społeczności.',
+    title: 'News from the Hive Ecosystem',
+    summary: 'An overview of the latest apps and projects being built on the Hive blockchain. See what new developments are emerging in the community.',
     imageUrl: 'https://images.hive.blog/u/hiveio/avatar',
-    date: '11 sty 2026',
+    date: 'Jan 11, 2026',
     votes: 234,
     comments: 42,
     payout: '$25.10',
     tags: ['hive', 'dapps', 'news', 'community'],
   },
   {
-    title: 'Porównanie Hive z innymi blockchainami',
-    summary: 'Analiza techniczna porównująca Hive z Ethereum, Solana i innymi popularnymi platformami. Sprawdź różnice w wydajności.',
+    title: 'Comparing Hive with Other Blockchains',
+    summary: 'A technical analysis comparing Hive with Ethereum, Solana and other popular platforms. Check the differences in performance.',
     imageUrl: 'https://images.hive.blog/u/therealwolf/avatar',
-    date: '10 sty 2026',
+    date: 'Jan 10, 2026',
     votes: 178,
     comments: 31,
     payout: '$18.75',
-    tags: ['hive', 'ethereum', 'porównanie', 'tech'],
+    tags: ['hive', 'ethereum', 'comparison', 'tech'],
   },
 ]
 
@@ -221,7 +221,7 @@ export function SingleCardPreview(props: SingleCardPreviewProps) {
     >
       <div class="p-4">
         <p class="text-xs text-text-muted mb-3 uppercase tracking-wide">
-          Podgląd karty (tryb listy)
+          Card Preview (list mode)
         </p>
         <PostCard post={post} compact={false} forceListMode={true} />
       </div>
@@ -263,9 +263,9 @@ export function LayoutPreview(props: LayoutPreviewProps) {
   })
 
   const layoutLabel = createMemo(() => {
-    if (settings.postsLayout === 'list') return 'lista'
-    if (settings.postsLayout === 'grid') return `grid ${settings.gridColumns} kol.`
-    return `masonry ${settings.gridColumns} kol.`
+    if (settings.postsLayout === 'list') return 'list'
+    if (settings.postsLayout === 'grid') return `grid ${settings.gridColumns} col.`
+    return `masonry ${settings.gridColumns} col.`
   })
 
   const isCompact = createMemo(() => settings.postsLayout !== 'list')
@@ -279,7 +279,7 @@ export function LayoutPreview(props: LayoutPreviewProps) {
     >
       <div class="p-4">
         <p class="text-xs text-text-muted mb-3 uppercase tracking-wide sticky top-0 bg-bg pb-2 z-10">
-          Podgląd ({layoutLabel()})
+          Preview ({layoutLabel()})
         </p>
         <div style={containerStyle()}>
           <For each={visiblePosts()}>
@@ -304,7 +304,7 @@ export function ResponsivePreview() {
   return (
     <div class="space-y-4">
       <div class="flex items-center justify-between">
-        <p class="text-xs text-text-muted uppercase tracking-wide">Podgląd responsywny</p>
+        <p class="text-xs text-text-muted uppercase tracking-wide">Responsive Preview</p>
         <div class="flex gap-2 text-xs text-text-muted">
           <span class="px-2 py-1 bg-bg-secondary rounded">Desktop</span>
         </div>
@@ -320,7 +320,7 @@ export function ResponsivePreview() {
       </div>
 
       <p class="text-xs text-text-muted text-center">
-        Przewiń w poziomie aby zobaczyć pełny podgląd
+        Scroll horizontally to see full preview
       </p>
     </div>
   )
