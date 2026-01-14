@@ -261,7 +261,7 @@ function hasSection(position: string, sectionId: string): boolean {
           )}
           {hasSection('main', 'posts') && hiveUsername && (
             <>
-              {tabs.length > 1 && <ContentTabs tabs={tabs} activeTab={activeTab} />}
+              {tabs.length > 1 && <ContentTabs tabs={tabs} activeTab={activeTab} userParam={userParam} />}
 
               {activeTab === 'posts' ? (
                 <>
@@ -380,7 +380,7 @@ function hasSection(position: string, sectionId: string): boolean {
         )}
         {hasSection('main', 'posts') && hiveUsername && (
           <>
-            {tabs.length > 1 && <ContentTabs tabs={tabs} activeTab={activeTab} />}
+            {tabs.length > 1 && <ContentTabs tabs={tabs} activeTab={activeTab} userParam={userParam} />}
 
             {activeTab === 'posts' ? (
               <>
