@@ -261,7 +261,7 @@ function hasSection(position: string, sectionId: string): boolean {
                   {hiveComments.length > 0 ? (
                     <div class="divide-y divide-border bg-bg-card rounded-xl shadow-sm border border-border overflow-hidden">
                       {hiveComments.map(comment => (
-                        <CommentCard comment={comment} />
+                        <CommentCard comment={comment} settings={settings} />
                       ))}
                     </div>
                   ) : (
@@ -360,7 +360,7 @@ function hasSection(position: string, sectionId: string): boolean {
                 {hiveComments.length > 0 ? (
                   <div class="divide-y divide-border bg-bg-card rounded-xl shadow-sm border border-border overflow-hidden">
                     {hiveComments.map(comment => (
-                      <CommentCard comment={comment} />
+                      <CommentCard comment={comment} settings={settings} />
                     ))}
                   </div>
                 ) : (

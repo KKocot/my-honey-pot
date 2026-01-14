@@ -52,6 +52,17 @@ export interface SettingsData {
   showAuthorHiveBalance: boolean
   showAuthorHbdBalance: boolean
   showAuthorCoverImage: boolean
+  // Comment Card settings
+  commentShowAvatar: boolean
+  commentAvatarSizePx: number
+  commentShowReplyContext: boolean
+  commentShowTimestamp: boolean
+  commentShowRepliesCount: boolean
+  commentShowVotes: boolean
+  commentShowPayout: boolean
+  commentShowViewLink: boolean
+  commentMaxLength: number
+  commentPaddingPx: number
 }
 
 export const defaultSettings: SettingsData = {
@@ -103,6 +114,17 @@ export const defaultSettings: SettingsData = {
   showAuthorHiveBalance: false,
   showAuthorHbdBalance: false,
   showAuthorCoverImage: true,
+  // Comment Card defaults
+  commentShowAvatar: true,
+  commentAvatarSizePx: 40,
+  commentShowReplyContext: true,
+  commentShowTimestamp: true,
+  commentShowRepliesCount: true,
+  commentShowVotes: true,
+  commentShowPayout: true,
+  commentShowViewLink: true,
+  commentMaxLength: 0,
+  commentPaddingPx: 16,
 }
 
 export const sectionLabels: Record<string, string> = {

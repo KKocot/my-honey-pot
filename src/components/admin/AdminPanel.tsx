@@ -5,6 +5,7 @@ import { SiteSettings } from './SiteSettings'
 import { PostsLayoutSettings } from './PostsLayoutSettings'
 import { CardAppearanceSettings } from './CardAppearanceSettings'
 import { AuthorProfileSettings } from './AuthorProfileSettings'
+import { CommentSettings } from './CommentSettings'
 import { loadSettings, saveSettings } from './store'
 
 // ============================================
@@ -39,6 +40,7 @@ export function AdminPanel() {
       <AuthorProfileSettings />
       <PostsLayoutSettings />
       <CardAppearanceSettings />
+      <CommentSettings />
 
       <div class="flex justify-end">
         <Button

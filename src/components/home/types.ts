@@ -54,6 +54,17 @@ export interface SiteSettings {
   showAuthorHiveBalance?: boolean
   showAuthorHbdBalance?: boolean
   showAuthorCoverImage?: boolean
+  // Comment Card settings
+  commentShowAvatar?: boolean
+  commentAvatarSizePx?: number
+  commentShowReplyContext?: boolean
+  commentShowTimestamp?: boolean
+  commentShowRepliesCount?: boolean
+  commentShowVotes?: boolean
+  commentShowPayout?: boolean
+  commentShowViewLink?: boolean
+  commentMaxLength?: number
+  commentPaddingPx?: number
 }
 
 export interface HomePageData {
