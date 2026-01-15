@@ -11,6 +11,13 @@ export { Community } from "./Community";
 export { Vote } from "./Vote";
 export { getWax } from "./wax";
 export type { WaxExtendedChain } from "./wax";
+export {
+  HbauthProvider,
+  HbauthSession,
+  HbauthSignatureProvider,
+  getHbauthProvider,
+} from "./HbauthProvider";
+export type { KeyType, HbauthLoginOptions } from "./HbauthProvider";
 
 // Re-export interfaces
 export type {
@@ -30,6 +37,9 @@ export type {
   IReply,
   IPost,
   IBloggingPlatform,
+  ILoginSession,
+  IAuthenticationProvider,
+  IActiveBloggingPlatform,
 } from "./interfaces";
 
 // Re-export utilities
