@@ -725,36 +725,54 @@ export function getNetVotes(post: BridgePost): number {
   );
 }
 
-/**
- * Parse VESTS amount string to number
- * e.g., "123456.789012 VESTS" -> 123456.789012
- */
-export function parseVests(vests: string): number {
-  return parseFloat(vests.replace(" VESTS", ""));
+/** Asset object format from database_api */
+interface AssetObject {
+  amount: string;
+  precision: number;
+  nai: string;
 }
 
 /**
- * Parse HIVE amount string to number
- * e.g., "123.456 HIVE" -> 123.456
+ * Parse VESTS amount to number
+ * Handles both string format "123456.789012 VESTS" and asset object format
  */
-export function parseHive(hive: string): number {
-  return parseFloat(hive.replace(" HIVE", ""));
+export function parseVests(vests: string | AssetObject): number {
+  if (typeof vests === "string") {
+    return parseFloat(vests.replace(" VESTS", ""));
+  }
+  // Asset object format: { amount: "123456789012", precision: 6, nai: "..." }
+  return parseInt(vests.amount) / Math.pow(10, vests.precision);
 }
+
+/**
+ * Parse HIVE amount to number
+ * Handles both string format "123.456 HIVE" and asset object format
+ */
+export function parseHive(hive: string | AssetObject): number {
+  if (typeof hive === "string") {
+    return parseFloat(hive.replace(" HIVE", ""));
+  }
+  // Asset object format: { amount: "123456", precision: 3, nai: "..." }
+  return parseInt(hive.amount) / Math.pow(10, hive.precision);
+}
+
+/** Type for asset values that can be string or object format */
+type AssetValue = string | AssetObject;
 
 /**
  * Convert VESTS to HP (Hive Power) using dynamic global properties
  * Formula: HP = VESTS * (total_vesting_fund_hive / total_vesting_shares)
  *
- * @param vests - VESTS amount (as string like "123456.789012 VESTS" or number)
- * @param totalVestingFundHive - From getDynamicGlobalProperties (e.g., "123456789.012 HIVE")
- * @param totalVestingShares - From getDynamicGlobalProperties (e.g., "123456789012.345678 VESTS")
+ * @param vests - VESTS amount (as string, number, or asset object)
+ * @param totalVestingFundHive - From getDynamicGlobalProperties
+ * @param totalVestingShares - From getDynamicGlobalProperties
  */
 export function convertVestsToHP(
-  vests: string | number,
-  totalVestingFundHive: string,
-  totalVestingShares: string
+  vests: AssetValue | number,
+  totalVestingFundHive: AssetValue,
+  totalVestingShares: AssetValue
 ): number {
-  const vestsNum = typeof vests === "string" ? parseVests(vests) : vests;
+  const vestsNum = typeof vests === "number" ? vests : parseVests(vests);
   const fundHive = parseHive(totalVestingFundHive);
   const totalShares = parseVests(totalVestingShares);
 
@@ -767,11 +785,11 @@ export function convertVestsToHP(
  * Calculate effective HP for a user (own HP + received - delegated)
  */
 export function calculateEffectiveHP(
-  vestingShares: string,
-  delegatedVestingShares: string,
-  receivedVestingShares: string,
-  totalVestingFundHive: string,
-  totalVestingShares: string
+  vestingShares: AssetValue,
+  delegatedVestingShares: AssetValue,
+  receivedVestingShares: AssetValue,
+  totalVestingFundHive: AssetValue,
+  totalVestingShares: AssetValue
 ): number {
   const own = parseVests(vestingShares);
   const delegated = parseVests(delegatedVestingShares);
@@ -786,11 +804,160 @@ export function calculateEffectiveHP(
  * Calculate own HP for a user (without delegations)
  */
 export function calculateOwnHP(
-  vestingShares: string,
-  totalVestingFundHive: string,
-  totalVestingShares: string
+  vestingShares: AssetValue,
+  totalVestingFundHive: AssetValue,
+  totalVestingShares: AssetValue
 ): number {
   return convertVestsToHP(vestingShares, totalVestingFundHive, totalVestingShares);
+}
+
+// ============================================================================
+// WAX-based Manabar Calculations (like Denser)
+// ============================================================================
+
+/** Manabar data structure */
+export interface ManabarData {
+  max: bigint;
+  current: bigint;
+  percent: number;
+}
+
+/** Single manabar result with cooldown */
+export interface SingleManabar {
+  max: string;
+  current: string;
+  percentageValue: number;
+  cooldown: Date;
+}
+
+/** All manabars for an account */
+export interface AccountManabars {
+  upvote: SingleManabar;
+  downvote: SingleManabar;
+  rc: SingleManabar;
+}
+
+/**
+ * Get voting power (upvote manabar) for an account using WAX
+ * This is the accurate way to calculate voting power like Denser does
+ *
+ * @param username - Hive username
+ * @returns Promise with manabar data including percentage
+ */
+export async function getVotingManabar(username: string): Promise<ManabarData | null> {
+  try {
+    const chain = await getHiveChain();
+    // 0 = upvote manabar, 1 = downvote manabar, 2 = RC manabar
+    const manabar = await chain.calculateCurrentManabarValueForAccount(username, 0);
+    return manabar;
+  } catch (error) {
+    console.error("Error getting voting manabar:", error);
+    return null;
+  }
+}
+
+/**
+ * Get downvote manabar for an account using WAX
+ *
+ * @param username - Hive username
+ * @returns Promise with manabar data including percentage
+ */
+export async function getDownvoteManabar(username: string): Promise<ManabarData | null> {
+  try {
+    const chain = await getHiveChain();
+    const manabar = await chain.calculateCurrentManabarValueForAccount(username, 1);
+    return manabar;
+  } catch (error) {
+    console.error("Error getting downvote manabar:", error);
+    return null;
+  }
+}
+
+/**
+ * Get RC (Resource Credits) manabar for an account using WAX
+ *
+ * @param username - Hive username
+ * @returns Promise with manabar data including percentage
+ */
+export async function getRcManabar(username: string): Promise<ManabarData | null> {
+  try {
+    const chain = await getHiveChain();
+    const manabar = await chain.calculateCurrentManabarValueForAccount(username, 2);
+    return manabar;
+  } catch (error) {
+    console.error("Error getting RC manabar:", error);
+    return null;
+  }
+}
+
+/**
+ * Get voting power cooldown (time until full regeneration)
+ *
+ * @param username - Hive username
+ * @returns Promise with cooldown date
+ */
+export async function getVotingPowerCooldown(username: string): Promise<Date | null> {
+  try {
+    const chain = await getHiveChain();
+    return chain.calculateManabarFullRegenerationTimeForAccount(username, 0);
+  } catch (error) {
+    console.error("Error getting voting power cooldown:", error);
+    return null;
+  }
+}
+
+/**
+ * Get all manabars (upvote, downvote, RC) for an account at once
+ * Similar to Denser's getManabars function
+ *
+ * @param username - Hive username
+ * @returns Promise with all manabar data
+ */
+export async function getAllManabars(username: string): Promise<AccountManabars | null> {
+  try {
+    const chain = await getHiveChain();
+
+    // Fetch all manabars and cooldowns in parallel
+    const [
+      upvoteManabar,
+      upvoteCooldown,
+      downvoteManabar,
+      downvoteCooldown,
+      rcManabar,
+      rcCooldown,
+    ] = await Promise.all([
+      chain.calculateCurrentManabarValueForAccount(username, 0),
+      chain.calculateManabarFullRegenerationTimeForAccount(username, 0),
+      chain.calculateCurrentManabarValueForAccount(username, 1),
+      chain.calculateManabarFullRegenerationTimeForAccount(username, 1),
+      chain.calculateCurrentManabarValueForAccount(username, 2),
+      chain.calculateManabarFullRegenerationTimeForAccount(username, 2),
+    ]);
+
+    return {
+      upvote: {
+        max: upvoteManabar.max.toString(),
+        current: upvoteManabar.current.toString(),
+        percentageValue: upvoteManabar.percent,
+        cooldown: upvoteCooldown,
+      },
+      downvote: {
+        max: downvoteManabar.max.toString(),
+        current: downvoteManabar.current.toString(),
+        percentageValue: downvoteManabar.percent,
+        cooldown: downvoteCooldown,
+      },
+      rc: {
+        max: rcManabar.max.toString(),
+        current: rcManabar.current.toString(),
+        percentageValue: rcManabar.percent,
+        cooldown: rcCooldown,
+      },
+    };
+  } catch (error) {
+    console.error("Error getting all manabars:", error);
+    return null;
+  }
 }
 
 // ============================================================================
