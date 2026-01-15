@@ -24,6 +24,7 @@
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
     "http-proxy-middleware": "^3.0.5",
+    "iron-session": "^8.0.4",
     "payload": "^3.70.0",
     "solid-js": "^1.9.10",
     "tailwindcss": "^4.1.18"
