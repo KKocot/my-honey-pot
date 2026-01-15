@@ -1,5 +1,5 @@
 ---
-import type { DatabaseAccount, BridgeProfile, DynamicGlobalProperties } from '../../lib/hive'
+import type { DatabaseAccount, BridgeProfile, DynamicGlobalProperties, ManabarData } from '../../lib/hive'
 import { convertVestsToHP, calculateEffectiveHP } from '../../lib/hive'
 
 interface Props {
@@ -7,6 +7,7 @@ interface Props {
   account: DatabaseAccount
   profile: BridgeProfile | null
   globalProperties: DynamicGlobalProperties | null
+  votingManabar: ManabarData | null
   avatarSize: number
   showPostCount: boolean
   showRewards: boolean
@@ -30,6 +31,7 @@ const {
   account,
   profile,
   globalProperties,
+  votingManabar,
   avatarSize,
   showPostCount,
   showRewards,
@@ -70,13 +72,18 @@ const postingRewardsVests = account.posting_rewards
 const curationRewardsVests = account.curation_rewards
 const totalRewardsVests = postingRewardsVests + curationRewardsVests
 
-// Parse balance amounts
-function parseBalance(balance: { amount: string; precision: number }): number {
+// Parse balance amounts (handles both string format "123.456 HIVE" and asset object format)
+function parseBalance(balance: string | { amount: string; precision: number; nai: string }): number {
+  if (typeof balance === 'string') {
+    // Handle string format: "123.456 HIVE" or "123.456 HBD"
+    return parseFloat(balance.replace(/\s*(HIVE|HBD|VESTS)$/i, ''))
+  }
+  // Handle asset object format: { amount: "123456", precision: 3, nai: "..." }
   return parseInt(balance.amount) / Math.pow(10, balance.precision)
 }
 
-const hiveBalance = parseBalance(account.balance as { amount: string; precision: number })
-const hbdBalance = parseBalance(account.hbd_balance as { amount: string; precision: number })
+const hiveBalance = parseBalance(account.balance as string | { amount: string; precision: number; nai: string })
+const hbdBalance = parseBalance(account.hbd_balance as string | { amount: string; precision: number; nai: string })
 
 // Calculate HP values using global properties
 let hivePower = 0
@@ -85,6 +92,7 @@ if (globalProperties) {
   const { total_vesting_fund_hive, total_vesting_shares } = globalProperties
 
   // Effective HP (own + received - delegated)
+  // account.vesting_shares etc. can be string or asset object format
   hivePower = calculateEffectiveHP(
     account.vesting_shares,
     account.delegated_vesting_shares,
@@ -102,27 +110,8 @@ if (globalProperties) {
   )
 }
 
-// Calculate voting power percentage
-function getVotingPower(): number {
-  const manabar = account.voting_manabar
-  const maxMana = parseFloat(account.post_voting_power?.amount || '0')
-  if (maxMana === 0) return 0
-
-  const currentMana = parseFloat(manabar.current_mana)
-  const lastUpdate = manabar.last_update_time
-  const now = Math.floor(Date.now() / 1000)
-  const secondsSinceUpdate = now - lastUpdate
-
-  // Mana regenerates at 20% per day (full in 5 days)
-  const regeneratedMana = Math.min(
-    maxMana,
-    currentMana + (maxMana * secondsSinceUpdate) / (5 * 24 * 60 * 60)
-  )
-
-  return Math.min(100, (regeneratedMana / maxMana) * 100)
-}
-
-const votingPower = getVotingPower()
+// Use WAX-calculated voting power (accurate like Denser)
+const votingPower = votingManabar?.percent ?? 0
 
 // Format large numbers
 function formatNumber(num: number): string {

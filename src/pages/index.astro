@@ -6,10 +6,12 @@ import {
   getHiveAccount,
   getHiveProfile,
   getDynamicGlobalProperties,
+  getVotingManabar,
   type BridgePost,
   type DatabaseAccount,
   type BridgeProfile,
   type DynamicGlobalProperties,
+  type ManabarData,
   type PostSortOption,
   type CommentSortOption,
   type PaginationCursor,
@@ -36,6 +38,7 @@ let hiveComments: readonly BridgePost[] = []
 let hiveAccount: DatabaseAccount | null = null
 let hiveProfile: BridgeProfile | null = null
 let globalProperties: DynamicGlobalProperties | null = null
+let votingManabar: ManabarData | null = null
 let settings: SiteSettings = {}
 let error: string | null = null
 let isDemoMode = false
@@ -104,11 +107,12 @@ try {
   const includeReblogs = settings.includeReblogs ?? false
 
   if (hiveUsername) {
-    // Fetch account, profile, and global properties for HP conversion
-    [hiveAccount, hiveProfile, globalProperties] = await Promise.all([
+    // Fetch account, profile, global properties (for HP conversion), and voting manabar (WAX)
+    [hiveAccount, hiveProfile, globalProperties, votingManabar] = await Promise.all([
       getHiveAccount(hiveUsername),
       getHiveProfile(hiveUsername),
       getDynamicGlobalProperties(),
+      getVotingManabar(hiveUsername),
     ])
 
     // Fetch content based on active tab with pagination
@@ -215,6 +219,7 @@ const isFirstPage = !cursor
               account={hiveAccount}
               profile={hiveProfile}
               globalProperties={globalProperties}
+              votingManabar={votingManabar}
               avatarSize={authorAvatarSizePx}
               showPostCount={showPostCount}
               showRewards={showAuthorRewards}
@@ -270,6 +275,8 @@ const isFirstPage = !cursor
                   username={hiveUsername}
                   account={hiveAccount}
                   profile={hiveProfile}
+                  globalProperties={globalProperties}
+                  votingManabar={votingManabar}
                   avatarSize={authorAvatarSizePx}
                   showPostCount={showPostCount}
                   showRewards={showAuthorRewards}
@@ -302,6 +309,8 @@ const isFirstPage = !cursor
                 username={hiveUsername}
                 account={hiveAccount}
                 profile={hiveProfile}
+                globalProperties={globalProperties}
+                votingManabar={votingManabar}
                 avatarSize={authorAvatarSizePx}
                 showPostCount={showPostCount}
                 showRewards={showAuthorRewards}
@@ -438,6 +447,8 @@ const isFirstPage = !cursor
                   username={hiveUsername}
                   account={hiveAccount}
                   profile={hiveProfile}
+                  globalProperties={globalProperties}
+                  votingManabar={votingManabar}
                   avatarSize={authorAvatarSizePx}
                   showPostCount={showPostCount}
                   showRewards={showAuthorRewards}
@@ -472,6 +483,7 @@ const isFirstPage = !cursor
               account={hiveAccount}
               profile={hiveProfile}
               globalProperties={globalProperties}
+              votingManabar={votingManabar}
               avatarSize={authorAvatarSizePx}
               showPostCount={showPostCount}
               showRewards={showAuthorRewards}
@@ -610,6 +622,7 @@ const isFirstPage = !cursor
               account={hiveAccount}
               profile={hiveProfile}
               globalProperties={globalProperties}
+              votingManabar={votingManabar}
               avatarSize={authorAvatarSizePx}
               showPostCount={showPostCount}
               showRewards={showAuthorRewards}
