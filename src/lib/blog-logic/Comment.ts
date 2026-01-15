@@ -8,7 +8,8 @@ export class Comment implements IComment {
   public permlink: string;
   public publishedAt: Date;
   public updatedAt: Date;
-
+  /** Number of votes from cached active_votes array */
+  public readonly votesCount: number;
 
   protected content?: string;
   protected votes?: Iterable<IVote>;
@@ -23,7 +24,7 @@ export class Comment implements IComment {
     this.publishedAt = new Date(post?.created || "");
     this.updatedAt = new Date(post?.updated || "");
     this.content = post?.body;
-
+    this.votesCount = post?.active_votes?.length ?? 0;
   }
 
   protected getCommentId(): IPostCommentIdentity {
@@ -74,6 +75,15 @@ export class Comment implements IComment {
     let voters = this.dataProvider.getVoters(this.getCommentId());
     if (!voters) voters = await this.dataProvider.enumVotes(this.getCommentId(), {limit: 1000, votesSort: "by_comment_voter"}, {page: 1, pageSize: 10000});
     return voters.some((voter) => voter === userName)
+  }
+
+  /**
+   * Get number of votes for this comment/post.
+   */
+  public async getVotesCount(): Promise<number> {
+    let voters = this.dataProvider.getVoters(this.getCommentId());
+    if (!voters) voters = await this.dataProvider.enumVotes(this.getCommentId(), {limit: 1000, votesSort: "by_comment_voter"}, {page: 1, pageSize: 10000});
+    return voters.length;
   }
 
 }

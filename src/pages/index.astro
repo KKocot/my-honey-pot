@@ -1,7 +1,6 @@
 ---
 import Layout from '../layouts/Layout.astro'
 import {
-  getHivePostsPaginated,
   getHiveCommentsPaginated,
   getHiveAccount,
   getHiveProfile,
@@ -12,15 +11,17 @@ import {
   type BridgeProfile,
   type DynamicGlobalProperties,
   type ManabarData,
-  type PostSortOption,
   type CommentSortOption,
   type PaginationCursor,
 } from '../lib/hive'
 import { getPayloadClient } from '../lib/payload'
 
+// Blog Logic imports
+import { DataProvider, getWax, type Post, type IAccountPostsFilters } from '../lib/blog-logic'
+
 import Header from '../components/home/Header.astro'
 import AuthorProfile from '../components/home/AuthorProfile.astro'
-import PostsGrid from '../components/home/PostsGrid.astro'
+import BlogLogicPostsGrid from '../components/home/BlogLogicPostsGrid.astro'
 import Footer from '../components/home/Footer.astro'
 import ContentTabs from '../components/home/ContentTabs.astro'
 import CommentCard from '../components/home/CommentCard.astro'
@@ -33,7 +34,7 @@ import { type SiteSettings, type PageLayout, type PageSlotPosition, defaultPageL
 // Get URL for parsing query params
 const url = new URL(Astro.request.url)
 
-let hivePosts: readonly BridgePost[] = []
+let blogLogicPosts: Post[] = []
 let hiveComments: readonly BridgePost[] = []
 let hiveAccount: DatabaseAccount | null = null
 let hiveProfile: BridgeProfile | null = null
@@ -102,9 +103,8 @@ const cursor: PaginationCursor | undefined = (startAuthor && startPermlink)
 
 try {
   const postsLimit = settings.postsPerPage || 20
-  const postsSortOrder = (settings.postsSortOrder || 'blog') as PostSortOption
+  const postsSortOrder = (settings.postsSortOrder || 'blog') as IAccountPostsFilters['sort']
   const commentsSortOrder = (settings.commentsSortOrder || 'comments') as CommentSortOption
-  const includeReblogs = settings.includeReblogs ?? false
 
   if (hiveUsername) {
     // Fetch account, profile, global properties (for HP conversion), and voting manabar (WAX)
@@ -122,10 +122,23 @@ try {
       hasMoreComments = result.hasMore
       nextCommentsCursor = result.nextCursor
     } else {
-      const result = await getHivePostsPaginated(hiveUsername, postsSortOrder, postsLimit, cursor, includeReblogs)
-      hivePosts = result.items
-      hasMorePosts = result.hasMore
-      nextPostsCursor = result.nextCursor
+      // Use Blog Logic to fetch posts
+      const chain = await getWax()
+      const dataProvider = new DataProvider(chain)
+
+      const posts = await dataProvider.bloggingPlatform.enumAccountPosts(
+        { sort: postsSortOrder, account: hiveUsername },
+        { page: 1, pageSize: postsLimit }
+      )
+      blogLogicPosts = [...posts] as Post[]
+
+      // TODO: Blog Logic pagination - currently fetches first page only
+      // Need to implement cursor-based pagination in Blog Logic
+      hasMorePosts = blogLogicPosts.length >= postsLimit
+      if (blogLogicPosts.length > 0) {
+        const lastPost = blogLogicPosts[blogLogicPosts.length - 1]
+        nextPostsCursor = { startAuthor: lastPost.author, startPermlink: lastPost.permlink }
+      }
     }
   }
 } catch (e) {
@@ -252,8 +265,8 @@ const isFirstPage = !cursor
         {elementId === 'posts' && hiveUsername && (
           <>
             {tabs.length > 1 && activeTab === 'posts' && <ContentTabs tabs={tabs} activeTab={activeTab} />}
-            {hivePosts.length > 0 ? (
-              <PostsGrid posts={hivePosts} settings={settings} />
+            {blogLogicPosts.length > 0 ? (
+              <BlogLogicPostsGrid posts={blogLogicPosts} settings={settings} />
             ) : (
               <div class="text-center py-8 bg-bg-card rounded-xl border border-border">
                 <p class="text-text-muted">No posts found</p>
@@ -355,8 +368,8 @@ const isFirstPage = !cursor
                 )}
                 {elementId === 'posts' && hiveUsername && (
                   <div class="bg-bg-card rounded-lg p-3 border border-border">
-                    {hivePosts.length > 0 ? (
-                      <PostsGrid posts={hivePosts} settings={settings} />
+                    {blogLogicPosts.length > 0 ? (
+                      <BlogLogicPostsGrid posts={blogLogicPosts} settings={settings} />
                     ) : (
                       <p class="text-text-muted text-xs">No posts</p>
                     )}
@@ -398,9 +411,9 @@ const isFirstPage = !cursor
                   {tabs.length > 1 && <ContentTabs tabs={tabs} activeTab={activeTab} />}
                   {activeTab === 'posts' ? (
                     <>
-                      {hivePosts.length > 0 ? (
+                      {blogLogicPosts.length > 0 ? (
                         <>
-                          <PostsGrid posts={hivePosts} settings={settings} />
+                          <BlogLogicPostsGrid posts={blogLogicPosts} settings={settings} />
                           <div class="flex justify-between items-center mt-6 pt-4 border-t border-border">
                             {!isFirstPage ? (
                               <a href="/?tab=posts" class="px-4 py-2 bg-bg-card border border-border rounded-lg text-text hover:bg-primary hover:text-primary-text hover:border-primary transition-colors">
@@ -545,8 +558,8 @@ const isFirstPage = !cursor
                 )}
                 {elementId === 'posts' && hiveUsername && (
                   <div class="bg-bg-card rounded-lg p-3 border border-border">
-                    {hivePosts.length > 0 ? (
-                      <PostsGrid posts={hivePosts} settings={settings} />
+                    {blogLogicPosts.length > 0 ? (
+                      <BlogLogicPostsGrid posts={blogLogicPosts} settings={settings} />
                     ) : (
                       <p class="text-text-muted text-xs">No posts</p>
                     )}
@@ -589,9 +602,9 @@ const isFirstPage = !cursor
                 {tabs.length > 1 && <ContentTabs tabs={tabs} activeTab={activeTab} />}
                 {activeTab === 'posts' ? (
                   <>
-                    {hivePosts.length > 0 ? (
+                    {blogLogicPosts.length > 0 ? (
                       <>
-                        <PostsGrid posts={hivePosts} settings={settings} />
+                        <BlogLogicPostsGrid posts={blogLogicPosts} settings={settings} />
                         <div class="flex justify-between items-center mt-6 pt-4 border-t border-border">
                           {!isFirstPage ? (
                             <a href="/?tab=posts" class="px-4 py-2 bg-bg-card border border-border rounded-lg text-text hover:bg-primary hover:text-primary-text hover:border-primary transition-colors">
@@ -715,8 +728,8 @@ const isFirstPage = !cursor
         )}
         {elementId === 'posts' && hiveUsername && (
           <>
-            {hivePosts.length > 0 ? (
-              <PostsGrid posts={hivePosts} settings={settings} />
+            {blogLogicPosts.length > 0 ? (
+              <BlogLogicPostsGrid posts={blogLogicPosts} settings={settings} />
             ) : (
               <div class="text-center py-8 bg-bg-card rounded-xl border border-border">
                 <p class="text-text-muted">No posts found</p>

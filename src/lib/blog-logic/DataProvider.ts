@@ -2,7 +2,7 @@ import type { HafbeTypesAccount } from "@hiveio/wax-api-hafbe"
 import type { Community as CommunityData, PostBridgeApi, ActiveVotesDatabaseApi } from "@hiveio/wax-api-jsonrpc";
 import { WorkerBeeError } from "./errors";
 import { BloggingPlaform } from "./BloggingPlatform";
-import type { ICommonFilters, ICommunityFilters, IPagination, IPostCommentIdentity, IPostFilters, IVotesFilters } from "./interfaces";
+import type { IAccountPostsFilters, ICommonFilters, ICommunityFilters, IPagination, IPostCommentIdentity, IPostFilters, IVotesFilters } from "./interfaces";
 import { paginateData } from "./utils";
 import type { WaxExtendedChain } from "./wax";
 
@@ -62,6 +62,25 @@ export class DataProvider {
       this.comments.set(this.convertCommentIdToHash(postId), post);
     })
     return paginatedPosts.map((post) => ({author: post.author, permlink: post.permlink}));
+  }
+
+  /**
+   * Fetch posts for a specific account using bridge.get_account_posts
+   */
+  public async enumAccountPosts(filter: IAccountPostsFilters, pagination: IPagination): Promise<IPostCommentIdentity[]> {
+    const posts = await this.chain.api.bridge.get_account_posts({
+      sort: filter.sort,
+      account: filter.account,
+      observer: this.bloggingPlatform.viewerContext.name,
+      limit: pagination.pageSize,
+    });
+    if (!posts)
+      throw new WorkerBeeError("Posts not found");
+    posts.forEach((post) => {
+      const postId = {author: post.author, permlink: post.permlink}
+      this.comments.set(this.convertCommentIdToHash(postId), post);
+    })
+    return posts.map((post) => ({author: post.author, permlink: post.permlink}));
   }
 
   public getRepliesIdsByPost(postId: IPostCommentIdentity): IPostCommentIdentity[] | null {

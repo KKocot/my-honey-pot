@@ -13,6 +13,13 @@ export class Post extends Comment implements IPost  {
 
   private postImage?: string;
 
+  // TODO: These properties expose raw API data for UI compatibility
+  // Consider moving payout-related data to a separate class in the future
+  /** Pending payout value as string (e.g., "1.234 HBD") */
+  public readonly pendingPayoutValue: string;
+  /** All images from json_metadata */
+  public readonly images: readonly string[];
+
   public constructor(authorPermlink: IPostCommentIdentity, dataProvider: DataProvider) {
     super(authorPermlink, dataProvider);
     const post = dataProvider.getComment(authorPermlink);
@@ -23,6 +30,9 @@ export class Post extends Comment implements IPost  {
     this.communityTitle = post?.community_title
     this.postImage = post?.json_metadata.image?.[0];
 
+    // Additional UI properties from raw data
+    this.pendingPayoutValue = post?.pending_payout_value ?? "0.000 HBD";
+    this.images = post?.json_metadata?.image ?? [];
   }
 
 

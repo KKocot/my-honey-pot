@@ -4,6 +4,7 @@ import { DataProvider } from "./DataProvider";
 import type {
   IAccount,
   IAccountIdentity,
+  IAccountPostsFilters,
   IBloggingPlatform,
   ICommunity,
   ICommunityFilters,
@@ -63,6 +64,17 @@ export class BloggingPlaform implements IBloggingPlatform {
    */
   public async enumPosts(filter: IPostFilters, pagination: IPagination): Promise<Iterable<IPost>> {
     const postsIds = await this.dataProvider.enumPosts(filter, pagination);
+    return postsIds.map((post) => new Post({author: post.author, permlink: post.permlink}, this.dataProvider))
+  }
+
+  /**
+   * Get posts for a specific account.
+   * @param filter - includes account name and sort type (blog, posts, comments, etc.)
+   * @param pagination
+   * @returns iterable of posts
+   */
+  public async enumAccountPosts(filter: IAccountPostsFilters, pagination: IPagination): Promise<Iterable<IPost>> {
+    const postsIds = await this.dataProvider.enumAccountPosts(filter, pagination);
     return postsIds.map((post) => new Post({author: post.author, permlink: post.permlink}, this.dataProvider))
   }
 

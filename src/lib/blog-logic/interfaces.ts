@@ -22,6 +22,11 @@ export interface IPostFilters extends ICommonFilters {
   readonly tag: string;
 }
 
+export interface IAccountPostsFilters extends ICommonFilters {
+  readonly sort: "blog" | "posts" | "comments" | "replies" | "feed";
+  readonly account: string;
+}
+
 export interface ICommunityFilters extends ICommonFilters {
   readonly sort: string;
   readonly query: string
@@ -83,6 +88,7 @@ export interface IComment extends IPostCommentIdentity {
   enumVotes(filter: IVotesFilters, pagination: IPagination): Promise<Iterable<IVote>>;
   getContent(): Promise<string>;
   wasVotedByUser(userName: string): Promise<boolean>;
+  getVotesCount(): Promise<number>;
 
   /**
    * Allows to generate a slug for the comment, which can be used in URLs or as a unique identifier.
@@ -148,6 +154,7 @@ export interface IBloggingPlatform {
   viewerContext: IAccountIdentity;
   getPost(postId: IPostCommentIdentity): Promise<IPost>;
   enumPosts(filter: IPostFilters, pagination: IPagination): Promise<Iterable<IPost>>;
+  enumAccountPosts(filter: IAccountPostsFilters, pagination: IPagination): Promise<Iterable<IPost>>;
   configureViewContext(accontName: IAccountIdentity): void;
   enumCommunities(filter: ICommunityFilters, pagination: IPagination): Promise<Iterable<ICommunity>>;
   getAccount(accontName: string): Promise<IAccount>;

@@ -18,6 +18,7 @@ export type {
   ICommonFilters,
   IVotesFilters,
   IPostFilters,
+  IAccountPostsFilters,
   ICommunityFilters,
   IAccountIdentity,
   ICommunityIdentity,

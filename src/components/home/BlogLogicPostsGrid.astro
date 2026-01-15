@@ -1,0 +1,72 @@
+---
+import type { Post } from '../../lib/blog-logic'
+import type { SiteSettings } from './types'
+import BlogLogicPostCard from './BlogLogicPostCard.astro'
+
+interface Props {
+  posts: Post[]
+  settings: SiteSettings
+}
+
+const { posts, settings } = Astro.props
+
+// Settings with defaults
+const postsLayout = settings.postsLayout || 'list'
+const gridColumns = settings.gridColumns || 2
+const cardGapPx = settings.cardGapPx ?? 24
+const cardLayout = settings.cardLayout || 'horizontal'
+const thumbnailPosition = settings.thumbnailPosition || 'left'
+const thumbnailSizePx = settings.thumbnailSizePx ?? 96
+const cardPaddingPx = settings.cardPaddingPx ?? 24
+const cardBorderRadiusPx = settings.cardBorderRadiusPx ?? 16
+const titleSizePx = settings.titleSizePx ?? 20
+const showThumbnail = settings.showThumbnail !== false
+const showSummary = settings.showSummary !== false
+const summaryMaxLength = settings.summaryMaxLength || 150
+const showDate = settings.showDate !== false
+const showVotes = settings.showVotes !== false
+const showComments = settings.showComments !== false
+const showPayout = settings.showPayout !== false
+const showTags = settings.showTags !== false
+const cardBorder = settings.cardBorder !== false
+const maxTags = settings.maxTags || 5
+
+function getContainerStyle(): string {
+  if (postsLayout === 'list') {
+    return `display: flex; flex-direction: column; gap: ${cardGapPx}px;`
+  } else if (postsLayout === 'grid') {
+    return `display: grid; grid-template-columns: repeat(${gridColumns}, 1fr); gap: ${cardGapPx}px;`
+  } else {
+    return `column-count: ${gridColumns}; column-gap: ${cardGapPx}px;`
+  }
+}
+
+function getMasonryStyle(): string {
+  return postsLayout === 'masonry' ? `break-inside: avoid; margin-bottom: ${cardGapPx}px;` : ''
+}
+---
+
+<div style={getContainerStyle()}>
+  {posts.map((post) => (
+    <BlogLogicPostCard
+      post={post}
+      cardLayout={cardLayout}
+      thumbnailPosition={thumbnailPosition}
+      thumbnailSizePx={thumbnailSizePx}
+      cardPaddingPx={cardPaddingPx}
+      cardBorderRadiusPx={cardBorderRadiusPx}
+      titleSizePx={titleSizePx}
+      showThumbnail={showThumbnail}
+      showSummary={showSummary}
+      summaryMaxLength={summaryMaxLength}
+      showDate={showDate}
+      showVotes={showVotes}
+      showComments={showComments}
+      showPayout={showPayout}
+      showTags={showTags}
+      cardBorder={cardBorder}
+      maxTags={maxTags}
+      masonryStyle={getMasonryStyle()}
+    />
+  ))}
+</div>
