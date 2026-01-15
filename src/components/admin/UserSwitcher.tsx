@@ -6,15 +6,9 @@ import { settings, updateSettings, isInDemoMode } from './store'
 // ============================================
 
 export function UserSwitcher() {
-  const popularUsers = ['blocktrades', 'acidyo', 'gtg', 'arcange', 'theycallmedan']
-
   const handleInput = (e: Event) => {
     const value = (e.currentTarget as HTMLInputElement).value.replace('@', '')
     updateSettings({ hiveUsername: value })
-  }
-
-  const selectUser = (user: string) => {
-    updateSettings({ hiveUsername: user })
   }
 
   return (
@@ -40,25 +34,6 @@ export function UserSwitcher() {
             value={settings.hiveUsername || ''}
             onInput={handleInput}
           />
-        </div>
-      </div>
-
-      <div class="mt-4">
-        <p class="text-xs text-text-muted mb-2">Quick select:</p>
-        <div class="flex flex-wrap gap-2">
-          {popularUsers.map((user) => (
-            <button
-              type="button"
-              onClick={() => selectUser(user)}
-              class={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
-                settings.hiveUsername === user
-                  ? 'border-primary bg-primary/10 text-primary'
-                  : 'border-border hover:border-primary hover:text-primary'
-              }`}
-            >
-              @{user}
-            </button>
-          ))}
         </div>
       </div>
 
