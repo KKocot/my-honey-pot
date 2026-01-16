@@ -2,7 +2,21 @@ import type { HafbeTypesAccount } from "@hiveio/wax-api-hafbe"
 import type { Community as CommunityData, PostBridgeApi, ActiveVotesDatabaseApi } from "@hiveio/wax-api-jsonrpc";
 import { WorkerBeeError } from "./errors";
 import { BloggingPlaform } from "./BloggingPlatform";
-import type { IAccountPostsFilters, ICommonFilters, ICommunityFilters, IPagination, IPostCommentIdentity, IPostFilters, IVotesFilters } from "./interfaces";
+import type {
+  IAccountPostsFilters,
+  ICommonFilters,
+  ICommunityFilters,
+  IPagination,
+  IPostCommentIdentity,
+  IPostFilters,
+  IVotesFilters,
+  IProfile,
+  IDatabaseAccount,
+  IGlobalProperties,
+  CommentSortOption,
+  IPaginationCursor,
+  IPaginatedResult,
+} from "./interfaces";
 import { paginateData } from "./utils";
 import { getWax, resetWax, type WaxExtendedChain } from "./wax";
 
@@ -219,6 +233,157 @@ export class DataProvider {
     })
     this.votesByCommentsAndVoter.set(this.convertCommentIdToHash(commentId), votesByVoters);
     return paginateData(votersForComment, pagination);
+  }
+
+  // ============================================================================
+  // Profile & Account Methods (replacing hive.ts functionality)
+  // ============================================================================
+
+  /**
+   * Get user profile using bridge.get_profile
+   * Returns profile info including reputation, post count, followers
+   */
+  public async getProfile(username: string): Promise<IProfile | null> {
+    const profile = await withRetry(async () => {
+      await this.refreshChain();
+      return this.chain.api.bridge.get_profile({
+        account: username,
+        observer: this.bloggingPlatform.viewerContext.name,
+      });
+    });
+
+    if (!profile) return null;
+
+    return {
+      name: profile.name,
+      created: profile.created,
+      postCount: profile.post_count,
+      reputation: profile.reputation,
+      stats: {
+        followers: profile.stats.followers,
+        following: profile.stats.following,
+        rank: profile.stats.rank,
+      },
+      metadata: {
+        name: profile.metadata?.profile?.name,
+        about: profile.metadata?.profile?.about,
+        location: profile.metadata?.profile?.location,
+        website: profile.metadata?.profile?.website,
+        profileImage: profile.metadata?.profile?.profile_image,
+        coverImage: profile.metadata?.profile?.cover_image,
+      },
+    };
+  }
+
+  /**
+   * Get full account data using database_api.find_accounts
+   * Returns financial data, voting power, balances etc.
+   */
+  public async getDatabaseAccount(username: string): Promise<IDatabaseAccount | null> {
+    const result = await withRetry(async () => {
+      await this.refreshChain();
+      return this.chain.api.database_api.find_accounts({
+        accounts: [username],
+      });
+    });
+
+    if (!result.accounts || result.accounts.length === 0) return null;
+
+    const account = result.accounts[0];
+    // Convert NaiAsset to string - use toString() if available, otherwise stringify
+    const assetToString = (asset: unknown): string => {
+      if (typeof asset === "string") return asset;
+      if (asset && typeof asset === "object" && "toString" in asset) {
+        return String(asset);
+      }
+      return JSON.stringify(asset);
+    };
+    return {
+      name: account.name,
+      balance: assetToString(account.balance),
+      hbdBalance: assetToString(account.hbd_balance),
+      vestingShares: assetToString(account.vesting_shares),
+      delegatedVestingShares: assetToString(account.delegated_vesting_shares),
+      receivedVestingShares: assetToString(account.received_vesting_shares),
+      postCount: Number(account.post_count),
+      curationRewards: Number(account.curation_rewards),
+      postingRewards: Number(account.posting_rewards),
+    };
+  }
+
+  /**
+   * Get dynamic global properties (needed for VESTS to HP conversion)
+   */
+  public async getGlobalProperties(): Promise<IGlobalProperties> {
+    const props = await withRetry(async () => {
+      await this.refreshChain();
+      return this.chain.api.database_api.get_dynamic_global_properties({});
+    });
+
+    // Convert NaiAsset to string
+    const assetToString = (asset: unknown): string => {
+      if (typeof asset === "string") return asset;
+      if (asset && typeof asset === "object" && "toString" in asset) {
+        return String(asset);
+      }
+      return JSON.stringify(asset);
+    };
+
+    return {
+      totalVestingFundHive: assetToString(props.total_vesting_fund_hive),
+      totalVestingShares: assetToString(props.total_vesting_shares),
+    };
+  }
+
+  /**
+   * Get comments for a user with pagination support
+   */
+  public async getCommentsPaginated(
+    username: string,
+    sort: CommentSortOption = "comments",
+    limit = 20,
+    cursor?: IPaginationCursor
+  ): Promise<IPaginatedResult<PostBridgeApi>> {
+    const MAX_API_LIMIT = 20;
+    // API has hard limit of 20, so we limit user's request to 19 to have room for +1 check
+    const safeLimit = Math.min(Math.max(1, limit), MAX_API_LIMIT - 1);
+    // Request one extra to check if there are more (still within API limit of 20)
+    const requestLimit = safeLimit + 1;
+
+    const posts = await withRetry(async () => {
+      await this.refreshChain();
+      return this.chain.api.bridge.get_account_posts({
+        sort,
+        account: username,
+        limit: requestLimit,
+        observer: this.bloggingPlatform.viewerContext.name,
+        ...(cursor?.startAuthor && cursor?.startPermlink ? {
+          start_author: cursor.startAuthor,
+          start_permlink: cursor.startPermlink,
+        } : {}),
+      });
+    });
+
+    const hasMore = posts.length > safeLimit;
+    const items = hasMore ? posts.slice(0, safeLimit) : posts;
+
+    // Cache the comments
+    items.forEach((post) => {
+      const postId = { author: post.author, permlink: post.permlink };
+      this.comments.set(this.convertCommentIdToHash(postId), post);
+    });
+
+    const lastPost = items[items.length - 1];
+    const nextCursor = hasMore && lastPost ? {
+      startAuthor: lastPost.author,
+      startPermlink: lastPost.permlink,
+    } : undefined;
+
+    return {
+      items,
+      hasMore,
+      nextCursor,
+    };
   }
 
 }

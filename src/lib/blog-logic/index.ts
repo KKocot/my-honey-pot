@@ -26,6 +26,7 @@ export type {
   IVotesFilters,
   IPostFilters,
   IAccountPostsFilters,
+  AccountPostsSortOption,
   ICommunityFilters,
   IAccountIdentity,
   ICommunityIdentity,
@@ -42,8 +43,28 @@ export type {
   ILoginSession,
   IAuthenticationProvider,
   IActiveBloggingPlatform,
+  // New types for profile/account/global data
+  IProfile,
+  IProfileStats,
+  IProfileMetadata,
+  IDatabaseAccount,
+  IGlobalProperties,
+  CommentSortOption,
+  IPaginationCursor,
+  IPaginatedResult,
 } from "./interfaces";
 
 // Re-export utilities
-export { paginateData } from "./utils";
+export {
+  paginateData,
+  formatHiveAmount,
+  convertVestsToHP,
+  calculateEffectiveHP,
+  parseBalance,
+  parseVests,
+  parseHive,
+} from "./utils";
 export { WorkerBeeError } from "./errors";
+
+// Re-export PostBridgeApi type from wax-api-jsonrpc for post/comment data
+export type { PostBridgeApi as BridgeComment, PostBridgeApi as BridgePost } from "@hiveio/wax-api-jsonrpc";

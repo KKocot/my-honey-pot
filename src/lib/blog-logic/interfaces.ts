@@ -22,8 +22,10 @@ export interface IPostFilters extends ICommonFilters {
   readonly tag: string;
 }
 
+export type AccountPostsSortOption = "blog" | "posts" | "comments" | "replies" | "feed";
+
 export interface IAccountPostsFilters extends ICommonFilters {
-  readonly sort: "blog" | "posts" | "comments" | "replies" | "feed";
+  readonly sort: AccountPostsSortOption;
   readonly account: string;
 }
 
@@ -78,6 +80,68 @@ export interface IAccountManabars {
   readonly upvote: IManabar;
   readonly downvote: IManabar;
   readonly rc: IManabar;
+}
+
+/** Profile stats from bridge.get_profile */
+export interface IProfileStats {
+  readonly followers: number;
+  readonly following: number;
+  readonly rank: number;
+}
+
+/** Profile metadata from bridge.get_profile */
+export interface IProfileMetadata {
+  readonly name?: string;
+  readonly about?: string;
+  readonly location?: string;
+  readonly website?: string;
+  readonly profileImage?: string;
+  readonly coverImage?: string;
+}
+
+/** Full profile data from bridge.get_profile */
+export interface IProfile {
+  readonly name: string;
+  readonly created: string;
+  readonly postCount: number;
+  readonly reputation: number;
+  readonly stats: IProfileStats;
+  readonly metadata: IProfileMetadata;
+}
+
+/** Database account data for financial information */
+export interface IDatabaseAccount {
+  readonly name: string;
+  readonly balance: string;
+  readonly hbdBalance: string;
+  readonly vestingShares: string;
+  readonly delegatedVestingShares: string;
+  readonly receivedVestingShares: string;
+  readonly postCount: number;
+  readonly curationRewards: number;
+  readonly postingRewards: number;
+}
+
+/** Dynamic global properties for VESTS to HP conversion */
+export interface IGlobalProperties {
+  readonly totalVestingFundHive: string;
+  readonly totalVestingShares: string;
+}
+
+/** Comment sort options */
+export type CommentSortOption = "comments" | "replies";
+
+/** Pagination cursor for cursor-based pagination */
+export interface IPaginationCursor {
+  startAuthor?: string;
+  startPermlink?: string;
+}
+
+/** Paginated result */
+export interface IPaginatedResult<T> {
+  items: readonly T[];
+  hasMore: boolean;
+  nextCursor?: IPaginationCursor;
 }
 
 export interface IAccount extends IAccountIdentity {
