@@ -1,5 +1,5 @@
 {
-  "name": "astro-payload-cms",
+  "name": "hive-blog",
   "type": "module",
   "version": "0.0.1",
   "scripts": {
@@ -17,25 +17,13 @@
     "@hiveio/wax-api-hafbe": "^1.27.12",
     "@hiveio/wax-api-jsonrpc": "^1.28.4",
     "@hiveio/wax-signers-beekeeper": "^1.28.4-rc0",
-    "@payloadcms/db-mongodb": "^3.70.0",
-    "@payloadcms/richtext-lexical": "^3.70.0",
     "@tailwindcss/vite": "^4.1.18",
     "@tanstack/solid-query": "^5.90.20",
     "astro": "^5.16.9",
-    "cors": "^2.8.5",
-    "dotenv": "^17.2.3",
-    "express": "^5.2.1",
-    "http-proxy-middleware": "^3.0.5",
-    "iron-session": "^8.0.4",
-    "payload": "^3.70.0",
     "solid-js": "^1.9.10",
     "tailwindcss": "^4.1.18"
   },
   "devDependencies": {
-    "@playwright/test": "^1.57.0",
-    "@types/cors": "^2.8.19",
-    "@types/express": "^5.0.6",
-    "concurrently": "^9.2.1",
-    "tsx": "^4.21.0"
+    "@types/node": "^25.0.9"
   }
 }

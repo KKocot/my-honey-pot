@@ -1,11 +1,10 @@
-# Astro + Payload CMS
+# Hive Blog
 
-Projekt startowy integrujący Astro z Payload CMS.
+Konfigurowalny blog oparty na blockchainie Hive. Posty i konfiguracja są pobierane bezpośrednio z Hive - bez bazy danych.
 
 ## Wymagania
 
 - Node.js 18+
-- MongoDB (lokalne lub MongoDB Atlas)
 
 ## Instalacja
 
@@ -16,54 +15,64 @@ Projekt startowy integrujący Astro z Payload CMS.
 
 2. Skonfiguruj zmienne środowiskowe:
    - Skopiuj `.env.example` do `.env`
-   - Ustaw `MONGODB_URI` na adres swojej bazy danych MongoDB
-   - Ustaw `PAYLOAD_SECRET` na losowy ciąg znaków
+   - Ustaw `HIVE_USERNAME` na nazwę użytkownika Hive, którego posty chcesz wyświetlać
 
 ## Uruchomienie
 
-### 1. Uruchom serwer Payload CMS (w osobnym terminalu):
-```bash
-npm run payload
-```
-Payload CMS będzie dostępny na `http://localhost:3000`
-Panel administracyjny: `http://localhost:3000/admin`
-
-### 2. Uruchom Astro (w osobnym terminalu):
 ```bash
 npm run dev
 ```
+
 Strona będzie dostępna na `http://localhost:4321`
 
-## Pierwsze kroki
+## Funkcje
 
-1. Uruchom serwer Payload i przejdź do `http://localhost:3000/admin`
-2. Utwórz konto administratora
-3. Dodaj nowy post w kolekcji "Posts"
-4. Ustaw status na "Published"
-5. Odśwież stronę Astro, aby zobaczyć nowy post
+- **Posty z Hive** - Automatyczne pobieranie postów z blockchaina Hive
+- **Konfigurowalny layout** - Panel administracyjny do personalizacji wyglądu
+- **Motywy kolorystyczne** - Wbudowane presety i własne kolory
+- **Zapisywanie na Hive** - Konfiguracja zapisywana jako komentarz na blockchainie
+- **HB-Auth login** - Logowanie przez Hive Keychain lub klucz prywatny
+
+## Panel administracyjny
+
+1. Przejdź do `/admin`
+2. Zaloguj się kontem Hive (posting key lub active key)
+3. Dostosuj wygląd bloga
+4. Kliknij "Save Config on Hive" aby zapisać konfigurację
+
+Konfiguracja jest zapisywana jako komentarz pod postem `@barddev/my-blog-configs`.
 
 ## Struktura projektu
 
 ```
 ├── src/
 │   ├── pages/
-│   │   ├── index.astro         # Strona główna z listą postów
+│   │   ├── index.astro           # Strona główna z listą postów
+│   │   ├── admin.astro           # Panel administracyjny
 │   │   └── posts/
-│   │       └── [slug].astro    # Dynamiczna strona posta
-│   └── payload/
-│       ├── collections/
-│       │   ├── Posts.ts        # Kolekcja postów
-│       │   ├── Users.ts        # Kolekcja użytkowników
-│       │   └── Media.ts        # Kolekcja mediów
-│       ├── payload.config.ts   # Konfiguracja Payload
-│       └── server.ts           # Serwer Express + API
-├── .env                        # Zmienne środowiskowe
+│   │       └── [permlink].astro  # Dynamiczna strona posta
+│   ├── components/
+│   │   ├── admin/                # Komponenty panelu admina (SolidJS)
+│   │   ├── home/                 # Komponenty strony głównej (Astro)
+│   │   ├── auth/                 # Komponenty logowania (SolidJS)
+│   │   └── ui/                   # Reużywalne komponenty UI (SolidJS)
+│   └── lib/
+│       ├── hive.ts               # Funkcje do pobierania danych z Hive
+│       └── blog-logic/           # Logika wax/beekeeper
+├── .env                          # Zmienne środowiskowe
 └── package.json
 ```
 
 ## Komendy
 
-- `npm run dev` - Uruchom Astro w trybie deweloperskim
-- `npm run payload` - Uruchom serwer Payload CMS
-- `npm run build` - Zbuduj projekt Astro
+- `npm run dev` - Uruchom w trybie deweloperskim
+- `npm run build` - Zbuduj projekt
 - `npm run preview` - Podgląd zbudowanego projektu
+
+## Tech Stack
+
+- **Astro 5** - Framework SSR
+- **SolidJS** - Interaktywne komponenty
+- **Tailwind CSS 4** - Stylowanie
+- **@hiveio/wax** - API Hive blockchain
+- **@hiveio/hb-auth** - Autoryzacja Hive
