@@ -2,7 +2,9 @@ import { createSignal, createEffect, Show, For, type Accessor } from 'solid-js'
 import { Portal } from 'solid-js/web'
 import { settings } from './store'
 import { pageElementLabels, type PageSlotPosition } from './types'
-import { HIVE_API_ENDPOINT } from '../../lib/config'
+
+// Default Hive API endpoint for client-side usage
+const HIVE_API_ENDPOINT = 'https://api.openhive.network'
 
 // ============================================
 // Full Preview Dialog Component
