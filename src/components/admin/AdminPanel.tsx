@@ -182,37 +182,48 @@ function AdminPanelContent(props: AdminPanelContentProps) {
           <CommentSettings />
 
           {/* Spacer for fixed button */}
-          <div class="h-20" />
+          <div class="h-24" />
 
           {/* Fixed Save Button */}
           <div class="fixed bottom-0 left-0 right-0 bg-bg-card/95 backdrop-blur-sm border-t border-border p-4 z-50">
-            <div class="max-w-4xl mx-auto flex justify-end gap-3">
-              <Button
-                variant="secondary"
-                size="lg"
-                onClick={() => setShowPreview(true)}
-              >
-                <span class="flex items-center gap-2">
-                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                  </svg>
-                  Full Preview
+            <div class="max-w-4xl mx-auto flex items-center justify-between gap-4">
+              {/* RC Warning */}
+              <div class="flex items-center gap-2 text-sm text-text-muted">
+                <svg class="w-4 h-4 text-warning flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>
+                  Saving config to Hive costs Resource Credits (RC).
                 </span>
-              </Button>
-              <Button
-                variant="accent"
-                size="lg"
-                loading={isBroadcasting()}
-                onClick={handleBroadcastToHive}
-              >
-                <span class="flex items-center gap-2">
-                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                  </svg>
-                  Save Config on Hive
-                </span>
-              </Button>
+              </div>
+              <div class="flex gap-3 flex-shrink-0">
+                <Button
+                  variant="secondary"
+                  size="lg"
+                  onClick={() => setShowPreview(true)}
+                >
+                  <span class="flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                    Full Preview
+                  </span>
+                </Button>
+                <Button
+                  variant="accent"
+                  size="lg"
+                  loading={isBroadcasting()}
+                  onClick={handleBroadcastToHive}
+                >
+                  <span class="flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                    </svg>
+                    Save Config on Hive
+                  </span>
+                </Button>
+              </div>
             </div>
           </div>
         </Show>
