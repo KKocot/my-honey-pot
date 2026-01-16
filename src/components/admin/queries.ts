@@ -2,6 +2,7 @@ import { QueryClient, createQuery, createMutation, useQueryClient } from '@tanst
 import { createStore, produce } from 'solid-js/store'
 import { defaultSettings, migrateCardLayout, themePresets, type SettingsData, type LayoutSection, type ThemeColors } from './types'
 import { loadConfigFromHive } from './hive-broadcast'
+import { setHasUnsavedChanges } from './AdminPanel'
 
 // ============================================
 // Apply theme colors to CSS variables
@@ -61,6 +62,7 @@ export function updateSettings(partial: Partial<SettingsData>) {
   setSettings(produce((s) => {
     Object.assign(s, partial)
   }))
+  setHasUnsavedChanges(true)
 }
 
 // Dedicated setter for customColors to ensure SolidJS reactivity
@@ -69,6 +71,7 @@ export function setCustomColors(colors: ThemeColors | null) {
   if (colors) {
     applyThemeColors(colors)
   }
+  setHasUnsavedChanges(true)
 }
 
 export function updateLayoutSection(sectionId: string, updates: Partial<LayoutSection>) {
@@ -78,10 +81,12 @@ export function updateLayoutSection(sectionId: string, updates: Partial<LayoutSe
       Object.assign(section, updates)
     }
   }))
+  setHasUnsavedChanges(true)
 }
 
 export function setLayoutSections(sections: LayoutSection[]) {
   setSettings('layoutSections', sections)
+  setHasUnsavedChanges(true)
 }
 
 

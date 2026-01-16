@@ -1,4 +1,4 @@
-import { createEffect, createSignal, Show, onMount } from 'solid-js'
+import { createEffect, createSignal, Show, onMount, onCleanup } from 'solid-js'
 import { QueryClientProvider } from '@tanstack/solid-query'
 import { Toast, showToast, Button } from '../ui'
 import { HBAuthLogin, currentUser, isAuthenticated, login, logout, type AuthUser } from '../auth'
@@ -23,6 +23,17 @@ import {
   settings,
 } from './queries'
 
+// Track if user has made changes since last save
+let hasUnsavedChanges = false
+
+export function setHasUnsavedChanges(value: boolean) {
+  hasUnsavedChanges = value
+}
+
+export function getHasUnsavedChanges() {
+  return hasUnsavedChanges
+}
+
 interface AdminPanelContentProps {
   initialSettings?: SettingsData | null
 }
@@ -42,6 +53,22 @@ function AdminPanelContent(props: AdminPanelContentProps) {
       console.log('Admin: Applying initial settings from SSR')
       syncSettingsToStore(props.initialSettings, true)
     }
+
+    // Warn user about unsaved changes when leaving page
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedChanges) {
+        e.preventDefault()
+        // Modern browsers require returnValue to be set
+        e.returnValue = 'You have unsaved changes. Are you sure you want to leave?'
+        return e.returnValue
+      }
+    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload)
+
+    onCleanup(() => {
+      window.removeEventListener('beforeunload', handleBeforeUnload)
+    })
   })
 
   // Sync query data to store when it changes
@@ -82,6 +109,8 @@ function AdminPanelContent(props: AdminPanelContentProps) {
         const action = result.isUpdate ? 'Updated' : 'Published'
         const url = getConfigUrlSync(user.username, result.permlink)
         showToast(`${action} config on Hive! View at: ${url}`, 'success')
+        // Reset unsaved changes flag after successful save
+        setHasUnsavedChanges(false)
       } else {
         showToast(`Failed: ${result.error}`, 'error')
       }
