@@ -108,16 +108,16 @@ export function HBAuthLogin(props: HBAuthLoginProps) {
   return (
     <div class={`w-full max-w-sm ${props.class || ''}`}>
       {/* Mode Toggle */}
-      <div class="flex rounded-lg bg-muted p-1 mb-6">
+      <div class="flex rounded-xl bg-bg-secondary border border-border p-1 mb-6">
         <button
           onClick={() => {
             setMode('login')
             setError(null)
           }}
-          class={`flex-1 rounded-md py-2 text-sm font-medium transition-colors ${
+          class={`flex-1 rounded-lg py-2.5 px-4 text-sm font-medium transition-all ${
             mode() === 'login'
-              ? 'bg-card shadow-sm text-foreground'
-              : 'text-muted hover:text-foreground'
+              ? 'bg-primary text-white shadow-md'
+              : 'text-text-muted hover:text-text hover:bg-bg-card'
           }`}
         >
           Login
@@ -127,10 +127,10 @@ export function HBAuthLogin(props: HBAuthLoginProps) {
             setMode('register')
             setError(null)
           }}
-          class={`flex-1 rounded-md py-2 text-sm font-medium transition-colors ${
+          class={`flex-1 rounded-lg py-2.5 px-4 text-sm font-medium transition-all ${
             mode() === 'register'
-              ? 'bg-card shadow-sm text-foreground'
-              : 'text-muted hover:text-foreground'
+              ? 'bg-primary text-white shadow-md'
+              : 'text-text-muted hover:text-text hover:bg-bg-card'
           }`}
         >
           Register Key
