@@ -1,5 +1,5 @@
 import { Input } from '../ui'
-import { settings, updateSettings, isInDemoMode } from './store'
+import { settings, updateSettings } from './store'
 
 // ============================================
 // User Switcher Component
@@ -15,11 +15,6 @@ export function UserSwitcher() {
     <div class="bg-bg-card rounded-xl p-6 mb-6 border border-border">
       <div class="flex items-center justify-between mb-4">
         <h2 class="text-xl font-semibold text-primary">Hive User</h2>
-        {isInDemoMode() && (
-          <span class="text-xs bg-accent/20 text-accent px-2 py-1 rounded-full">
-            Demo Mode
-          </span>
-        )}
       </div>
 
       <p class="text-sm text-text-muted mb-4">
