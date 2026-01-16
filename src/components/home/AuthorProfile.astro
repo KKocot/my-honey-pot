@@ -1,13 +1,14 @@
 ---
-import type { DatabaseAccount, BridgeProfile, DynamicGlobalProperties, ManabarData } from '../../lib/hive'
+import type { DatabaseAccount, BridgeProfile, DynamicGlobalProperties } from '../../lib/hive'
 import { convertVestsToHP, calculateEffectiveHP } from '../../lib/hive'
+import type { IAccountManabars } from '../../lib/blog-logic'
 
 interface Props {
   username: string
   account: DatabaseAccount
   profile: BridgeProfile | null
   globalProperties: DynamicGlobalProperties | null
-  votingManabar: ManabarData | null
+  accountManabars: IAccountManabars | null
   avatarSize: number
   showPostCount: boolean
   showRewards: boolean
@@ -31,7 +32,7 @@ const {
   account,
   profile,
   globalProperties,
-  votingManabar,
+  accountManabars,
   avatarSize,
   showPostCount,
   showRewards,
@@ -110,8 +111,8 @@ if (globalProperties) {
   )
 }
 
-// Use WAX-calculated voting power (accurate like Denser)
-const votingPower = votingManabar?.percent ?? 0
+// Use Blog Logic manabar data (WAX-calculated, accurate like Denser)
+const votingPower = accountManabars?.upvote?.percent ?? 0
 
 // Format large numbers
 function formatNumber(num: number): string {

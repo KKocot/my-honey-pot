@@ -66,6 +66,20 @@ export interface ICommunity extends ICommunityIdentity {
   readonly pendingCount: number;
   getSlug(): string;
 }
+/** Single manabar data */
+export interface IManabar {
+  readonly max: bigint;
+  readonly current: bigint;
+  readonly percent: number;
+}
+
+/** All manabars for an account */
+export interface IAccountManabars {
+  readonly upvote: IManabar;
+  readonly downvote: IManabar;
+  readonly rc: IManabar;
+}
+
 export interface IAccount extends IAccountIdentity {
   readonly creationDate: Date;
   readonly lastActivity: Date;
@@ -74,6 +88,7 @@ export interface IAccount extends IAccountIdentity {
   readonly description: string;
   readonly avatar: string;
   getSlug(): string;
+  getManabars(): Promise<IAccountManabars>;
 }
 
 /**

@@ -5,19 +5,17 @@ import {
   getHiveAccount,
   getHiveProfile,
   getDynamicGlobalProperties,
-  getVotingManabar,
   type BridgePost,
   type DatabaseAccount,
   type BridgeProfile,
   type DynamicGlobalProperties,
-  type ManabarData,
   type CommentSortOption,
   type PaginationCursor,
 } from '../lib/hive'
 import { getPayloadClient } from '../lib/payload'
 
 // Blog Logic imports
-import { DataProvider, getWax, type Post, type IAccountPostsFilters } from '../lib/blog-logic'
+import { DataProvider, getWax, type Post, type IAccountPostsFilters, type IAccountManabars } from '../lib/blog-logic'
 
 import Header from '../components/home/Header.astro'
 import AuthorProfile from '../components/home/AuthorProfile.astro'
@@ -39,7 +37,7 @@ let hiveComments: readonly BridgePost[] = []
 let hiveAccount: DatabaseAccount | null = null
 let hiveProfile: BridgeProfile | null = null
 let globalProperties: DynamicGlobalProperties | null = null
-let votingManabar: ManabarData | null = null
+let accountManabars: IAccountManabars | null = null
 let settings: SiteSettings = {}
 let error: string | null = null
 let isDemoMode = false
@@ -107,13 +105,18 @@ try {
   const commentsSortOrder = (settings.commentsSortOrder || 'comments') as CommentSortOption
 
   if (hiveUsername) {
-    // Fetch account, profile, global properties (for HP conversion), and voting manabar (WAX)
+    // Initialize Blog Logic DataProvider (used for posts and manabars)
+    const chain = await getWax()
+    const dataProvider = new DataProvider(chain)
+
+    // Fetch account, profile, global properties, and manabars (via Blog Logic)
     // Using Promise.allSettled for resilience - if one fails, others still succeed
     const [accountResult, profileResult, globalPropsResult, manabarResult] = await Promise.allSettled([
       getHiveAccount(hiveUsername),
       getHiveProfile(hiveUsername),
       getDynamicGlobalProperties(),
-      getVotingManabar(hiveUsername),
+      // Use Blog Logic for manabars - fetch account first, then get manabars
+      dataProvider.bloggingPlatform.getAccount(hiveUsername).then(account => account.getManabars()),
     ])
 
     // Extract successful results, log failures
@@ -136,9 +139,9 @@ try {
     }
 
     if (manabarResult.status === 'fulfilled') {
-      votingManabar = manabarResult.value
+      accountManabars = manabarResult.value
     } else {
-      console.error('Failed to fetch voting manabar:', manabarResult.reason)
+      console.error('Failed to fetch account manabars:', manabarResult.reason)
     }
 
     // Fetch content based on active tab with pagination
@@ -149,9 +152,6 @@ try {
       nextCommentsCursor = result.nextCursor
     } else {
       // Use Blog Logic to fetch posts
-      const chain = await getWax()
-      const dataProvider = new DataProvider(chain)
-
       const posts = await dataProvider.bloggingPlatform.enumAccountPosts(
         { sort: postsSortOrder, account: hiveUsername },
         { page: 1, pageSize: postsLimit }
@@ -241,7 +241,7 @@ const authorProfileBaseProps = {
   account: hiveAccount,
   profile: hiveProfile,
   globalProperties: globalProperties,
-  votingManabar: votingManabar,
+  accountManabars: accountManabars,
   avatarSize: authorAvatarSizePx,
   showPostCount: showPostCount,
   showRewards: showAuthorRewards,

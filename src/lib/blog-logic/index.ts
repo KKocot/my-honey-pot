@@ -33,6 +33,8 @@ export type {
   IVote,
   ICommunity,
   IAccount,
+  IAccountManabars,
+  IManabar,
   IComment,
   IReply,
   IPost,
