@@ -1,0 +1,34 @@
+---
+import Layout from '../layouts/Layout.astro'
+import { TestButtons } from '../components/test/TestButtons'
+---
+
+<Layout title="Test Buttons">
+  <div class="max-w-2xl mx-auto px-4 py-8">
+    <h1 class="text-3xl font-bold text-text mb-8">Test przycisków</h1>
+
+    <!-- Native HTML button - works always -->
+    <div class="bg-bg-card p-4 rounded-lg border border-border mb-4">
+      <h2 class="text-lg font-semibold mb-2">Test 0: Natywny HTML button</h2>
+      <button
+        onclick="alert('Native button works!')"
+        class="px-4 py-2 bg-primary text-primary-text rounded-lg"
+      >
+        Kliknij mnie (native)
+      </button>
+    </div>
+
+    <!-- SolidJS component with buttons defined inside -->
+    <TestButtons client:only="solid-js" />
+
+    <div class="mt-8 p-4 bg-bg-secondary rounded-lg">
+      <p class="text-text-muted">
+        Otwórz konsolę przeglądarki (F12) żeby zobaczyć czy przyciski logują wiadomości.
+      </p>
+      <p class="text-text-muted mt-2">
+        <strong>Uwaga:</strong> onClick handlers muszą być zdefiniowane wewnątrz komponentu SolidJS,
+        nie można ich przekazywać jako props z pliku .astro.
+      </p>
+    </div>
+  </div>
+</Layout>
