@@ -36,6 +36,7 @@ export function getHasUnsavedChanges() {
 
 interface AdminPanelContentProps {
   initialSettings?: SettingsData | null
+  ownerUsername?: string
 }
 
 // ============================================
@@ -47,6 +48,13 @@ function AdminPanelContent(props: AdminPanelContentProps) {
   const [showPreview, setShowPreview] = createSignal(false)
   const [showLoginModal, setShowLoginModal] = createSignal(false)
   const [isBroadcasting, setIsBroadcasting] = createSignal(false)
+
+  // Check if logged in user is the blog owner (can save changes)
+  const isOwner = () => {
+    const user = currentUser()
+    if (!user || !props.ownerUsername) return false
+    return user.username.toLowerCase() === props.ownerUsername.toLowerCase()
+  }
 
   // Apply initial settings from SSR on mount (before query runs)
   onMount(() => {
@@ -174,30 +182,38 @@ function AdminPanelContent(props: AdminPanelContentProps) {
         </div>
       </Show>
 
-      {/* User Header Bar - shown when authenticated */}
-      <Show when={isAuthenticated()}>
-        <div class="flex items-center justify-between bg-card border border-border rounded-lg p-4 mb-6">
+      {/* Top Auth Bar */}
+      <div class="flex items-center justify-end mb-4">
+        <Show when={isAuthenticated()} fallback={
+          <button
+            onClick={() => setShowLoginModal(true)}
+            class="flex items-center gap-2 px-3 py-1.5 text-sm text-text-muted hover:text-text hover:bg-bg-secondary rounded-lg transition-colors"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+            </svg>
+            Login
+          </button>
+        }>
           <div class="flex items-center gap-3">
             <img
               src={`https://images.hive.blog/u/${currentUser()?.username}/avatar`}
               alt={currentUser()?.username}
-              class="w-10 h-10 rounded-full"
+              class="w-6 h-6 rounded-full"
             />
-            <div>
-              <p class="font-medium text-foreground">@{currentUser()?.username}</p>
-              <p class="text-xs text-muted">{currentUser()?.keyType} key</p>
-            </div>
-          </div>
-          <Button variant="secondary" size="sm" onClick={handleLogout}>
-            <span class="flex items-center gap-2">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-              </svg>
+            <span class="text-sm text-text">@{currentUser()?.username}</span>
+            <Show when={!isOwner()}>
+              <span class="text-xs text-warning bg-warning/10 px-2 py-0.5 rounded">View only</span>
+            </Show>
+            <button
+              onClick={handleLogout}
+              class="text-text-muted hover:text-text text-sm hover:bg-bg-secondary px-2 py-1 rounded transition-colors"
+            >
               Logout
-            </span>
-          </Button>
-        </div>
-      </Show>
+            </button>
+          </div>
+        </Show>
+      </div>
 
       {/* Loading state */}
       <Show when={settingsQuery.isLoading}>
@@ -253,23 +269,22 @@ function AdminPanelContent(props: AdminPanelContentProps) {
         {/* Spacer for fixed button */}
         <div class="h-24" />
 
-        {/* Fixed Save Button */}
+        {/* Fixed Bottom Bar */}
         <div class="fixed bottom-0 left-0 right-0 bg-bg-card/95 backdrop-blur-sm border-t border-border p-4 z-50">
           <div class="max-w-4xl mx-auto flex items-center justify-between gap-4">
-            {/* RC Warning or Login hint */}
+            {/* Info message */}
             <div class="flex items-center gap-2 text-sm text-text-muted">
-              <Show when={isAuthenticated()} fallback={
-                <>
-                  <svg class="w-4 h-4 text-info flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <span>Login required to save config to Hive blockchain.</span>
-                </>
-              }>
+              <Show when={isOwner()}>
                 <svg class="w-4 h-4 text-warning flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 <span>Saving config to Hive costs Resource Credits (RC).</span>
+              </Show>
+              <Show when={isAuthenticated() && !isOwner()}>
+                <svg class="w-4 h-4 text-info flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>View only mode. Login as @{props.ownerUsername} to save changes.</span>
               </Show>
             </div>
             <div class="flex gap-3 flex-shrink-0">
@@ -286,25 +301,21 @@ function AdminPanelContent(props: AdminPanelContentProps) {
                   Full Preview
                 </span>
               </Button>
-              <Button
-                variant="accent"
-                size="lg"
-                loading={isBroadcasting()}
-                onClick={handleSaveClick}
-              >
-                <span class="flex items-center gap-2">
-                  <Show when={isAuthenticated()} fallback={
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
-                    </svg>
-                  }>
+              <Show when={isOwner()}>
+                <Button
+                  variant="accent"
+                  size="lg"
+                  loading={isBroadcasting()}
+                  onClick={handleSaveClick}
+                >
+                  <span class="flex items-center gap-2">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                     </svg>
-                  </Show>
-                  {isAuthenticated() ? 'Save Config on Hive' : 'Login & Save'}
-                </span>
-              </Button>
+                    Save Config on Hive
+                  </span>
+                </Button>
+              </Show>
             </div>
           </div>
         </div>
@@ -319,12 +330,13 @@ function AdminPanelContent(props: AdminPanelContentProps) {
 
 interface AdminPanelProps {
   initialSettings?: SettingsData | null
+  ownerUsername?: string
 }
 
 export function AdminPanel(props: AdminPanelProps) {
   return (
     <QueryClientProvider client={queryClient}>
-      <AdminPanelContent initialSettings={props.initialSettings} />
+      <AdminPanelContent initialSettings={props.initialSettings} ownerUsername={props.ownerUsername} />
     </QueryClientProvider>
   )
 }

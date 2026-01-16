@@ -37,6 +37,6 @@ if (hiveUsername) {
 
     <h1 class="text-3xl font-bold text-text mb-8">Admin Panel</h1>
 
-    <AdminPanel client:only="solid-js" initialSettings={initialSettings} />
+    <AdminPanel client:only="solid-js" initialSettings={initialSettings} ownerUsername={hiveUsername} />
   </div>
 </Layout>

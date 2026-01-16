@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   hive-blog:
     build: .
@@ -9,32 +7,18 @@ services:
       - NODE_ENV=production
       - HOST=0.0.0.0
       - PORT=4321
-      - HIVE_USERNAME=${HIVE_USERNAME:-}
+      - HIVE_USERNAME=${HIVE_USERNAME}
     expose:
       - "4321"
     networks:
       - traefik-network
     labels:
-      # Enable Traefik
       - "traefik.enable=true"
-
-      # HTTP Router
-      - "traefik.http.routers.hive-blog.rule=Host(`hive-my-blog.bard-dev.com`)"
-      - "traefik.http.routers.hive-blog.entrypoints=web"
-      - "traefik.http.routers.hive-blog.middlewares=redirect-to-https"
-
-      # HTTPS Router
-      - "traefik.http.routers.hive-blog-secure.rule=Host(`hive-my-blog.bard-dev.com`)"
-      - "traefik.http.routers.hive-blog-secure.entrypoints=websecure"
-      - "traefik.http.routers.hive-blog-secure.tls=true"
-      - "traefik.http.routers.hive-blog-secure.tls.certresolver=letsencrypt"
-
-      # Service configuration
+      - "traefik.http.routers.hive-blog.rule=Host(`${DOMAIN}`)"
+      - "traefik.http.routers.hive-blog.tls=true"
       - "traefik.http.services.hive-blog.loadbalancer.server.port=4321"
-
-      # Middleware for HTTPS redirect
-      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
-      - "traefik.http.middlewares.redirect-to-https.redirectscheme.permanent=true"
+      - "traefik.http.routers.hive-blog.service=hive-blog"
+      - "traefik.http.routers.hive-blog.entrypoints=websecure"
 
 networks:
   traefik-network:
