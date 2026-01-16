@@ -3,7 +3,8 @@
 // ============================================
 
 // Hive API Endpoints
-export const HIVE_API_ENDPOINT = import.meta.env.HIVE_API_ENDPOINT || 'https://api.openhive.network'
+// import.meta.env works in dev, process.env works in production SSR
+export const HIVE_API_ENDPOINT = import.meta.env.HIVE_API_ENDPOINT || process.env.HIVE_API_ENDPOINT || 'https://api.openhive.network'
 
 // Fallback API endpoints for retry logic
 export const HIVE_API_ENDPOINTS = [

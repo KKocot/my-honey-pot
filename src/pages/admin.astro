@@ -6,7 +6,8 @@ import type { SettingsData } from '../components/admin/types'
 
 // Load initial settings from Hive on server
 let initialSettings: SettingsData | null = null
-const hiveUsername = import.meta.env.HIVE_USERNAME
+// import.meta.env works in dev, process.env works in production SSR
+const hiveUsername = import.meta.env.HIVE_USERNAME || process.env.HIVE_USERNAME
 
 if (hiveUsername) {
   try {
