@@ -26,6 +26,7 @@
     "tailwindcss": "^4.1.18"
   },
   "devDependencies": {
+    "@playwright/test": "^1.57.0",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "concurrently": "^9.2.1",
