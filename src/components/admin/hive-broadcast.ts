@@ -169,9 +169,18 @@ export async function broadcastConfigToHive(
     }
   } catch (error) {
     console.error('Failed to broadcast config:', error)
+
+    // Parse error for user-friendly message
+    let errorMessage = error instanceof Error ? error.message : 'Unknown error'
+
+    // Check for RC (Resource Credits) error
+    if (errorMessage.includes('not_enough_rc') || errorMessage.includes('RC mana')) {
+      errorMessage = 'Not enough Resource Credits (RC). Please wait for RC to regenerate or power up more HIVE.'
+    }
+
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Unknown error'
+      error: errorMessage
     }
   }
 }
