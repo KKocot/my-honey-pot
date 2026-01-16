@@ -45,6 +45,7 @@ interface AdminPanelContentProps {
 function AdminPanelContent(props: AdminPanelContentProps) {
   const settingsQuery = useSettingsQuery()
   const [showPreview, setShowPreview] = createSignal(false)
+  const [showLoginModal, setShowLoginModal] = createSignal(false)
   const [isBroadcasting, setIsBroadcasting] = createSignal(false)
 
   // Apply initial settings from SSR on mount (before query runs)
@@ -82,7 +83,8 @@ function AdminPanelContent(props: AdminPanelContentProps) {
 
   const handleLoginSuccess = async (user: AuthUser) => {
     login(user)
-    showToast(`Welcome, @${user.username}! Loading your config from Hive...`, 'success')
+    setShowLoginModal(false)
+    showToast(`Welcome, @${user.username}!`, 'success')
 
     // Set username for Hive config loading and refetch settings
     setCurrentUsername(user.username)
@@ -95,10 +97,18 @@ function AdminPanelContent(props: AdminPanelContentProps) {
     showToast('Logged out successfully', 'success')
   }
 
+  const handleSaveClick = () => {
+    if (!isAuthenticated()) {
+      setShowLoginModal(true)
+      return
+    }
+    handleBroadcastToHive()
+  }
+
   const handleBroadcastToHive = async () => {
     const user = currentUser()
     if (!user) {
-      showToast('Please login first', 'error')
+      setShowLoginModal(true)
       return
     }
 
@@ -126,20 +136,29 @@ function AdminPanelContent(props: AdminPanelContentProps) {
       <Toast />
       <FullPreview open={showPreview} onClose={() => setShowPreview(false)} />
 
-      {/* Login Screen */}
-      <Show when={!isAuthenticated()}>
-        <div class="min-h-[60vh] flex flex-col items-center justify-center">
-          <div class="text-center mb-8">
-            <h2 class="text-2xl font-bold text-foreground mb-2">Admin Login</h2>
-            <p class="text-muted">Sign in with your Hive account to access admin panel</p>
+      {/* Login Modal - shown when trying to save without authentication */}
+      <Show when={showLoginModal()}>
+        <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-[100]" onClick={() => setShowLoginModal(false)}>
+          <div class="bg-bg-card rounded-xl border border-border p-6 max-w-md w-full mx-4 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <div class="flex items-center justify-between mb-4">
+              <h2 class="text-xl font-bold text-text">Login to Save</h2>
+              <button
+                onClick={() => setShowLoginModal(false)}
+                class="text-text-muted hover:text-text transition-colors"
+              >
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <p class="text-text-muted mb-6">Sign in with your Hive account to save your configuration to the blockchain.</p>
+            <HBAuthLogin onSuccess={handleLoginSuccess} />
           </div>
-          <HBAuthLogin onSuccess={handleLoginSuccess} />
         </div>
       </Show>
 
-      {/* Authenticated Content */}
+      {/* User Header Bar - shown when authenticated */}
       <Show when={isAuthenticated()}>
-        {/* User Header Bar */}
         <div class="flex items-center justify-between bg-card border border-border rounded-lg p-4 mb-6">
           <div class="flex items-center gap-3">
             <img
@@ -161,101 +180,117 @@ function AdminPanelContent(props: AdminPanelContentProps) {
             </span>
           </Button>
         </div>
+      </Show>
 
-        <Show when={settingsQuery.isLoading}>
-          <div class="flex items-center justify-center py-12">
-            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-            <span class="ml-3 text-text-muted">Loading settings...</span>
-          </div>
-        </Show>
+      {/* Loading state */}
+      <Show when={settingsQuery.isLoading}>
+        <div class="flex items-center justify-center py-12">
+          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+          <span class="ml-3 text-text-muted">Loading settings...</span>
+        </div>
+      </Show>
 
-        <Show when={settingsQuery.isError}>
-          <div class="bg-error/10 border border-error rounded-lg p-6 mb-6">
-            <div class="flex items-start gap-4">
-              <svg class="w-6 h-6 text-error flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-              </svg>
-              <div class="flex-1">
-                <h3 class="text-lg font-semibold text-error mb-2">Problem z połączeniem do Hive API</h3>
-                <p class="text-error/80 mb-1">
-                  Nie udało się pobrać konfiguracji z blockchaina Hive.
-                </p>
-                <p class="text-sm text-error/60 mb-4">
-                  {getLastFetchError() || 'Nieznany błąd połączenia z API node.'}
-                </p>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => window.location.reload()}
-                >
-                  <span class="flex items-center gap-2">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                    </svg>
-                    Odśwież stronę
-                  </span>
-                </Button>
-              </div>
+      {/* Error state */}
+      <Show when={settingsQuery.isError}>
+        <div class="bg-error/10 border border-error rounded-lg p-6 mb-6">
+          <div class="flex items-start gap-4">
+            <svg class="w-6 h-6 text-error flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <div class="flex-1">
+              <h3 class="text-lg font-semibold text-error mb-2">Problem z połączeniem do Hive API</h3>
+              <p class="text-error/80 mb-1">
+                Nie udało się pobrać konfiguracji z blockchaina Hive.
+              </p>
+              <p class="text-sm text-error/60 mb-4">
+                {getLastFetchError() || 'Nieznany błąd połączenia z API node.'}
+              </p>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => window.location.reload()}
+              >
+                <span class="flex items-center gap-2">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  Odśwież stronę
+                </span>
+              </Button>
             </div>
           </div>
-        </Show>
+        </div>
+      </Show>
 
-        <Show when={!settingsQuery.isLoading}>
-          <TemplateSelector />
-          <UserSwitcher />
-          <LayoutEditor />
-          <SiteSettings />
-          <AuthorProfileSettings />
-          <PostsLayoutSettings />
-          <CardAppearanceSettings />
-          <CommentSettings />
+      {/* Main Admin Panel Content - always visible */}
+      <Show when={!settingsQuery.isLoading}>
+        <TemplateSelector />
+        <UserSwitcher />
+        <LayoutEditor />
+        <SiteSettings />
+        <AuthorProfileSettings />
+        <PostsLayoutSettings />
+        <CardAppearanceSettings />
+        <CommentSettings />
 
-          {/* Spacer for fixed button */}
-          <div class="h-24" />
+        {/* Spacer for fixed button */}
+        <div class="h-24" />
 
-          {/* Fixed Save Button */}
-          <div class="fixed bottom-0 left-0 right-0 bg-bg-card/95 backdrop-blur-sm border-t border-border p-4 z-50">
-            <div class="max-w-4xl mx-auto flex items-center justify-between gap-4">
-              {/* RC Warning */}
-              <div class="flex items-center gap-2 text-sm text-text-muted">
+        {/* Fixed Save Button */}
+        <div class="fixed bottom-0 left-0 right-0 bg-bg-card/95 backdrop-blur-sm border-t border-border p-4 z-50">
+          <div class="max-w-4xl mx-auto flex items-center justify-between gap-4">
+            {/* RC Warning or Login hint */}
+            <div class="flex items-center gap-2 text-sm text-text-muted">
+              <Show when={isAuthenticated()} fallback={
+                <>
+                  <svg class="w-4 h-4 text-info flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span>Login required to save config to Hive blockchain.</span>
+                </>
+              }>
                 <svg class="w-4 h-4 text-warning flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                <span>
-                  Saving config to Hive costs Resource Credits (RC).
+                <span>Saving config to Hive costs Resource Credits (RC).</span>
+              </Show>
+            </div>
+            <div class="flex gap-3 flex-shrink-0">
+              <Button
+                variant="secondary"
+                size="lg"
+                onClick={() => setShowPreview(true)}
+              >
+                <span class="flex items-center gap-2">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  </svg>
+                  Full Preview
                 </span>
-              </div>
-              <div class="flex gap-3 flex-shrink-0">
-                <Button
-                  variant="secondary"
-                  size="lg"
-                  onClick={() => setShowPreview(true)}
-                >
-                  <span class="flex items-center gap-2">
+              </Button>
+              <Button
+                variant="accent"
+                size="lg"
+                loading={isBroadcasting()}
+                onClick={handleSaveClick}
+              >
+                <span class="flex items-center gap-2">
+                  <Show when={isAuthenticated()} fallback={
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
                     </svg>
-                    Full Preview
-                  </span>
-                </Button>
-                <Button
-                  variant="accent"
-                  size="lg"
-                  loading={isBroadcasting()}
-                  onClick={handleBroadcastToHive}
-                >
-                  <span class="flex items-center gap-2">
+                  }>
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                     </svg>
-                    Save Config on Hive
-                  </span>
-                </Button>
-              </div>
+                  </Show>
+                  {isAuthenticated() ? 'Save Config on Hive' : 'Login & Save'}
+                </span>
+              </Button>
             </div>
           </div>
-        </Show>
+        </div>
       </Show>
     </>
   )
