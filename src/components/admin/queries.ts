@@ -1,6 +1,7 @@
 import { QueryClient, createQuery, createMutation, useQueryClient } from '@tanstack/solid-query'
 import { createStore, produce } from 'solid-js/store'
 import { defaultSettings, migrateCardLayout, themePresets, type SettingsData, type LayoutSection, type ThemeColors } from './types'
+import { loadConfigFromHive } from './hive-broadcast'
 
 // ============================================
 // Apply theme colors to CSS variables
@@ -47,25 +48,6 @@ export const queryClient = new QueryClient({
   },
 })
 
-// ============================================
-// Storage Keys
-// ============================================
-
-const STORAGE_KEY = 'hive-blog-settings'
-
-// ============================================
-// Demo Mode State
-// ============================================
-
-let isDemoMode = false
-
-export function isInDemoMode(): boolean {
-  return isDemoMode
-}
-
-export function setDemoMode(value: boolean): void {
-  isDemoMode = value
-}
 
 // ============================================
 // Local Store for UI State
@@ -102,38 +84,6 @@ export function setLayoutSections(sections: LayoutSection[]) {
   setSettings('layoutSections', sections)
 }
 
-// ============================================
-// localStorage & cookie helpers
-// ============================================
-
-function saveToCookie(data: SettingsData): void {
-  if (typeof document !== 'undefined') {
-    const json = JSON.stringify(data)
-    const expires = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toUTCString()
-    document.cookie = `${STORAGE_KEY}=${encodeURIComponent(json)}; path=/; expires=${expires}; SameSite=Lax`
-  }
-}
-
-function saveToLocalStorage(data: SettingsData): void {
-  if (typeof localStorage !== 'undefined') {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
-  }
-  saveToCookie(data)
-}
-
-function loadFromLocalStorage(): SettingsData | null {
-  if (typeof localStorage !== 'undefined') {
-    const stored = localStorage.getItem(STORAGE_KEY)
-    if (stored) {
-      try {
-        return JSON.parse(stored)
-      } catch {
-        return null
-      }
-    }
-  }
-  return null
-}
 
 // ============================================
 // Helper to migrate all card layouts
@@ -149,78 +99,68 @@ function migrateSettingsLayouts(data: Partial<SettingsData>): Partial<SettingsDa
 }
 
 // ============================================
+// Current user for Hive config loading
+// ============================================
+
+let currentUsername: string | null = null
+
+export function setCurrentUsername(username: string | null) {
+  currentUsername = username
+}
+
+// ============================================
 // API Functions
 // ============================================
 
+// Track if we had API error
+let lastFetchError: string | null = null
+
+export function getLastFetchError(): string | null {
+  return lastFetchError
+}
+
+export function clearFetchError(): void {
+  lastFetchError = null
+}
+
 async function fetchSettings(): Promise<SettingsData> {
-  try {
-    const res = await fetch('/api/admin/settings')
+  lastFetchError = null
 
-    if (res.ok) {
-      const data: SettingsData = await res.json()
-      isDemoMode = false
-      const migratedData = migrateSettingsLayouts(data)
+  // Load from Hive if user is logged in
+  if (currentUsername) {
+    try {
+      console.log(`Loading config from Hive for @${currentUsername}...`)
+      const hiveConfig = await loadConfigFromHive(currentUsername)
+      if (hiveConfig) {
+        console.log('Loaded config from Hive!')
+        const migratedData = migrateSettingsLayouts(hiveConfig)
+        const pageLayout = hiveConfig.pageLayout !== undefined ? hiveConfig.pageLayout : defaultSettings.pageLayout
 
-      // Use API data if pageLayout exists (even if empty), otherwise use defaults
-      // This allows users to intentionally clear all sections
-      const pageLayout = data.pageLayout !== undefined ? data.pageLayout : defaultSettings.pageLayout
-
-      const result = {
-        ...defaultSettings,
-        ...data,
-        ...migratedData,
-        layoutSections: data.layoutSections?.length ? data.layoutSections : defaultSettings.layoutSections,
-        pageLayout,
-      } as SettingsData
-
-      return result
+        return {
+          ...defaultSettings,
+          ...hiveConfig,
+          ...migratedData,
+          layoutSections: hiveConfig.layoutSections?.length ? hiveConfig.layoutSections : defaultSettings.layoutSections,
+          pageLayout,
+        } as SettingsData
+      }
+      console.log('No config found on Hive, using defaults')
+    } catch (error) {
+      console.error('Failed to load from Hive:', error)
+      lastFetchError = error instanceof Error ? error.message : 'Failed to connect to Hive API'
+      throw new Error(`Hive API error: ${lastFetchError}. Please refresh the page.`)
     }
-    throw new Error('API unavailable')
-  } catch (e) {
-    console.warn('MongoDB unavailable, using localStorage (demo mode)')
-    isDemoMode = true
-
-    const localData = loadFromLocalStorage()
-    if (localData) {
-      const migratedData = migrateSettingsLayouts(localData)
-      // Use localStorage data if pageLayout exists (even if empty), otherwise use defaults
-      const pageLayout = localData.pageLayout !== undefined ? localData.pageLayout : defaultSettings.pageLayout
-
-      return {
-        ...defaultSettings,
-        ...localData,
-        ...migratedData,
-        layoutSections: localData.layoutSections?.length ? localData.layoutSections : defaultSettings.layoutSections,
-        pageLayout,
-      } as SettingsData
-    }
-    return defaultSettings
   }
+
+  return defaultSettings
 }
 
 async function saveSettingsToServer(data: SettingsData): Promise<boolean> {
-  // Always save to localStorage for demo mode support
-  saveToLocalStorage(data)
-
   // Apply theme colors immediately
   applyThemeColors(getThemeColors(data))
 
-  if (isDemoMode) {
-    return true
-  }
-
-  try {
-    const res = await fetch('/api/admin/settings', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    })
-
-    await res.json()
-    return res.ok
-  } catch {
-    return true
-  }
+  // Note: To persist to Hive, user should click "Publish to Hive" button
+  return true
 }
 
 // ============================================
@@ -258,10 +198,22 @@ export function useSaveSettingsMutation() {
 // Sync settings to store when query succeeds
 // ============================================
 
-export function syncSettingsToStore(data: SettingsData) {
+// Track if settings have been loaded from server at least once
+let settingsLoadedFromServer = false
+
+export function syncSettingsToStore(data: SettingsData, fromServer: boolean = false) {
   setSettings(produce((s) => {
     Object.assign(s, data)
   }))
-  // Apply theme colors from settings
-  applyThemeColors(getThemeColors(data))
+
+  // Only apply theme colors if data came from server (not default init)
+  // This prevents overwriting SSR theme with default light theme
+  if (fromServer) {
+    settingsLoadedFromServer = true
+    applyThemeColors(getThemeColors(data))
+  }
+}
+
+export function isSettingsLoaded(): boolean {
+  return settingsLoadedFromServer
 }
