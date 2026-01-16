@@ -222,3 +222,146 @@ export function syncSettingsToStore(data: SettingsData, fromServer: boolean = fa
 export function isSettingsLoaded(): boolean {
   return settingsLoadedFromServer
 }
+
+// ============================================
+// Hive Preview Data Types
+// ============================================
+
+export interface HivePost {
+  author: string
+  permlink: string
+  title: string
+  body: string
+  created: string
+  json_metadata: { image?: string[]; tags?: string[] } | string
+  active_votes: { voter: string }[]
+  children: number
+  pending_payout_value: string
+}
+
+export interface HiveAccount {
+  name: string
+  reputation: number
+  post_count: number
+  balance: string
+  savings_balance: string
+  hbd_balance: string
+  vesting_shares: string
+  received_vesting_shares: string
+  delegated_vesting_shares: string
+  json_metadata: string
+  posting_json_metadata: string
+  created: string
+}
+
+export interface HiveProfile {
+  name: string
+  about?: string
+  location?: string
+  website?: string
+  cover_image?: string
+  profile_image?: string
+  post_count?: number
+}
+
+export interface HiveFollowCount {
+  follower_count: number
+  following_count: number
+}
+
+export interface HiveData {
+  account: HiveAccount | null
+  profile: HiveProfile | null
+  posts: HivePost[]
+  followCount: HiveFollowCount | null
+}
+
+// Default Hive API endpoint for client-side usage
+const HIVE_API_ENDPOINT = 'https://api.openhive.network'
+
+// ============================================
+// Hive Preview Data Fetcher
+// ============================================
+
+async function fetchHivePreviewData(username: string, postsPerPage: number): Promise<HiveData | null> {
+  if (!username) return null
+
+  try {
+    // Fetch account, posts, and follow count in parallel
+    const [accountRes, postsRes, followRes] = await Promise.all([
+      fetch(HIVE_API_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jsonrpc: '2.0',
+          method: 'condenser_api.get_accounts',
+          params: [[username]],
+          id: 1,
+        }),
+      }),
+      fetch(HIVE_API_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jsonrpc: '2.0',
+          method: 'bridge.get_account_posts',
+          params: { sort: 'blog', account: username, limit: postsPerPage },
+          id: 2,
+        }),
+      }),
+      fetch(HIVE_API_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jsonrpc: '2.0',
+          method: 'condenser_api.get_follow_count',
+          params: [username],
+          id: 3,
+        }),
+      }),
+    ])
+
+    const [accountData, postsData, followData] = await Promise.all([
+      accountRes.json(),
+      postsRes.json(),
+      followRes.json(),
+    ])
+
+    const account: HiveAccount | null = accountData.result?.[0] || null
+    const posts: HivePost[] = postsData.result || []
+    const followCount: HiveFollowCount | null = followData.result || null
+
+    // Parse profile from account metadata
+    let profile: HiveProfile | null = null
+    if (account) {
+      try {
+        const metadata = JSON.parse(account.posting_json_metadata || account.json_metadata || '{}')
+        profile = metadata.profile || null
+      } catch {
+        // Invalid JSON
+      }
+    }
+
+    return { account, profile, posts, followCount }
+  } catch {
+    return null
+  }
+}
+
+// ============================================
+// Hive Preview Query Hook
+// ============================================
+
+export function useHivePreviewQuery(
+  username: () => string | undefined,
+  postsPerPage: () => number,
+  enabled: () => boolean
+) {
+  return createQuery(() => ({
+    queryKey: ['hive-preview', username(), postsPerPage()] as const,
+    queryFn: () => fetchHivePreviewData(username() || '', postsPerPage()),
+    enabled: enabled() && !!username(),
+    staleTime: 1000 * 60 * 2, // 2 minutes
+    retry: 1,
+  }))
+}

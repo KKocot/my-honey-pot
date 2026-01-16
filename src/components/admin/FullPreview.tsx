@@ -1,10 +1,8 @@
-import { createSignal, createEffect, Show, For, type Accessor } from 'solid-js'
+import { Show, For, type Accessor } from 'solid-js'
 import { Portal } from 'solid-js/web'
 import { settings } from './store'
 import { pageElementLabels, type PageSlotPosition } from './types'
-
-// Default Hive API endpoint for client-side usage
-const HIVE_API_ENDPOINT = 'https://api.openhive.network'
+import { useHivePreviewQuery, type HivePost } from './queries'
 
 // ============================================
 // Full Preview Dialog Component
@@ -16,149 +14,17 @@ interface FullPreviewProps {
   onClose: () => void
 }
 
-// Hive API types (simplified for preview)
-interface HivePost {
-  author: string
-  permlink: string
-  title: string
-  body: string
-  created: string
-  json_metadata: { image?: string[]; tags?: string[] } | string
-  active_votes: { voter: string }[]
-  children: number
-  pending_payout_value: string
-}
-
-interface HiveAccount {
-  name: string
-  reputation: number
-  post_count: number
-  balance: string
-  savings_balance: string
-  hbd_balance: string
-  vesting_shares: string
-  received_vesting_shares: string
-  delegated_vesting_shares: string
-  json_metadata: string
-  posting_json_metadata: string
-  created: string
-}
-
-interface HiveProfile {
-  name: string
-  about?: string
-  location?: string
-  website?: string
-  cover_image?: string
-  profile_image?: string
-  post_count?: number
-}
-
-interface HiveFollowCount {
-  follower_count: number
-  following_count: number
-}
-
-interface HiveData {
-  account: HiveAccount | null
-  profile: HiveProfile | null
-  posts: HivePost[]
-  followCount: HiveFollowCount | null
-}
-
-// Fetch Hive data
-async function fetchHiveData(username: string, postsPerPage: number): Promise<HiveData | null> {
-  if (!username) return null
-
-  try {
-    // Fetch account, posts, and follow count in parallel
-    const [accountRes, postsRes, followRes] = await Promise.all([
-      fetch(HIVE_API_ENDPOINT, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          jsonrpc: '2.0',
-          method: 'condenser_api.get_accounts',
-          params: [[username]],
-          id: 1,
-        }),
-      }),
-      fetch(HIVE_API_ENDPOINT, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          jsonrpc: '2.0',
-          method: 'bridge.get_account_posts',
-          params: { sort: 'blog', account: username, limit: postsPerPage },
-          id: 2,
-        }),
-      }),
-      fetch(HIVE_API_ENDPOINT, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          jsonrpc: '2.0',
-          method: 'condenser_api.get_follow_count',
-          params: [username],
-          id: 3,
-        }),
-      }),
-    ])
-
-    const [accountData, postsData, followData] = await Promise.all([
-      accountRes.json(),
-      postsRes.json(),
-      followRes.json(),
-    ])
-
-    const account: HiveAccount | null = accountData.result?.[0] || null
-    const posts: HivePost[] = postsData.result || []
-    const followCount: HiveFollowCount | null = followData.result || null
-
-    // Parse profile from account metadata
-    let profile: HiveProfile | null = null
-    if (account) {
-      try {
-        const metadata = JSON.parse(account.posting_json_metadata || account.json_metadata || '{}')
-        profile = metadata.profile || null
-      } catch {
-        // Invalid JSON
-      }
-    }
-
-    return { account, profile, posts, followCount }
-  } catch {
-    return null
-  }
-}
-
 export function FullPreview(props: FullPreviewProps) {
-  const [data, setData] = createSignal<HiveData | null>(null)
-  const [loading, setLoading] = createSignal(false)
+  // Use TanStack Query for data fetching with caching
+  const hiveQuery = useHivePreviewQuery(
+    () => settings.hiveUsername,
+    () => settings.postsPerPage || 20,
+    props.open
+  )
 
-  // Fetch data when dialog opens
-  createEffect(() => {
-    // Track props.open() reactively - this will re-run when open changes
-    const isOpen = props.open()
-    if (!isOpen) {
-      return
-    }
-
-    // Get current username from store
-    const username = settings.hiveUsername
-    const postsLimit = settings.postsPerPage || 20
-
-    if (username) {
-      setLoading(true)
-      setData(null) // Clear old data
-      fetchHiveData(username, postsLimit).then((result) => {
-        setData(result)
-        setLoading(false)
-      }).catch(() => {
-        setLoading(false)
-      })
-    }
-  })
+  // Derive data and loading state from query
+  const data = () => hiveQuery.data ?? null
+  const loading = () => hiveQuery.isLoading
 
   // Handle escape key
   const handleKeyDown = (e: KeyboardEvent) => {
