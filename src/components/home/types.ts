@@ -4,10 +4,25 @@ import type { BridgePost, DatabaseAccount } from '../../lib/hive'
 // Types for homepage components
 // ============================================
 
+// Old layout section format (legacy)
 export interface LayoutSection {
   id: string
   position: 'top' | 'sidebar-left' | 'main' | 'sidebar-right' | 'bottom'
   enabled: boolean
+}
+
+// New page layout format (Page Layout Editor)
+export type PageSlotPosition = 'top' | 'sidebar-left' | 'main' | 'sidebar-right' | 'bottom'
+
+export interface PageLayoutSection {
+  id: string
+  slot: PageSlotPosition
+  orientation: 'horizontal' | 'vertical'
+  elements: string[]
+}
+
+export interface PageLayout {
+  sections: PageLayoutSection[]
 }
 
 export interface SiteSettings {
@@ -16,6 +31,7 @@ export interface SiteSettings {
   siteDescription?: string
   siteTheme?: string
   layoutSections?: LayoutSection[]
+  pageLayout?: PageLayout
   postsLayout?: 'list' | 'grid' | 'masonry'
   gridColumns?: number
   cardGapPx?: number
@@ -42,6 +58,7 @@ export interface SiteSettings {
   showAuthorRewards?: boolean
   postsPerPage?: number
   sidebarWidthPx?: number
+  headerMaxWidthPx?: number
   // Author Profile extended settings
   authorProfileLayout?: 'horizontal' | 'vertical'
   showAuthorAbout?: boolean
@@ -90,3 +107,12 @@ export const defaultLayoutSections: LayoutSection[] = [
   { id: 'posts', position: 'main', enabled: true },
   { id: 'footer', position: 'bottom', enabled: false },
 ]
+
+export const defaultPageLayout: PageLayout = {
+  sections: [
+    { id: 'page-sec-1', slot: 'top', orientation: 'horizontal', elements: ['header'] },
+    { id: 'page-sec-2', slot: 'sidebar-left', orientation: 'vertical', elements: ['authorProfile'] },
+    { id: 'page-sec-3', slot: 'main', orientation: 'vertical', elements: ['posts', 'comments'] },
+    { id: 'page-sec-4', slot: 'bottom', orientation: 'horizontal', elements: ['footer'] },
+  ],
+}

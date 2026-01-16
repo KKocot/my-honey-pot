@@ -1,8 +1,8 @@
-import { For, createSignal, Show } from 'solid-js'
+import { For, createSignal, Show, onMount, onCleanup } from 'solid-js'
 import { settings, updateSettings } from './store'
 import {
   pageElementLabels,
-  pageElementColors,
+  getPageElementColor,
   slotLabels,
   ALL_PAGE_ELEMENT_IDS,
   type PageLayout,
@@ -11,19 +11,36 @@ import {
 } from './types'
 
 // ============================================
-// Page Layout Editor - Section-based Drag & Drop
-// Like shadcn-drag-and-drop with slots and sections
+// Page Layout Editor - Button-based UI
 // ============================================
 
 const SLOTS: PageSlotPosition[] = ['top', 'sidebar-left', 'main', 'sidebar-right', 'bottom']
 
-export function LayoutEditor() {
-  const [draggedElement, setDraggedElement] = createSignal<{ elementId: string; fromSectionId: string } | null>(null)
-  const [draggedSection, setDraggedSection] = createSignal<string | null>(null)
-  const [dragOverSlot, setDragOverSlot] = createSignal<PageSlotPosition | null>(null)
-  const [dragOverSection, setDragOverSection] = createSignal<string | null>(null)
-  const [dragOverElementZone, setDragOverElementZone] = createSignal<{ sectionId: string; index: number } | null>(null)
+// ============================================
+// Click-outside hook
+// ============================================
 
+function useClickOutside(
+  ref: () => HTMLElement | undefined,
+  callback: () => void
+) {
+  const handleClick = (e: MouseEvent) => {
+    const element = ref()
+    if (element && !element.contains(e.target as Node)) {
+      callback()
+    }
+  }
+
+  onMount(() => {
+    document.addEventListener('mousedown', handleClick)
+  })
+
+  onCleanup(() => {
+    document.removeEventListener('mousedown', handleClick)
+  })
+}
+
+export function LayoutEditor() {
   // Get sections for a specific slot
   const getSectionsInSlot = (slot: PageSlotPosition) => {
     return settings.pageLayout.sections.filter((s) => s.slot === slot)
@@ -35,7 +52,7 @@ export function LayoutEditor() {
   }
 
   // Get unused elements
-  const unusedElements = () => {
+  const getUnusedElements = () => {
     const usedIds = getUsedElementIds()
     return ALL_PAGE_ELEMENT_IDS.filter((id) => !usedIds.has(id))
   }
@@ -80,153 +97,49 @@ export function LayoutEditor() {
     })
   }
 
-  const changeSectionSlot = (sectionId: string, newSlot: PageSlotPosition) => {
+  const moveSectionUp = (slot: PageSlotPosition, sectionId: string) => {
+    const sectionsInSlot = getSectionsInSlot(slot)
+    const index = sectionsInSlot.findIndex((s) => s.id === sectionId)
+    if (index <= 0) return
+
+    const allSections = [...settings.pageLayout.sections]
+    const globalIndex = allSections.findIndex((s) => s.id === sectionId)
+    const prevInSlot = sectionsInSlot[index - 1]
+    const prevGlobalIndex = allSections.findIndex((s) => s.id === prevInSlot.id)
+
+    // Swap positions
+    ;[allSections[globalIndex], allSections[prevGlobalIndex]] = [allSections[prevGlobalIndex], allSections[globalIndex]]
+    updatePageLayout({ sections: allSections })
+  }
+
+  const moveSectionDown = (slot: PageSlotPosition, sectionId: string) => {
+    const sectionsInSlot = getSectionsInSlot(slot)
+    const index = sectionsInSlot.findIndex((s) => s.id === sectionId)
+    if (index === -1 || index >= sectionsInSlot.length - 1) return
+
+    const allSections = [...settings.pageLayout.sections]
+    const globalIndex = allSections.findIndex((s) => s.id === sectionId)
+    const nextInSlot = sectionsInSlot[index + 1]
+    const nextGlobalIndex = allSections.findIndex((s) => s.id === nextInSlot.id)
+
+    // Swap positions
+    ;[allSections[globalIndex], allSections[nextGlobalIndex]] = [allSections[nextGlobalIndex], allSections[globalIndex]]
+    updatePageLayout({ sections: allSections })
+  }
+
+  // ============================================
+  // Element operations
+  // ============================================
+
+  const addElementToSection = (sectionId: string, elementId: string) => {
     updatePageLayout({
-      sections: settings.pageLayout.sections.map((s) =>
-        s.id === sectionId ? { ...s, slot: newSlot } : s
+      sections: settings.pageLayout.sections.map((section) =>
+        section.id === sectionId
+          ? { ...section, elements: [...section.elements, elementId] }
+          : section
       ),
     })
   }
-
-  // ============================================
-  // Element drag handlers
-  // ============================================
-
-  const handleElementDragStart = (e: DragEvent, elementId: string, fromSectionId: string) => {
-    setDraggedElement({ elementId, fromSectionId })
-    if (e.dataTransfer) {
-      e.dataTransfer.effectAllowed = 'move'
-      e.dataTransfer.setData('text/plain', `element:${elementId}:${fromSectionId}`)
-    }
-  }
-
-  const handleElementDragOver = (e: DragEvent, sectionId: string, index: number) => {
-    e.preventDefault()
-    if (draggedElement()) {
-      setDragOverElementZone({ sectionId, index })
-    }
-  }
-
-  const handleElementDrop = (e: DragEvent, targetSectionId: string, targetIndex: number) => {
-    e.preventDefault()
-    e.stopPropagation()
-
-    const dragged = draggedElement()
-    if (!dragged) return
-
-    const { elementId, fromSectionId } = dragged
-
-    // Build new sections
-    const newSections = settings.pageLayout.sections.map((section) => {
-      if (section.id === fromSectionId && fromSectionId !== targetSectionId) {
-        // Remove from source section
-        return { ...section, elements: section.elements.filter((id) => id !== elementId) }
-      }
-      if (section.id === targetSectionId) {
-        // Add to target section
-        const newElements = section.elements.filter((id) => id !== elementId)
-        newElements.splice(targetIndex, 0, elementId)
-        return { ...section, elements: newElements }
-      }
-      return section
-    })
-
-    updatePageLayout({ sections: newSections })
-    setDraggedElement(null)
-    setDragOverElementZone(null)
-  }
-
-  const handleElementDragEnd = () => {
-    setDraggedElement(null)
-    setDragOverElementZone(null)
-    setDragOverSlot(null)
-  }
-
-  // ============================================
-  // Unused element drag (from pool)
-  // ============================================
-
-  const handleUnusedElementDragStart = (e: DragEvent, elementId: string) => {
-    setDraggedElement({ elementId, fromSectionId: '__unused__' })
-    if (e.dataTransfer) {
-      e.dataTransfer.effectAllowed = 'move'
-      e.dataTransfer.setData('text/plain', `element:${elementId}:__unused__`)
-    }
-  }
-
-  const handleDropOnSection = (e: DragEvent, sectionId: string) => {
-    e.preventDefault()
-    const dragged = draggedElement()
-    if (!dragged) return
-
-    const { elementId, fromSectionId } = dragged
-
-    if (fromSectionId === '__unused__') {
-      // Add from unused pool to the end
-      const newSections = settings.pageLayout.sections.map((section) => {
-        if (section.id === sectionId) {
-          return { ...section, elements: [...section.elements, elementId] }
-        }
-        return section
-      })
-      updatePageLayout({ sections: newSections })
-    }
-
-    setDraggedElement(null)
-    setDragOverElementZone(null)
-    setDragOverSection(null)
-  }
-
-  // ============================================
-  // Section drag handlers
-  // ============================================
-
-  const handleSectionDragStart = (e: DragEvent, sectionId: string) => {
-    setDraggedSection(sectionId)
-    if (e.dataTransfer) {
-      e.dataTransfer.effectAllowed = 'move'
-      e.dataTransfer.setData('text/plain', `section:${sectionId}`)
-    }
-  }
-
-  const handleSectionDragOver = (e: DragEvent, sectionId: string) => {
-    e.preventDefault()
-    if (draggedSection() && draggedSection() !== sectionId) {
-      setDragOverSection(sectionId)
-    }
-  }
-
-  const handleSectionDrop = (e: DragEvent, targetSectionId: string) => {
-    e.preventDefault()
-    const sourceId = draggedSection()
-    if (!sourceId || sourceId === targetSectionId) {
-      setDraggedSection(null)
-      setDragOverSection(null)
-      return
-    }
-
-    const sections = [...settings.pageLayout.sections]
-    const sourceIndex = sections.findIndex((s) => s.id === sourceId)
-    const targetIndex = sections.findIndex((s) => s.id === targetSectionId)
-
-    if (sourceIndex !== -1 && targetIndex !== -1) {
-      const [removed] = sections.splice(sourceIndex, 1)
-      sections.splice(targetIndex, 0, removed)
-      updatePageLayout({ sections })
-    }
-
-    setDraggedSection(null)
-    setDragOverSection(null)
-  }
-
-  const handleSectionDragEnd = () => {
-    setDraggedSection(null)
-    setDragOverSection(null)
-  }
-
-  // ============================================
-  // Remove element (back to unused pool)
-  // ============================================
 
   const removeElement = (sectionId: string, elementId: string) => {
     updatePageLayout({
@@ -238,11 +151,35 @@ export function LayoutEditor() {
     })
   }
 
+  const moveElementUp = (sectionId: string, elementIndex: number) => {
+    if (elementIndex <= 0) return
+    updatePageLayout({
+      sections: settings.pageLayout.sections.map((section) => {
+        if (section.id !== sectionId) return section
+        const newElements = [...section.elements]
+        ;[newElements[elementIndex], newElements[elementIndex - 1]] = [newElements[elementIndex - 1], newElements[elementIndex]]
+        return { ...section, elements: newElements }
+      }),
+    })
+  }
+
+  const moveElementDown = (sectionId: string, elementIndex: number) => {
+    updatePageLayout({
+      sections: settings.pageLayout.sections.map((section) => {
+        if (section.id !== sectionId) return section
+        if (elementIndex >= section.elements.length - 1) return section
+        const newElements = [...section.elements]
+        ;[newElements[elementIndex], newElements[elementIndex + 1]] = [newElements[elementIndex + 1], newElements[elementIndex]]
+        return { ...section, elements: newElements }
+      }),
+    })
+  }
+
   return (
     <div class="bg-bg-card rounded-xl p-6 mb-6 border border-border">
       <h2 class="text-xl font-semibold text-primary mb-4">Page Layout Editor</h2>
       <p class="text-text-muted text-sm mb-6">
-        Drag page elements between slots. Each slot can have multiple sections with different orientations.
+        Configure page layout by adding sections and elements to each slot.
       </p>
 
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -253,52 +190,19 @@ export function LayoutEditor() {
               <SlotContainer
                 slot={slot}
                 sections={getSectionsInSlot(slot)}
-                draggedSection={draggedSection}
-                draggedElement={draggedElement}
-                dragOverSection={dragOverSection}
-                dragOverElementZone={dragOverElementZone}
+                unusedElements={getUnusedElements()}
                 onAddSection={() => addSection(slot)}
                 onRemoveSection={removeSection}
                 onToggleOrientation={toggleOrientation}
-                onSectionDragStart={handleSectionDragStart}
-                onSectionDragOver={handleSectionDragOver}
-                onSectionDrop={handleSectionDrop}
-                onSectionDragEnd={handleSectionDragEnd}
-                onElementDragStart={handleElementDragStart}
-                onElementDragOver={handleElementDragOver}
-                onElementDrop={handleElementDrop}
-                onElementDragEnd={handleElementDragEnd}
-                onDropOnSection={handleDropOnSection}
+                onMoveSectionUp={(sectionId) => moveSectionUp(slot, sectionId)}
+                onMoveSectionDown={(sectionId) => moveSectionDown(slot, sectionId)}
+                onAddElement={addElementToSection}
                 onRemoveElement={removeElement}
+                onMoveElementUp={moveElementUp}
+                onMoveElementDown={moveElementDown}
               />
             )}
           </For>
-
-          {/* Unused elements pool */}
-          <Show when={unusedElements().length > 0}>
-            <div class="mt-4 pt-4 border-t border-border">
-              <p class="text-xs text-text-muted uppercase tracking-wide mb-2">Available Elements</p>
-              <div class="flex flex-wrap gap-2">
-                <For each={unusedElements()}>
-                  {(elementId) => (
-                    <div
-                      draggable={true}
-                      onDragStart={(e) => handleUnusedElementDragStart(e, elementId)}
-                      onDragEnd={handleElementDragEnd}
-                      class={`
-                        flex items-center gap-2 px-3 py-2 rounded-lg text-white text-sm font-medium
-                        cursor-grab active:cursor-grabbing transition-all hover:opacity-80
-                        ${pageElementColors[elementId] || 'bg-text-muted'}
-                        ${draggedElement()?.elementId === elementId ? 'opacity-50' : ''}
-                      `}
-                    >
-                      {pageElementLabels[elementId] || elementId}
-                    </div>
-                  )}
-                </For>
-              </div>
-            </div>
-          </Show>
         </div>
 
         {/* Live Preview */}
@@ -315,28 +219,19 @@ export function LayoutEditor() {
 interface SlotContainerProps {
   slot: PageSlotPosition
   sections: PageLayoutSection[]
-  draggedSection: () => string | null
-  draggedElement: () => { elementId: string; fromSectionId: string } | null
-  dragOverSection: () => string | null
-  dragOverElementZone: () => { sectionId: string; index: number } | null
+  unusedElements: string[]
   onAddSection: () => void
   onRemoveSection: (sectionId: string) => void
   onToggleOrientation: (sectionId: string) => void
-  onSectionDragStart: (e: DragEvent, sectionId: string) => void
-  onSectionDragOver: (e: DragEvent, sectionId: string) => void
-  onSectionDrop: (e: DragEvent, sectionId: string) => void
-  onSectionDragEnd: () => void
-  onElementDragStart: (e: DragEvent, elementId: string, fromSectionId: string) => void
-  onElementDragOver: (e: DragEvent, sectionId: string, index: number) => void
-  onElementDrop: (e: DragEvent, sectionId: string, index: number) => void
-  onElementDragEnd: () => void
-  onDropOnSection: (e: DragEvent, sectionId: string) => void
+  onMoveSectionUp: (sectionId: string) => void
+  onMoveSectionDown: (sectionId: string) => void
+  onAddElement: (sectionId: string, elementId: string) => void
   onRemoveElement: (sectionId: string, elementId: string) => void
+  onMoveElementUp: (sectionId: string, elementIndex: number) => void
+  onMoveElementDown: (sectionId: string, elementIndex: number) => void
 }
 
 function SlotContainer(props: SlotContainerProps) {
-  const isHorizontalSlot = () => props.slot === 'top' || props.slot === 'bottom'
-
   return (
     <div class="rounded-xl border border-border bg-bg p-3">
       {/* Slot header */}
@@ -345,164 +240,37 @@ function SlotContainer(props: SlotContainerProps) {
         <button
           type="button"
           onClick={props.onAddSection}
-          class="text-xs text-primary hover:text-primary/80 font-medium flex items-center gap-1"
+          class="text-xs text-primary hover:text-primary/80 font-medium flex items-center gap-1 px-2 py-1 rounded hover:bg-primary/10 transition-colors"
         >
-          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-          </svg>
+          <PlusIcon class="w-3 h-3" />
           Add Section
         </button>
       </div>
 
       {/* Sections in this slot */}
-      <div class={`space-y-2 ${props.sections.length === 0 ? 'min-h-[40px]' : ''}`}>
+      <div class="space-y-2">
         <Show when={props.sections.length === 0}>
-          <div class="text-xs text-text-muted italic text-center py-2">
+          <div class="text-xs text-text-muted italic text-center py-4 border border-dashed border-border rounded-lg">
             No sections in this slot
           </div>
         </Show>
 
         <For each={props.sections}>
           {(section, sectionIndex) => (
-            <div
-              draggable={true}
-              onDragStart={(e) => props.onSectionDragStart(e, section.id)}
-              onDragOver={(e) => props.onSectionDragOver(e, section.id)}
-              onDrop={(e) => {
-                if (props.draggedSection()) {
-                  props.onSectionDrop(e, section.id)
-                } else {
-                  props.onDropOnSection(e, section.id)
-                }
-              }}
-              onDragEnd={props.onSectionDragEnd}
-              class={`
-                rounded-lg border-2 p-2 transition-all bg-bg-card
-                ${props.draggedSection() === section.id ? 'opacity-50 border-primary' : ''}
-                ${props.dragOverSection() === section.id ? 'border-primary border-dashed bg-primary/5' : 'border-border'}
-              `}
-            >
-              {/* Section header */}
-              <div class="flex items-center gap-2 mb-2">
-                {/* Drag handle */}
-                <div class="cursor-grab active:cursor-grabbing text-text-muted hover:text-text">
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16" />
-                  </svg>
-                </div>
-
-                {/* Section number */}
-                <span class="text-xs font-medium text-text-muted">Section {sectionIndex() + 1}</span>
-
-                {/* Orientation toggle */}
-                <button
-                  type="button"
-                  onClick={() => props.onToggleOrientation(section.id)}
-                  class={`
-                    flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium transition-colors
-                    ${section.orientation === 'horizontal'
-                      ? 'bg-primary/20 text-primary'
-                      : 'bg-accent/20 text-accent'}
-                  `}
-                  title={`Click to switch to ${section.orientation === 'horizontal' ? 'vertical' : 'horizontal'}`}
-                >
-                  {section.orientation === 'horizontal' ? (
-                    <>
-                      <HorizontalIcon />
-                      <span>H</span>
-                    </>
-                  ) : (
-                    <>
-                      <VerticalIcon />
-                      <span>V</span>
-                    </>
-                  )}
-                </button>
-
-                {/* Remove section */}
-                <button
-                  type="button"
-                  onClick={() => props.onRemoveSection(section.id)}
-                  class="ml-auto p-1 rounded text-text-muted hover:text-error hover:bg-error/10 transition-colors"
-                  title="Remove section"
-                >
-                  <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-
-              {/* Elements container */}
-              <div
-                class={`
-                  min-h-[32px] rounded border border-dashed border-border p-1.5
-                  ${section.orientation === 'horizontal' ? 'flex flex-wrap gap-1.5' : 'flex flex-col gap-1.5'}
-                `}
-                onDragOver={(e) => {
-                  e.preventDefault()
-                  if (props.draggedElement()) {
-                    // Allow drop
-                  }
-                }}
-                onDrop={(e) => props.onDropOnSection(e, section.id)}
-              >
-                <Show when={section.elements.length === 0}>
-                  <span class="text-xs text-text-muted italic">Drop elements here</span>
-                </Show>
-
-                <For each={section.elements}>
-                  {(elementId, elementIndex) => (
-                    <div
-                      draggable={true}
-                      onDragStart={(e) => props.onElementDragStart(e, elementId, section.id)}
-                      onDragOver={(e) => props.onElementDragOver(e, section.id, elementIndex())}
-                      onDrop={(e) => props.onElementDrop(e, section.id, elementIndex())}
-                      onDragEnd={props.onElementDragEnd}
-                      class={`
-                        flex items-center gap-1 px-2 py-1 rounded text-white text-xs font-medium
-                        cursor-grab active:cursor-grabbing transition-all
-                        ${pageElementColors[elementId] || 'bg-text-muted'}
-                        ${props.draggedElement()?.elementId === elementId ? 'opacity-50' : ''}
-                        ${props.dragOverElementZone()?.sectionId === section.id && props.dragOverElementZone()?.index === elementIndex()
-                          ? 'ring-2 ring-white'
-                          : ''}
-                      `}
-                    >
-                      <span>{pageElementLabels[elementId] || elementId}</span>
-                      <button
-                        type="button"
-                        onClick={() => props.onRemoveElement(section.id, elementId)}
-                        class="ml-1 p-0.5 rounded hover:bg-white/20"
-                        title="Remove element"
-                      >
-                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                      </button>
-                    </div>
-                  )}
-                </For>
-
-                {/* Drop zone at end */}
-                <Show when={section.elements.length > 0}>
-                  <div
-                    class={`
-                      w-6 h-6 rounded border-2 border-dashed border-border/50 flex items-center justify-center
-                      ${props.draggedElement() ? 'border-primary/50 bg-primary/5' : ''}
-                    `}
-                    onDragOver={(e) => {
-                      e.preventDefault()
-                      props.onElementDragOver(e, section.id, section.elements.length)
-                    }}
-                    onDrop={(e) => props.onElementDrop(e, section.id, section.elements.length)}
-                  >
-                    <svg class="w-3 h-3 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                    </svg>
-                  </div>
-                </Show>
-              </div>
-            </div>
+            <SectionCard
+              section={section}
+              sectionIndex={sectionIndex()}
+              totalSections={props.sections.length}
+              unusedElements={props.unusedElements}
+              onRemove={() => props.onRemoveSection(section.id)}
+              onToggleOrientation={() => props.onToggleOrientation(section.id)}
+              onMoveUp={() => props.onMoveSectionUp(section.id)}
+              onMoveDown={() => props.onMoveSectionDown(section.id)}
+              onAddElement={(elementId) => props.onAddElement(section.id, elementId)}
+              onRemoveElement={(elementId) => props.onRemoveElement(section.id, elementId)}
+              onMoveElementUp={(index) => props.onMoveElementUp(section.id, index)}
+              onMoveElementDown={(index) => props.onMoveElementDown(section.id, index)}
+            />
           )}
         </For>
       </div>
@@ -511,36 +279,259 @@ function SlotContainer(props: SlotContainerProps) {
 }
 
 // ============================================
-// Page Layout Preview
+// Section Card Component
+// ============================================
+
+interface SectionCardProps {
+  section: PageLayoutSection
+  sectionIndex: number
+  totalSections: number
+  unusedElements: string[]
+  onRemove: () => void
+  onToggleOrientation: () => void
+  onMoveUp: () => void
+  onMoveDown: () => void
+  onAddElement: (elementId: string) => void
+  onRemoveElement: (elementId: string) => void
+  onMoveElementUp: (index: number) => void
+  onMoveElementDown: (index: number) => void
+}
+
+function SectionCard(props: SectionCardProps) {
+  const [showElementPicker, setShowElementPicker] = createSignal(false)
+  let pickerContainerRef: HTMLDivElement | undefined
+
+  useClickOutside(
+    () => pickerContainerRef,
+    () => setShowElementPicker(false)
+  )
+
+  return (
+    <div class="rounded-lg border-2 border-border p-2 bg-bg-card">
+      {/* Section header */}
+      <div class="flex items-center gap-2 mb-2">
+        {/* Move buttons */}
+        <div class="flex flex-col">
+          <button
+            type="button"
+            onClick={props.onMoveUp}
+            disabled={props.sectionIndex === 0}
+            class="p-0.5 rounded text-text-muted hover:text-text hover:bg-bg disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            title="Move section up"
+          >
+            <ChevronUpIcon class="w-3 h-3" />
+          </button>
+          <button
+            type="button"
+            onClick={props.onMoveDown}
+            disabled={props.sectionIndex >= props.totalSections - 1}
+            class="p-0.5 rounded text-text-muted hover:text-text hover:bg-bg disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            title="Move section down"
+          >
+            <ChevronDownIcon class="w-3 h-3" />
+          </button>
+        </div>
+
+        {/* Section number */}
+        <span class="text-xs font-medium text-text-muted">Section {props.sectionIndex + 1}</span>
+
+        {/* Orientation toggle */}
+        <button
+          type="button"
+          onClick={props.onToggleOrientation}
+          class={`
+            flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium transition-colors
+            ${props.section.orientation === 'horizontal'
+              ? 'bg-primary/20 text-primary'
+              : 'bg-accent/20 text-accent'}
+          `}
+          title={`Click to switch to ${props.section.orientation === 'horizontal' ? 'vertical' : 'horizontal'}`}
+        >
+          {props.section.orientation === 'horizontal' ? (
+            <>
+              <HorizontalIcon class="w-3 h-3" />
+              <span>H</span>
+            </>
+          ) : (
+            <>
+              <VerticalIcon class="w-3 h-3" />
+              <span>V</span>
+            </>
+          )}
+        </button>
+
+        {/* Remove section */}
+        <button
+          type="button"
+          onClick={props.onRemove}
+          class="ml-auto p-1 rounded text-text-muted hover:text-error hover:bg-error/10 transition-colors"
+          title="Remove section"
+        >
+          <XIcon class="w-3 h-3" />
+        </button>
+      </div>
+
+      {/* Elements container */}
+      <div
+        class={`
+          min-h-[32px] rounded border border-dashed border-border p-1.5
+          ${props.section.orientation === 'horizontal' ? 'flex flex-wrap gap-1.5' : 'flex flex-col gap-1.5'}
+        `}
+      >
+        <Show when={props.section.elements.length === 0}>
+          <span class="text-xs text-text-muted italic">No elements</span>
+        </Show>
+
+        <For each={props.section.elements}>
+          {(elementId, elementIndex) => (
+            <div
+              class={`
+                flex items-center gap-1 px-2 py-1 rounded text-xs font-medium
+                ${getPageElementColor(elementId)}
+              `}
+            >
+              {/* Move buttons for element */}
+              <div class={`flex ${props.section.orientation === 'horizontal' ? 'flex-col' : 'flex-row'} -ml-1`}>
+                <button
+                  type="button"
+                  onClick={() => props.onMoveElementUp(elementIndex())}
+                  disabled={elementIndex() === 0}
+                  class="p-0.5 rounded hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed"
+                  title={props.section.orientation === 'horizontal' ? 'Move left' : 'Move up'}
+                >
+                  {props.section.orientation === 'horizontal' ? (
+                    <ChevronLeftIcon class="w-2.5 h-2.5" />
+                  ) : (
+                    <ChevronUpIcon class="w-2.5 h-2.5" />
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => props.onMoveElementDown(elementIndex())}
+                  disabled={elementIndex() >= props.section.elements.length - 1}
+                  class="p-0.5 rounded hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed"
+                  title={props.section.orientation === 'horizontal' ? 'Move right' : 'Move down'}
+                >
+                  {props.section.orientation === 'horizontal' ? (
+                    <ChevronRightIcon class="w-2.5 h-2.5" />
+                  ) : (
+                    <ChevronDownIcon class="w-2.5 h-2.5" />
+                  )}
+                </button>
+              </div>
+
+              <span>{pageElementLabels[elementId] || elementId}</span>
+
+              <button
+                type="button"
+                onClick={() => props.onRemoveElement(elementId)}
+                class="ml-1 p-0.5 rounded hover:bg-white/20"
+                title="Remove element"
+              >
+                <XIcon class="w-3 h-3" />
+              </button>
+            </div>
+          )}
+        </For>
+
+        {/* Add element button */}
+        <div class="relative" ref={pickerContainerRef}>
+          <button
+            type="button"
+            onClick={() => setShowElementPicker(!showElementPicker())}
+            disabled={props.unusedElements.length === 0}
+            class={`
+              w-6 h-6 rounded border-2 border-dashed flex items-center justify-center transition-colors
+              ${props.unusedElements.length === 0
+                ? 'border-border/30 text-text-muted/30 cursor-not-allowed'
+                : 'border-border/50 text-text-muted hover:border-primary hover:text-primary hover:bg-primary/5'}
+            `}
+            title={props.unusedElements.length === 0 ? 'All elements are used' : 'Add element'}
+          >
+            <PlusIcon class="w-3 h-3" />
+          </button>
+
+          {/* Element picker dropdown */}
+          <Show when={showElementPicker() && props.unusedElements.length > 0}>
+            <div class="absolute left-0 top-8 z-50 bg-bg-card border border-border rounded-lg shadow-lg p-2 min-w-[160px]">
+              <p class="text-xs text-text-muted mb-2 px-1">Add element:</p>
+              <div class="space-y-1 max-h-[200px] overflow-y-auto">
+                <For each={props.unusedElements}>
+                  {(elementId) => (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        props.onAddElement(elementId)
+                        setShowElementPicker(false)
+                      }}
+                      class={`
+                        w-full text-left px-2 py-1.5 rounded text-xs font-medium transition-colors
+                        ${getPageElementColor(elementId)} hover:opacity-80
+                      `}
+                    >
+                      {pageElementLabels[elementId] || elementId}
+                    </button>
+                  )}
+                </For>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowElementPicker(false)}
+                class="mt-2 w-full text-xs text-text-muted hover:text-text py-1"
+              >
+                Cancel
+              </button>
+            </div>
+          </Show>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ============================================
+// Page Layout Preview with Mock Content
 // ============================================
 
 function PageLayoutPreview() {
-  // Helper to get sections in a slot
   const getSectionsInSlot = (slot: PageSlotPosition) => {
     return settings.pageLayout.sections.filter((s) => s.slot === slot)
   }
 
-  // Helper to check if slot has any elements
   const slotHasElements = (slot: PageSlotPosition) => {
     return getSectionsInSlot(slot).some((s) => s.elements.length > 0)
   }
 
-  // Render element preview
-  const renderElement = (elementId: string) => {
-    return (
-      <div
-        class={`
-          px-2 py-1 rounded text-white text-xs font-medium truncate
-          ${pageElementColors[elementId] || 'bg-text-muted'}
-        `}
-      >
-        {pageElementLabels[elementId] || elementId}
-      </div>
-    )
+  const renderElement = (elementId: string, isCompact: boolean = false) => {
+    switch (elementId) {
+      case 'header':
+        return <MockHeader compact={isCompact} />
+      case 'authorProfile':
+        return <MockAuthorProfile compact={isCompact} />
+      case 'posts':
+        return <MockPosts compact={isCompact} />
+      case 'comments':
+        return <MockComments compact={isCompact} />
+      case 'navigation':
+        return <MockNavigation compact={isCompact} />
+      case 'search':
+        return <MockSearch compact={isCompact} />
+      case 'tags':
+        return <MockTags compact={isCompact} />
+      case 'recentPosts':
+        return <MockRecentPosts compact={isCompact} />
+      case 'footer':
+        return <MockFooter compact={isCompact} />
+      default:
+        return (
+          <div class={`px-2 py-1 rounded text-xs font-medium ${getPageElementColor(elementId)}`}>
+            {pageElementLabels[elementId] || elementId}
+          </div>
+        )
+    }
   }
 
-  // Render section preview
-  const renderSection = (section: PageLayoutSection) => {
+  const renderSection = (section: PageLayoutSection, isCompact: boolean = false) => {
     if (section.elements.length === 0) return null
 
     return (
@@ -550,54 +541,56 @@ function PageLayoutPreview() {
         `}
       >
         <For each={section.elements}>
-          {(elementId) => renderElement(elementId)}
+          {(elementId) => renderElement(elementId, isCompact)}
         </For>
       </div>
     )
   }
 
+  const hasLeftSidebar = slotHasElements('sidebar-left')
+  const hasRightSidebar = slotHasElements('sidebar-right')
+
   return (
     <div class="bg-bg rounded-lg p-4 border border-border">
-      <p class="text-xs text-text-muted mb-3 uppercase tracking-wide">Preview</p>
+      <p class="text-xs text-text-muted mb-3 uppercase tracking-wide">Preview (scaled)</p>
 
-      <div class="border-2 border-dashed border-border rounded-lg overflow-hidden bg-bg-card min-h-[300px]">
+      <div class="border-2 border-dashed border-border rounded-lg overflow-hidden bg-bg-card min-h-[400px]">
         {/* Top slot */}
         <Show when={slotHasElements('top')}>
-          <div class="border-b border-dashed border-border p-2 bg-bg/50">
+          <div class="border-b border-border p-2 bg-bg-secondary/50">
             <For each={getSectionsInSlot('top')}>
-              {(section) => renderSection(section)}
+              {(section) => renderSection(section, true)}
             </For>
           </div>
         </Show>
 
-        {/* Middle area (sidebars + main) */}
-        <div class="flex min-h-[200px]">
-          {/* Left sidebar */}
-          <Show when={slotHasElements('sidebar-left')}>
-            <div class="w-1/4 border-r border-dashed border-border p-2 bg-bg/30">
+        {/* Middle area */}
+        <div class="flex min-h-[250px]">
+          <Show when={hasLeftSidebar}>
+            <div class="w-1/4 border-r border-border p-2 bg-bg-secondary/30">
               <For each={getSectionsInSlot('sidebar-left')}>
-                {(section) => renderSection(section)}
+                {(section) => renderSection(section, true)}
               </For>
             </div>
           </Show>
 
-          {/* Main content */}
           <div class="flex-1 p-2">
             <Show when={slotHasElements('main')}>
               <For each={getSectionsInSlot('main')}>
-                {(section) => renderSection(section)}
+                {(section) => renderSection(section, false)}
               </For>
             </Show>
             <Show when={!slotHasElements('main')}>
-              <div class="text-xs text-text-muted text-center py-8">Main Content Area</div>
+              <div class="text-xs text-text-muted text-center py-8 border border-dashed border-border rounded">
+                Main Content Area
+              </div>
             </Show>
           </div>
 
-          {/* Right sidebar */}
-          <Show when={slotHasElements('sidebar-right')}>
-            <div class="w-1/4 border-l border-dashed border-border p-2 bg-bg/30">
+          <Show when={hasRightSidebar}>
+            <div class="w-1/4 border-l border-border p-2 bg-bg-secondary/30">
               <For each={getSectionsInSlot('sidebar-right')}>
-                {(section) => renderSection(section)}
+                {(section) => renderSection(section, true)}
               </For>
             </div>
           </Show>
@@ -605,9 +598,9 @@ function PageLayoutPreview() {
 
         {/* Bottom slot */}
         <Show when={slotHasElements('bottom')}>
-          <div class="border-t border-dashed border-border p-2 bg-bg/50">
+          <div class="border-t border-border p-2 bg-bg-secondary/50">
             <For each={getSectionsInSlot('bottom')}>
-              {(section) => renderSection(section)}
+              {(section) => renderSection(section, true)}
             </For>
           </div>
         </Show>
@@ -617,21 +610,224 @@ function PageLayoutPreview() {
 }
 
 // ============================================
+// Mock Preview Components
+// ============================================
+
+function MockHeader(props: { compact?: boolean }) {
+  return (
+    <div class={`bg-bg-card rounded border border-border ${props.compact ? 'p-1.5' : 'p-2'}`}>
+      <div class={`font-bold text-text ${props.compact ? 'text-xs' : 'text-sm'}`}>Hive Blog</div>
+      <div class={`text-text-muted ${props.compact ? 'text-[8px]' : 'text-[10px]'}`}>Posts from Hive blockchain</div>
+    </div>
+  )
+}
+
+function MockAuthorProfile(props: { compact?: boolean }) {
+  return (
+    <div class={`bg-bg-card rounded border border-border ${props.compact ? 'p-1.5' : 'p-2'}`}>
+      <div class="flex items-center gap-2">
+        <div class={`rounded-full bg-primary/30 flex-shrink-0 ${props.compact ? 'w-6 h-6' : 'w-8 h-8'}`} />
+        <div class="min-w-0 flex-1">
+          <div class={`font-semibold text-text truncate ${props.compact ? 'text-[9px]' : 'text-xs'}`}>@username</div>
+          <div class={`text-text-muted ${props.compact ? 'text-[7px]' : 'text-[9px]'}`}>Rep: 72 | Posts: 245</div>
+        </div>
+      </div>
+      <Show when={!props.compact}>
+        <div class="mt-2 flex gap-2 text-[8px]">
+          <span class="text-text-muted">Followers: 1.2K</span>
+          <span class="text-text-muted">Following: 350</span>
+        </div>
+      </Show>
+    </div>
+  )
+}
+
+function MockPosts(props: { compact?: boolean }) {
+  const postCount = props.compact ? 2 : 3
+  return (
+    <div class="space-y-1">
+      <For each={Array(postCount).fill(0)}>
+        {(_, i) => (
+          <div class={`bg-bg-card rounded border border-border flex gap-2 ${props.compact ? 'p-1' : 'p-1.5'}`}>
+            <div class={`rounded bg-gradient-to-br from-primary/20 to-accent/20 flex-shrink-0 ${props.compact ? 'w-8 h-8' : 'w-12 h-12'}`} />
+            <div class="min-w-0 flex-1">
+              <div class={`font-medium text-text line-clamp-1 ${props.compact ? 'text-[8px]' : 'text-[10px]'}`}>
+                {i() === 0 ? 'Introduction to Hive Blockchain' : i() === 1 ? 'My Journey in Crypto World' : 'Tips for New Users'}
+              </div>
+              <div class={`text-text-muted line-clamp-1 ${props.compact ? 'text-[6px]' : 'text-[8px]'}`}>
+                Lorem ipsum dolor sit amet consectetur...
+              </div>
+              <div class={`flex gap-2 text-text-muted mt-0.5 ${props.compact ? 'text-[5px]' : 'text-[7px]'}`}>
+                <span>$12.50</span>
+                <span>45 votes</span>
+              </div>
+            </div>
+          </div>
+        )}
+      </For>
+    </div>
+  )
+}
+
+function MockComments(props: { compact?: boolean }) {
+  return (
+    <div class="space-y-1">
+      <For each={[0, 1]}>
+        {(i) => (
+          <div class={`bg-bg-card rounded border border-border ${props.compact ? 'p-1' : 'p-1.5'}`}>
+            <div class="flex items-center gap-1 mb-0.5">
+              <div class={`rounded-full bg-accent/30 ${props.compact ? 'w-3 h-3' : 'w-4 h-4'}`} />
+              <span class={`text-text font-medium ${props.compact ? 'text-[7px]' : 'text-[9px]'}`}>@user{i + 1}</span>
+            </div>
+            <div class={`text-text-muted line-clamp-2 ${props.compact ? 'text-[6px]' : 'text-[8px]'}`}>
+              {i === 0 ? 'Great post! Thanks for sharing this.' : 'I agree with your points here.'}
+            </div>
+          </div>
+        )}
+      </For>
+    </div>
+  )
+}
+
+function MockNavigation(props: { compact?: boolean }) {
+  return (
+    <div class={`bg-bg-card rounded border border-border ${props.compact ? 'p-1' : 'p-1.5'}`}>
+      <div class={`flex gap-2 ${props.compact ? 'text-[7px]' : 'text-[9px]'}`}>
+        <span class="text-primary font-medium">Home</span>
+        <span class="text-text-muted">Blog</span>
+        <span class="text-text-muted">About</span>
+        <span class="text-text-muted">Contact</span>
+      </div>
+    </div>
+  )
+}
+
+function MockSearch(props: { compact?: boolean }) {
+  return (
+    <div class={`bg-bg-card rounded border border-border ${props.compact ? 'p-1' : 'p-1.5'}`}>
+      <div class={`flex items-center gap-1 bg-bg rounded border border-border px-1 ${props.compact ? 'py-0.5' : 'py-1'}`}>
+        <SearchIcon class={`text-text-muted ${props.compact ? 'w-2 h-2' : 'w-3 h-3'}`} />
+        <span class={`text-text-muted ${props.compact ? 'text-[6px]' : 'text-[8px]'}`}>Search posts...</span>
+      </div>
+    </div>
+  )
+}
+
+function MockTags(props: { compact?: boolean }) {
+  const tags = ['hive', 'crypto', 'blog', 'technology', 'life']
+  return (
+    <div class={`bg-bg-card rounded border border-border ${props.compact ? 'p-1' : 'p-1.5'}`}>
+      <div class={`text-text-muted mb-1 ${props.compact ? 'text-[6px]' : 'text-[8px]'}`}>Tags</div>
+      <div class="flex flex-wrap gap-0.5">
+        <For each={tags.slice(0, props.compact ? 3 : 5)}>
+          {(tag) => (
+            <span class={`bg-primary/20 text-primary rounded px-1 ${props.compact ? 'text-[5px]' : 'text-[7px]'}`}>
+              #{tag}
+            </span>
+          )}
+        </For>
+      </div>
+    </div>
+  )
+}
+
+function MockRecentPosts(props: { compact?: boolean }) {
+  return (
+    <div class={`bg-bg-card rounded border border-border ${props.compact ? 'p-1' : 'p-1.5'}`}>
+      <div class={`text-text-muted mb-1 ${props.compact ? 'text-[6px]' : 'text-[8px]'}`}>Recent Posts</div>
+      <div class="space-y-0.5">
+        <For each={['First Post Title', 'Second Post', 'Third Post']}>
+          {(title) => (
+            <div class={`text-text truncate ${props.compact ? 'text-[6px]' : 'text-[8px]'}`}>• {title}</div>
+          )}
+        </For>
+      </div>
+    </div>
+  )
+}
+
+function MockFooter(props: { compact?: boolean }) {
+  return (
+    <div class={`bg-bg-card rounded border border-border text-center ${props.compact ? 'p-1' : 'p-2'}`}>
+      <div class={`text-text-muted ${props.compact ? 'text-[6px]' : 'text-[8px]'}`}>
+        © 2024 Hive Blog | Powered by Hive Blockchain
+      </div>
+    </div>
+  )
+}
+
+// ============================================
 // Icons
 // ============================================
 
-function HorizontalIcon() {
+function PlusIcon(props: { class?: string }) {
   return (
-    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg class={props.class} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+    </svg>
+  )
+}
+
+function XIcon(props: { class?: string }) {
+  return (
+    <svg class={props.class} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+    </svg>
+  )
+}
+
+function ChevronUpIcon(props: { class?: string }) {
+  return (
+    <svg class={props.class} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
+    </svg>
+  )
+}
+
+function ChevronDownIcon(props: { class?: string }) {
+  return (
+    <svg class={props.class} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+    </svg>
+  )
+}
+
+function ChevronLeftIcon(props: { class?: string }) {
+  return (
+    <svg class={props.class} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+    </svg>
+  )
+}
+
+function ChevronRightIcon(props: { class?: string }) {
+  return (
+    <svg class={props.class} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+    </svg>
+  )
+}
+
+function HorizontalIcon(props: { class?: string }) {
+  return (
+    <svg class={props.class} fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 12h16" />
     </svg>
   )
 }
 
-function VerticalIcon() {
+function VerticalIcon(props: { class?: string }) {
   return (
-    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg class={props.class} fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16" />
+    </svg>
+  )
+}
+
+function SearchIcon(props: { class?: string }) {
+  return (
+    <svg class={props.class} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
     </svg>
   )
 }
