@@ -1,30 +1,38 @@
 ---
 import '../styles/global.css'
-import { getPayloadClient } from '../lib/payload'
+import { loadConfigFromHive } from '../components/admin/hive-broadcast'
 import { themePresets, type ThemeColors } from '../components/admin/types'
+
+interface SettingsWithTheme {
+  siteTheme?: string
+  customColors?: ThemeColors | null
+}
 
 interface Props {
   title: string
+  settings?: SettingsWithTheme | null
 }
 
-interface SiteSettings {
-  siteTheme?: string
-  customColors?: ThemeColors | null
-  siteName?: string
-  siteDescription?: string
-}
-
-const { title } = Astro.props
+const { title, settings: propsSettings } = Astro.props
 
 // Default to light theme colors
 let themeColors: ThemeColors = themePresets[0].colors
 
-try {
-  const payload = await getPayloadClient()
-  const settings = await payload.findGlobal({
-    slug: 'settings',
-  }) as SiteSettings
+// Use settings from props if available, otherwise load from Hive
+let settings = propsSettings
 
+if (!settings) {
+  const hiveUsername = import.meta.env.HIVE_USERNAME
+  if (hiveUsername) {
+    try {
+      settings = await loadConfigFromHive(hiveUsername)
+    } catch {
+      // Keep null
+    }
+  }
+}
+
+if (settings) {
   // Use custom colors if available, otherwise find preset
   if (settings.customColors) {
     themeColors = settings.customColors
@@ -34,8 +42,6 @@ try {
       themeColors = preset.colors
     }
   }
-} catch {
-  // Keep default (light) theme colors
 }
 
 // Build inline style string for CSS variables

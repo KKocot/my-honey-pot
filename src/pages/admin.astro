@@ -1,6 +1,25 @@
 ---
 import Layout from '../layouts/Layout.astro'
 import { AdminPanel } from '../components/admin'
+import { loadConfigFromHive } from '../components/admin/hive-broadcast'
+import type { SettingsData } from '../components/admin/types'
+
+// Load initial settings from Hive on server
+let initialSettings: SettingsData | null = null
+const hiveUsername = import.meta.env.HIVE_USERNAME
+
+if (hiveUsername) {
+  try {
+    console.log(`Admin: Loading config from Hive for @${hiveUsername}...`)
+    const config = await loadConfigFromHive(hiveUsername)
+    if (config) {
+      console.log('Admin: Loaded config from Hive!')
+      initialSettings = config as SettingsData
+    }
+  } catch (e) {
+    console.warn('Admin: Failed to load config from Hive:', e)
+  }
+}
 ---
 
 <Layout title="Admin Panel - Hive Blog">
@@ -17,6 +36,6 @@ import { AdminPanel } from '../components/admin'
 
     <h1 class="text-3xl font-bold text-text mb-8">Admin Panel</h1>
 
-    <AdminPanel client:only="solid-js" />
+    <AdminPanel client:only="solid-js" initialSettings={initialSettings} />
   </div>
 </Layout>

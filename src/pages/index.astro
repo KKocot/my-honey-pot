@@ -12,7 +12,7 @@ import {
   type CommentSortOption,
   type PaginationCursor,
 } from '../lib/hive'
-import { getPayloadClient } from '../lib/payload'
+import { loadConfigFromHive } from '../components/admin/hive-broadcast'
 
 // Blog Logic imports
 import { DataProvider, getWax, type Post, type IAccountPostsFilters, type IAccountManabars } from '../lib/blog-logic'
@@ -40,35 +40,29 @@ let globalProperties: DynamicGlobalProperties | null = null
 let accountManabars: IAccountManabars | null = null
 let settings: SiteSettings = {}
 let error: string | null = null
-let isDemoMode = false
 let hasMorePosts = false
 let hasMoreComments = false
 let nextPostsCursor: PaginationCursor | undefined
 let nextCommentsCursor: PaginationCursor | undefined
 
-// Try to load settings from MongoDB, fallback to localStorage data from cookie
-try {
-  const payload = await getPayloadClient()
-  settings = await payload.findGlobal({ slug: 'settings' }) as SiteSettings
-} catch (e) {
-  console.warn('MongoDB unavailable, using default settings (demo mode)')
-  isDemoMode = true
+// Get hive username from env variable first (this is the blog owner)
+const hiveUsername = import.meta.env.HIVE_USERNAME
 
-  // In demo mode, try to read settings from cookie (set by client-side localStorage sync)
-  const settingsCookie = Astro.cookies.get('hive-blog-settings')
-  if (settingsCookie) {
-    try {
-      // Cookie value is URL encoded
-      const decoded = decodeURIComponent(settingsCookie.value)
-      settings = JSON.parse(decoded)
-    } catch {
-      // Invalid cookie, use defaults
+// Load settings from Hive blockchain for this user
+if (hiveUsername) {
+  try {
+    console.log(`Loading blog config from Hive for @${hiveUsername}...`)
+    const hiveConfig = await loadConfigFromHive(hiveUsername)
+    if (hiveConfig) {
+      console.log('Loaded config from Hive!')
+      settings = hiveConfig as SiteSettings
+    } else {
+      console.log('No config found on Hive, using defaults')
     }
+  } catch (e) {
+    console.warn('Failed to load config from Hive:', e)
   }
 }
-
-// Determine hive username from settings, fallback to env variable
-const hiveUsername = settings.hiveUsername || import.meta.env.HIVE_USERNAME
 
 // ============================================
 // Tab handling
@@ -277,7 +271,7 @@ const nextCommentsPageUrl = buildNextPageUrl('comments', nextCommentsCursor)
 const isFirstPage = !cursor
 ---
 
-<Layout title={siteName}>
+<Layout title={siteName} settings={settings}>
   <div class="max-w-7xl mx-auto px-4 py-8">
     {/* Top sections - render elements in order */}
     {getElementsInSlot('top').map(elementId => (

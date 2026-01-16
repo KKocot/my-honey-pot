@@ -25,11 +25,29 @@ export interface PageLayout {
   sections: PageLayoutSection[]
 }
 
+export interface ThemeColors {
+  bg: string
+  bgSecondary: string
+  bgCard: string
+  text: string
+  textMuted: string
+  primary: string
+  primaryHover: string
+  primaryText: string
+  accent: string
+  border: string
+  success: string
+  error: string
+  warning: string
+  info: string
+}
+
 export interface SiteSettings {
   hiveUsername?: string
   siteName?: string
   siteDescription?: string
   siteTheme?: string
+  customColors?: ThemeColors | null
   layoutSections?: LayoutSection[]
   pageLayout?: PageLayout
   postsLayout?: 'list' | 'grid' | 'masonry'
