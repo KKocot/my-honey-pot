@@ -505,6 +505,12 @@ export interface SettingsData {
   postsSortOrder: 'blog' | 'posts' | 'payout'
   commentsSortOrder: 'comments' | 'replies'
   includeReblogs: boolean
+  // Card Hover Animation settings
+  cardHoverEffect: 'none' | 'shadow' | 'lift' | 'scale' | 'glow'
+  cardTransitionDuration: number // ms
+  cardHoverScale: number // 1.0 = none, 1.02 = 2% scale, etc.
+  cardHoverShadow: string // shadow intensity: 'sm' | 'md' | 'lg' | 'xl'
+  cardHoverBrightness: number // 1.0 = none, 1.05 = 5% brighter
 }
 
 export const defaultSettings: SettingsData = {
@@ -616,6 +622,12 @@ export const defaultSettings: SettingsData = {
   postsSortOrder: 'blog',
   commentsSortOrder: 'comments',
   includeReblogs: false,
+  // Card Hover Animation defaults
+  cardHoverEffect: 'shadow',
+  cardTransitionDuration: 200,
+  cardHoverScale: 1.02,
+  cardHoverShadow: 'md',
+  cardHoverBrightness: 1.0,
 }
 
 export const sectionLabels: Record<string, string> = {
@@ -659,6 +671,24 @@ export const postsSortOptions = [
 export const commentsSortOptions = [
   { value: 'comments', label: 'Comments by user' },
   { value: 'replies', label: 'Replies to user' },
+]
+
+// Card hover effect options
+export const cardHoverEffectOptions = [
+  { value: 'none', label: 'None' },
+  { value: 'shadow', label: 'Shadow' },
+  { value: 'lift', label: 'Lift (scale + shadow)' },
+  { value: 'scale', label: 'Scale only' },
+  { value: 'glow', label: 'Glow' },
+]
+
+// Card hover shadow options
+export const cardHoverShadowOptions = [
+  { value: 'sm', label: 'Small' },
+  { value: 'md', label: 'Medium' },
+  { value: 'lg', label: 'Large' },
+  { value: 'xl', label: 'Extra Large' },
+  { value: '2xl', label: '2X Large' },
 ]
 
 // Labels for post card elements

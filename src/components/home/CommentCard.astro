@@ -22,6 +22,12 @@ const showPayout = settings.commentShowPayout !== false
 const showViewLink = settings.commentShowViewLink !== false
 const maxLength = settings.commentMaxLength ?? 0
 const padding = settings.commentPaddingPx ?? 16
+// Animation settings
+const cardHoverEffect = settings.cardHoverEffect || 'shadow'
+const cardTransitionDuration = settings.cardTransitionDuration ?? 200
+const cardHoverScale = settings.cardHoverScale ?? 1.02
+const cardHoverShadow = settings.cardHoverShadow || 'md'
+const cardHoverBrightness = settings.cardHoverBrightness ?? 1.0
 
 // Format date to relative time
 function formatRelativeTime(dateStr: string): string {
@@ -86,13 +92,50 @@ const processedBody = processBody(comment.body, maxLength)
 // Check if action bar should be shown
 const showActionBar = showRepliesCount || showVotes || showPayout || showViewLink
 
+// Shadow map for hover effects
+const shadowMap: Record<string, string> = {
+  sm: '0 1px 2px 0 rgb(0 0 0 / 0.05)',
+  md: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
+  lg: '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)',
+  xl: '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)',
+  '2xl': '0 25px 50px -12px rgb(0 0 0 / 0.25)',
+}
+
+// Generate hover CSS based on effect type
+let hoverTransform = ''
+let hoverBoxShadow = ''
+let hoverFilter = ''
+
+if (cardHoverEffect === 'shadow') {
+  hoverBoxShadow = shadowMap[cardHoverShadow] || shadowMap.md
+} else if (cardHoverEffect === 'scale') {
+  hoverTransform = `scale(${cardHoverScale})`
+} else if (cardHoverEffect === 'lift') {
+  hoverTransform = `scale(${cardHoverScale}) translateY(-4px)`
+  hoverBoxShadow = shadowMap[cardHoverShadow] || shadowMap.lg
+} else if (cardHoverEffect === 'glow') {
+  hoverFilter = `brightness(${cardHoverBrightness})`
+  hoverBoxShadow = '0 0 20px var(--color-primary)'
+}
+
 // Card classes based on layout
-const cardClasses = layout === 'list'
-  ? 'hover:bg-bg-card/50 transition-colors'
-  : 'bg-bg-card rounded-xl border border-border hover:shadow-md transition-all'
+const baseClasses = layout === 'list'
+  ? 'comment-card-animated'
+  : 'bg-bg-card rounded-xl border border-border comment-card-animated'
 ---
 
-<article class={cardClasses}>
+<style define:vars={{ hoverTransform, hoverBoxShadow, hoverFilter, transitionDuration: `${cardTransitionDuration}ms` }}>
+  .comment-card-animated {
+    transition: all var(--transitionDuration) ease-out;
+  }
+  .comment-card-animated:hover {
+    transform: var(--hoverTransform);
+    box-shadow: var(--hoverBoxShadow);
+    filter: var(--hoverFilter);
+  }
+</style>
+
+<article class={`${baseClasses} ${cardHoverEffect === 'none' ? '' : 'cursor-pointer'}`}>
   <div style={`padding: ${padding}px;`}>
     {/* Reply context */}
     {showReplyContext && (

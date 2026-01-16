@@ -20,6 +20,12 @@ interface Props {
   cardBorder: boolean
   maxTags: number
   masonryStyle?: string
+  // Animation settings
+  cardHoverEffect?: 'none' | 'shadow' | 'lift' | 'scale' | 'glow'
+  cardTransitionDuration?: number
+  cardHoverScale?: number
+  cardHoverShadow?: string
+  cardHoverBrightness?: number
 }
 
 const {
@@ -40,7 +46,13 @@ const {
   showTags,
   cardBorder,
   maxTags,
-  masonryStyle = ''
+  masonryStyle = '',
+  // Animation defaults
+  cardHoverEffect = 'shadow',
+  cardTransitionDuration = 200,
+  cardHoverScale = 1.02,
+  cardHoverShadow = 'md',
+  cardHoverBrightness = 1.0
 } = Astro.props
 
 // Helper functions
@@ -92,7 +104,39 @@ const tags = metadata.tags ?? []
 const summary = getSummary(post)
 
 const borderStyle = cardBorder ? 'border: 1px solid var(--color-border);' : ''
-const cardStyle = `padding: ${cardPaddingPx}px; border-radius: ${cardBorderRadiusPx}px; ${borderStyle} ${masonryStyle}`
+
+// Shadow map for hover effects
+const shadowMap: Record<string, string> = {
+  sm: '0 1px 2px 0 rgb(0 0 0 / 0.05)',
+  md: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
+  lg: '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)',
+  xl: '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)',
+  '2xl': '0 25px 50px -12px rgb(0 0 0 / 0.25)',
+}
+
+// Generate CSS custom properties for hover animation
+const transitionStyle = `transition: all ${cardTransitionDuration}ms ease-out;`
+const cardStyle = `padding: ${cardPaddingPx}px; border-radius: ${cardBorderRadiusPx}px; ${borderStyle} ${transitionStyle} ${masonryStyle}`
+
+// Generate hover CSS based on effect type
+let hoverTransform = ''
+let hoverBoxShadow = ''
+let hoverFilter = ''
+
+if (cardHoverEffect === 'shadow') {
+  hoverBoxShadow = shadowMap[cardHoverShadow] || shadowMap.md
+} else if (cardHoverEffect === 'scale') {
+  hoverTransform = `scale(${cardHoverScale})`
+} else if (cardHoverEffect === 'lift') {
+  hoverTransform = `scale(${cardHoverScale}) translateY(-4px)`
+  hoverBoxShadow = shadowMap[cardHoverShadow] || shadowMap.lg
+} else if (cardHoverEffect === 'glow') {
+  hoverFilter = `brightness(${cardHoverBrightness})`
+  hoverBoxShadow = '0 0 20px var(--color-primary)'
+}
+
+// Create unique class for this card's hover effect
+const cardId = `card-${Math.random().toString(36).slice(2, 9)}`
 
 const flexDirection = cardLayout === 'vertical'
   ? 'flex-col'
@@ -101,8 +145,16 @@ const flexDirection = cardLayout === 'vertical'
 const showMeta = showDate || showVotes || showComments || showPayout
 ---
 
+<style define:vars={{ hoverTransform, hoverBoxShadow, hoverFilter }}>
+  .post-card-animated:hover {
+    transform: var(--hoverTransform);
+    box-shadow: var(--hoverBoxShadow);
+    filter: var(--hoverFilter);
+  }
+</style>
+
 <article
-  class="bg-bg-card shadow-sm hover:shadow-md transition-shadow"
+  class={`bg-bg-card shadow-sm post-card-animated ${cardHoverEffect === 'none' ? '' : 'cursor-pointer'}`}
   style={cardStyle}
 >
   <div class={`flex ${flexDirection} gap-4`}>

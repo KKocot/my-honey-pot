@@ -89,6 +89,12 @@ export interface SiteSettings {
   commentShowViewLink?: boolean
   commentMaxLength?: number
   commentPaddingPx?: number
+  // Card Hover Animation settings
+  cardHoverEffect?: 'none' | 'shadow' | 'lift' | 'scale' | 'glow'
+  cardTransitionDuration?: number
+  cardHoverScale?: number
+  cardHoverShadow?: string
+  cardHoverBrightness?: number
 }
 
 export interface HomePageData {
