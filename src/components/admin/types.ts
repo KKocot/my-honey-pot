@@ -511,6 +511,11 @@ export interface SettingsData {
   cardHoverScale: number // 1.0 = none, 1.02 = 2% scale, etc.
   cardHoverShadow: string // shadow intensity: 'sm' | 'md' | 'lg' | 'xl'
   cardHoverBrightness: number // 1.0 = none, 1.05 = 5% brighter
+  // Scroll Animation settings
+  scrollAnimationEnabled: boolean
+  scrollAnimationType: 'none' | 'fade' | 'slide-up' | 'slide-left' | 'zoom' | 'flip'
+  scrollAnimationDuration: number // ms
+  scrollAnimationDelay: number // ms delay between each card
 }
 
 export const defaultSettings: SettingsData = {
@@ -628,6 +633,11 @@ export const defaultSettings: SettingsData = {
   cardHoverScale: 1.02,
   cardHoverShadow: 'md',
   cardHoverBrightness: 1.0,
+  // Scroll Animation defaults
+  scrollAnimationEnabled: true,
+  scrollAnimationType: 'fade',
+  scrollAnimationDuration: 400,
+  scrollAnimationDelay: 100,
 }
 
 export const sectionLabels: Record<string, string> = {
@@ -689,6 +699,16 @@ export const cardHoverShadowOptions = [
   { value: 'lg', label: 'Large' },
   { value: 'xl', label: 'Extra Large' },
   { value: '2xl', label: '2X Large' },
+]
+
+// Scroll animation type options
+export const scrollAnimationTypeOptions = [
+  { value: 'none', label: 'None' },
+  { value: 'fade', label: 'Fade In' },
+  { value: 'slide-up', label: 'Slide Up' },
+  { value: 'slide-left', label: 'Slide from Left' },
+  { value: 'zoom', label: 'Zoom In' },
+  { value: 'flip', label: 'Flip' },
 ]
 
 // Labels for post card elements

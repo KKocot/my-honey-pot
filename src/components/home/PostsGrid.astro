@@ -30,6 +30,17 @@ const showPayout = settings.showPayout !== false
 const showTags = settings.showTags !== false
 const cardBorder = settings.cardBorder !== false
 const maxTags = settings.maxTags || 5
+// Hover Animation settings
+const cardHoverEffect = settings.cardHoverEffect || 'shadow'
+const cardTransitionDuration = settings.cardTransitionDuration ?? 200
+const cardHoverScale = settings.cardHoverScale ?? 1.02
+const cardHoverShadow = settings.cardHoverShadow || 'md'
+const cardHoverBrightness = settings.cardHoverBrightness ?? 1.0
+// Scroll Animation settings
+const scrollAnimationEnabled = settings.scrollAnimationEnabled !== false
+const scrollAnimationType = settings.scrollAnimationType || 'fade'
+const scrollAnimationDuration = settings.scrollAnimationDuration ?? 400
+const scrollAnimationDelay = settings.scrollAnimationDelay ?? 100
 
 function getContainerStyle(): string {
   if (postsLayout === 'list') {
@@ -44,29 +55,125 @@ function getContainerStyle(): string {
 function getMasonryStyle(): string {
   return postsLayout === 'masonry' ? `break-inside: avoid; margin-bottom: ${cardGapPx}px;` : ''
 }
+
+// Get initial animation styles based on type
+function getInitialStyles(type: string): string {
+  switch (type) {
+    case 'fade':
+      return 'opacity: 0;'
+    case 'slide-up':
+      return 'opacity: 0; transform: translateY(30px);'
+    case 'slide-left':
+      return 'opacity: 0; transform: translateX(-30px);'
+    case 'zoom':
+      return 'opacity: 0; transform: scale(0.9);'
+    case 'flip':
+      return 'opacity: 0; transform: perspective(600px) rotateX(-10deg);'
+    default:
+      return ''
+  }
+}
+
+// Get animated styles for when element is visible
+function getAnimatedStyles(type: string): string {
+  switch (type) {
+    case 'fade':
+      return 'opacity: 1;'
+    case 'slide-up':
+      return 'opacity: 1; transform: translateY(0);'
+    case 'slide-left':
+      return 'opacity: 1; transform: translateX(0);'
+    case 'zoom':
+      return 'opacity: 1; transform: scale(1);'
+    case 'flip':
+      return 'opacity: 1; transform: perspective(600px) rotateX(0);'
+    default:
+      return ''
+  }
+}
+
+const initialStyles = scrollAnimationEnabled && scrollAnimationType !== 'none'
+  ? getInitialStyles(scrollAnimationType)
+  : ''
+const animatedStyles = getAnimatedStyles(scrollAnimationType)
 ---
 
-<div style={getContainerStyle()}>
-  {posts.map((post) => (
-    <PostCard
-      post={post}
-      cardLayout={cardLayout}
-      thumbnailPosition={thumbnailPosition}
-      thumbnailSizePx={thumbnailSizePx}
-      cardPaddingPx={cardPaddingPx}
-      cardBorderRadiusPx={cardBorderRadiusPx}
-      titleSizePx={titleSizePx}
-      showThumbnail={showThumbnail}
-      showSummary={showSummary}
-      summaryMaxLength={summaryMaxLength}
-      showDate={showDate}
-      showVotes={showVotes}
-      showComments={showComments}
-      showPayout={showPayout}
-      showTags={showTags}
-      cardBorder={cardBorder}
-      maxTags={maxTags}
-      masonryStyle={getMasonryStyle()}
-    />
+<style define:vars={{ scrollAnimationDuration: `${scrollAnimationDuration}ms` }}>
+  .scroll-animate {
+    transition: opacity var(--scrollAnimationDuration) ease-out,
+                transform var(--scrollAnimationDuration) ease-out;
+  }
+  .scroll-animate.is-visible {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+</style>
+
+<div style={getContainerStyle()} class="posts-grid">
+  {posts.map((post, index) => (
+    <div
+      class={scrollAnimationEnabled && scrollAnimationType !== 'none' ? 'scroll-animate' : ''}
+      style={`${initialStyles} ${scrollAnimationEnabled ? `transition-delay: ${index * scrollAnimationDelay}ms;` : ''}`}
+      data-scroll-animate={scrollAnimationEnabled && scrollAnimationType !== 'none' ? 'true' : undefined}
+    >
+      <PostCard
+        post={post}
+        cardLayout={cardLayout}
+        thumbnailPosition={thumbnailPosition}
+        thumbnailSizePx={thumbnailSizePx}
+        cardPaddingPx={cardPaddingPx}
+        cardBorderRadiusPx={cardBorderRadiusPx}
+        titleSizePx={titleSizePx}
+        showThumbnail={showThumbnail}
+        showSummary={showSummary}
+        summaryMaxLength={summaryMaxLength}
+        showDate={showDate}
+        showVotes={showVotes}
+        showComments={showComments}
+        showPayout={showPayout}
+        showTags={showTags}
+        cardBorder={cardBorder}
+        maxTags={maxTags}
+        masonryStyle={getMasonryStyle()}
+        cardHoverEffect={cardHoverEffect}
+        cardTransitionDuration={cardTransitionDuration}
+        cardHoverScale={cardHoverScale}
+        cardHoverShadow={cardHoverShadow}
+        cardHoverBrightness={cardHoverBrightness}
+      />
+    </div>
   ))}
 </div>
+
+<script>
+  // Intersection Observer for scroll animations
+  function initScrollAnimations() {
+    const elements = document.querySelectorAll('[data-scroll-animate="true"]')
+
+    if (elements.length === 0) return
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('is-visible')
+            // Optional: unobserve after animation to save resources
+            // observer.unobserve(entry.target)
+          }
+        })
+      },
+      {
+        threshold: 0.1,
+        rootMargin: '0px 0px -50px 0px'
+      }
+    )
+
+    elements.forEach((el) => observer.observe(el))
+  }
+
+  // Initialize on page load
+  initScrollAnimations()
+
+  // Re-initialize on Astro page transitions
+  document.addEventListener('astro:page-load', initScrollAnimations)
+</script>
