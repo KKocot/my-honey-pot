@@ -63,9 +63,15 @@ export class Post extends Comment implements IPost  {
   public async getCommentsCount(): Promise<number> {
     const postId = {author: this.author, permlink: this.permlink};
     let repliesIds = this.dataProvider.getRepliesIdsByPost(postId);
-    if (!repliesIds)
-      repliesIds = await this.dataProvider.enumReplies(postId, {}, {page: 1, pageSize: 10000});
-    return repliesIds.length;
+    if (!repliesIds) {
+      try {
+        repliesIds = await this.dataProvider.enumReplies(postId, {}, {page: 1, pageSize: 10000});
+      } catch (e) {
+        console.error('Failed to fetch replies for post:', postId, e);
+        return 0;
+      }
+    }
+    return repliesIds?.length ?? 0;
   }
 
 }

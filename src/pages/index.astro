@@ -108,12 +108,38 @@ try {
 
   if (hiveUsername) {
     // Fetch account, profile, global properties (for HP conversion), and voting manabar (WAX)
-    [hiveAccount, hiveProfile, globalProperties, votingManabar] = await Promise.all([
+    // Using Promise.allSettled for resilience - if one fails, others still succeed
+    const [accountResult, profileResult, globalPropsResult, manabarResult] = await Promise.allSettled([
       getHiveAccount(hiveUsername),
       getHiveProfile(hiveUsername),
       getDynamicGlobalProperties(),
       getVotingManabar(hiveUsername),
     ])
+
+    // Extract successful results, log failures
+    if (accountResult.status === 'fulfilled') {
+      hiveAccount = accountResult.value
+    } else {
+      console.error('Failed to fetch Hive account:', accountResult.reason)
+    }
+
+    if (profileResult.status === 'fulfilled') {
+      hiveProfile = profileResult.value
+    } else {
+      console.error('Failed to fetch Hive profile:', profileResult.reason)
+    }
+
+    if (globalPropsResult.status === 'fulfilled') {
+      globalProperties = globalPropsResult.value
+    } else {
+      console.error('Failed to fetch global properties:', globalPropsResult.reason)
+    }
+
+    if (manabarResult.status === 'fulfilled') {
+      votingManabar = manabarResult.value
+    } else {
+      console.error('Failed to fetch voting manabar:', manabarResult.reason)
+    }
 
     // Fetch content based on active tab with pagination
     if (activeTab === 'comments' && showCommentsTab) {
