@@ -1,5 +1,6 @@
 import { For, Show, createMemo } from 'solid-js'
 import { settings } from './store'
+import type { CardSection, CardSectionChild } from './types'
 
 // ============================================
 // Sample post data for preview
@@ -61,195 +62,142 @@ export const samplePosts: SamplePost[] = [
 
 // ============================================
 // Single Post Card Component
+// Uses postCardLayout sections for rendering
 // ============================================
 
 interface PostCardProps {
   post: SamplePost
-  compact?: boolean
-  /** Force list mode layout (ignores postsLayout setting) */
-  forceListMode?: boolean
 }
 
 export function PostCard(props: PostCardProps) {
-  // All computed values as memos for reactivity
+  // Reactive values
+  const sections = createMemo(() => settings.postCardLayout.sections)
+  const thumbnailSize = createMemo(() => settings.thumbnailSizePx)
+  const titleSize = createMemo(() => settings.titleSizePx)
+  const padding = createMemo(() => settings.cardPaddingPx)
+  const borderRadius = createMemo(() => settings.cardBorderRadiusPx)
+  const maxTags = createMemo(() => settings.maxTags)
+  const summaryMaxLen = createMemo(() => settings.summaryMaxLength)
+
   const truncatedSummary = createMemo(() => {
     const text = props.post.summary
-    const maxLen = settings.summaryMaxLength
+    const maxLen = summaryMaxLen()
     return text.length > maxLen ? text.slice(0, maxLen) + '...' : text
   })
 
-  const cardStyle = createMemo(() => {
-    const border = settings.cardBorder ? 'border: 1px solid var(--color-border);' : ''
-    // For grid layout, make cards stretch to full height
-    const height = (settings.postsLayout === 'grid' && !props.forceListMode) ? 'height: 100%;' : ''
-    return `padding: ${settings.cardPaddingPx}px; border-radius: ${settings.cardBorderRadiusPx}px; ${border} ${height}`
-  })
-
-  const isVerticalLayout = createMemo(() => {
-    // When forceListMode is true, always use cardLayout setting (for card appearance preview)
-    if (props.forceListMode) {
-      return settings.cardLayout === 'vertical'
-    }
-    // Force vertical for grid/masonry, otherwise respect cardLayout setting
-    if (settings.postsLayout !== 'list') return true
-    return settings.cardLayout === 'vertical'
-  })
-
-  // Whether to use flex column layout with footer at bottom (for grid mode)
-  const isGridCard = createMemo(() => {
-    return settings.postsLayout === 'grid' && !props.forceListMode && isVerticalLayout()
-  })
-
-  const flexDirectionClass = createMemo(() => {
-    if (isVerticalLayout()) return 'flex-col'
-    return settings.thumbnailPosition === 'right' ? 'flex-row-reverse' : 'flex-row'
-  })
-
-  const thumbnailStyle = createMemo(() => {
-    const baseSize = settings.thumbnailSizePx
-
-    if (isVerticalLayout()) {
-      // Full width thumbnail for vertical layout
-      return {
-        width: '100%',
-        height: `${Math.min(baseSize, 200)}px`,
-        'object-fit': 'cover' as const,
-        'border-radius': '8px',
-        'flex-shrink': '0',
-      }
-    }
-
-    // Square thumbnail for horizontal list
-    return {
-      width: `${baseSize}px`,
-      height: `${baseSize}px`,
-      'object-fit': 'cover' as const,
-      'border-radius': '8px',
-      'flex-shrink': '0',
-    }
-  })
-
-  const titleSize = createMemo(() => {
-    return props.compact ? Math.max(14, settings.titleSizePx - 4) : settings.titleSizePx
-  })
-
-  const visibleTags = createMemo(() => {
-    return props.post.tags.slice(0, settings.maxTags)
-  })
-
-  const showMeta = createMemo(() => {
-    return settings.showDate || settings.showVotes || settings.showComments || settings.showPayout
-  })
-
-  const showFooter = createMemo(() => {
-    return showMeta() || (settings.showTags && !props.compact)
-  })
-
-  return (
-    <article
-      class="bg-bg-card shadow-sm transition-all duration-200 overflow-hidden flex flex-col"
-      style={cardStyle()}
-    >
-      <div class={`flex gap-3 ${flexDirectionClass()} ${isGridCard() ? 'flex-1' : ''}`}>
-        <Show when={settings.showThumbnail}>
+  // Element renderer component
+  const ElementRenderer = (elProps: { id: string }) => {
+    switch (elProps.id) {
+      case 'thumbnail':
+        return (
           <img
             src={props.post.imageUrl}
             alt=""
-            style={thumbnailStyle()}
+            class="rounded-lg object-cover flex-shrink-0"
+            style={{
+              width: `${thumbnailSize()}px`,
+              height: `${thumbnailSize()}px`,
+            }}
             onError={(e) => { e.currentTarget.src = '/hive-logo.png' }}
           />
-        </Show>
-        <div class={`flex-1 min-w-0 flex flex-col ${isGridCard() ? '' : ''}`}>
-          {/* Content section - grows to push footer down in grid mode */}
-          <div class={isGridCard() ? 'flex-1' : ''}>
-            <h2
-              class="font-semibold mb-2 line-clamp-2"
-              style={{ 'font-size': `${titleSize()}px` }}
-            >
-              <span class="text-text hover:text-primary transition-colors cursor-pointer">
-                {props.post.title}
-              </span>
-            </h2>
+        )
 
-            <Show when={settings.showSummary && !props.compact}>
-              <p class="text-text-muted text-sm mb-3 line-clamp-3">{truncatedSummary()}</p>
-            </Show>
+      case 'title':
+        return (
+          <h2 class="font-semibold text-text line-clamp-2" style={{ 'font-size': `${titleSize()}px` }}>
+            {props.post.title}
+          </h2>
+        )
+
+      case 'summary':
+        return <p class="text-text-muted text-sm line-clamp-3">{truncatedSummary()}</p>
+
+      case 'date':
+        return <span class="text-xs text-text-muted">{props.post.date}</span>
+
+      case 'votes':
+        return (
+          <span class="flex items-center gap-1 text-xs text-text-muted">
+            <VoteIcon /> {props.post.votes}
+          </span>
+        )
+
+      case 'comments':
+        return (
+          <span class="flex items-center gap-1 text-xs text-text-muted">
+            <CommentIcon /> {props.post.comments}
+          </span>
+        )
+
+      case 'payout':
+        return <span class="text-xs text-success font-medium">{props.post.payout}</span>
+
+      case 'tags':
+        return (
+          <div class="flex flex-wrap gap-1">
+            <For each={props.post.tags.slice(0, maxTags())}>
+              {(tag) => (
+                <span class="px-2 py-0.5 text-xs bg-bg-secondary text-text-muted rounded">
+                  #{tag}
+                </span>
+              )}
+            </For>
           </div>
+        )
 
-          {/* Footer section - stays at bottom in grid mode */}
-          <Show when={showFooter()}>
-            <div class={isGridCard() ? 'mt-auto pt-2' : ''}>
-              <Show when={showMeta()}>
-                <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-text-muted mb-2">
-                  <Show when={settings.showDate}>
-                    <span>{props.post.date}</span>
-                  </Show>
-                  <Show when={settings.showVotes}>
-                    <span class="flex items-center gap-1">
-                      <VoteIcon />
-                      {props.post.votes}
-                    </span>
-                  </Show>
-                  <Show when={settings.showComments}>
-                    <span class="flex items-center gap-1">
-                      <CommentIcon />
-                      {props.post.comments}
-                    </span>
-                  </Show>
-                  <Show when={settings.showPayout}>
-                    <span class="text-success font-medium">{props.post.payout}</span>
-                  </Show>
-                </div>
-              </Show>
+      default:
+        return null
+    }
+  }
 
-              <Show when={settings.showTags && !props.compact}>
-                <div class="flex flex-wrap gap-1">
-                  <For each={visibleTags()}>
-                    {(tag) => (
-                      <span class="px-2 py-0.5 text-xs bg-bg-secondary text-text-muted rounded">
-                        #{tag}
-                      </span>
-                    )}
-                  </For>
-                </div>
-              </Show>
-            </div>
-          </Show>
+  // Child renderer component (element or nested section)
+  const ChildRenderer = (childProps: { child: CardSectionChild }) => {
+    return (
+      <Show when={childProps.child.type === 'element'} fallback={
+        <Show when={childProps.child.type === 'section'}>
+          <SectionRenderer section={(childProps.child as { type: 'section'; section: CardSection }).section} />
+        </Show>
+      }>
+        <ElementRenderer id={(childProps.child as { type: 'element'; id: string }).id} />
+      </Show>
+    )
+  }
+
+  // Section renderer component (recursive)
+  const SectionRenderer = (secProps: { section: CardSection }) => {
+    return (
+      <Show when={secProps.section.children && secProps.section.children.length > 0}>
+        <div
+          class={secProps.section.orientation === 'horizontal' ? 'flex flex-wrap items-center gap-2' : 'flex flex-col gap-1'}
+        >
+          <For each={secProps.section.children}>
+            {(child) => <ChildRenderer child={child} />}
+          </For>
         </div>
+      </Show>
+    )
+  }
+
+  return (
+    <article
+      class="bg-bg-card shadow-sm transition-all duration-200 overflow-hidden"
+      style={{
+        padding: `${padding()}px`,
+        'border-radius': `${borderRadius()}px`,
+        border: settings.cardBorder ? '1px solid var(--color-border)' : 'none',
+      }}
+    >
+      <div class="flex flex-col gap-3">
+        <For each={sections()}>
+          {(section) => <SectionRenderer section={section} />}
+        </For>
       </div>
     </article>
   )
 }
 
 // ============================================
-// Single Card Preview (for card appearance settings)
-// Shows card in list mode to demonstrate orientation changes
-// ============================================
-
-interface SingleCardPreviewProps {
-  maxHeight?: string
-}
-
-export function SingleCardPreview(props: SingleCardPreviewProps) {
-  const post = samplePosts[0]
-
-  return (
-    <div
-      class="overflow-auto bg-bg rounded-lg border border-border"
-      style={{ 'max-height': props.maxHeight ?? '400px' }}
-    >
-      <div class="p-4">
-        <p class="text-xs text-text-muted mb-3 uppercase tracking-wide">
-          Card Preview (list mode)
-        </p>
-        <PostCard post={post} compact={false} forceListMode={true} />
-      </div>
-    </div>
-  )
-}
-
-// ============================================
-// Full Layout Preview (multiple cards)
+// Full Layout Preview (multiple cards) - Scaled
 // ============================================
 
 interface LayoutPreviewProps {
@@ -259,6 +207,7 @@ interface LayoutPreviewProps {
 
 export function LayoutPreview(props: LayoutPreviewProps) {
   const count = createMemo(() => props.postCount ?? 4)
+  const scale = 0.6 // Scale factor for preview
 
   const containerStyle = createMemo(() => {
     const gap = settings.cardGapPx
@@ -287,27 +236,38 @@ export function LayoutPreview(props: LayoutPreviewProps) {
     return `masonry ${settings.gridColumns} col.`
   })
 
-  const isCompact = createMemo(() => settings.postsLayout !== 'list')
-
   const visiblePosts = createMemo(() => samplePosts.slice(0, count()))
 
   return (
     <div
-      class="overflow-auto bg-bg rounded-lg border border-border"
+      class="overflow-hidden bg-bg rounded-lg border border-border"
       style={{ 'max-height': props.maxHeight ?? '500px' }}
     >
-      <div class="p-4">
-        <p class="text-xs text-text-muted mb-3 uppercase tracking-wide sticky top-0 bg-bg pb-2 z-10">
-          Preview ({layoutLabel()})
+      <div class="p-3">
+        <p class="text-xs text-text-muted mb-2 uppercase tracking-wide">
+          Preview ({layoutLabel()}) - scaled {Math.round(scale * 100)}%
         </p>
-        <div style={containerStyle()}>
-          <For each={visiblePosts()}>
-            {(post) => (
-              <div style={masonryItemStyle()}>
-                <PostCard post={post} compact={isCompact()} />
-              </div>
-            )}
-          </For>
+        <div
+          class="overflow-auto"
+          style={{ 'max-height': `calc(${props.maxHeight ?? '500px'} - 40px)` }}
+        >
+          <div
+            style={{
+              width: `${100 / scale}%`,
+              transform: `scale(${scale})`,
+              'transform-origin': 'top left',
+            }}
+          >
+            <div style={containerStyle()}>
+              <For each={visiblePosts()}>
+                {(post) => (
+                  <div style={masonryItemStyle()}>
+                    <PostCard post={post} />
+                  </div>
+                )}
+              </For>
+            </div>
+          </div>
         </div>
       </div>
     </div>
