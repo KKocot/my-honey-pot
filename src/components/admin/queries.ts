@@ -1,6 +1,38 @@
 import { QueryClient, createQuery, createMutation, useQueryClient } from '@tanstack/solid-query'
 import { createStore, produce } from 'solid-js/store'
-import { defaultSettings, migrateCardLayout, type SettingsData, type LayoutSection } from './types'
+import { defaultSettings, migrateCardLayout, themePresets, type SettingsData, type LayoutSection, type ThemeColors } from './types'
+
+// ============================================
+// Apply theme colors to CSS variables
+// ============================================
+
+export function applyThemeColors(colors: ThemeColors) {
+  if (typeof document === 'undefined') return
+
+  const root = document.documentElement
+  root.style.setProperty('--theme-bg', colors.bg)
+  root.style.setProperty('--theme-bg-secondary', colors.bgSecondary)
+  root.style.setProperty('--theme-bg-card', colors.bgCard)
+  root.style.setProperty('--theme-text', colors.text)
+  root.style.setProperty('--theme-text-muted', colors.textMuted)
+  root.style.setProperty('--theme-primary', colors.primary)
+  root.style.setProperty('--theme-primary-hover', colors.primaryHover)
+  root.style.setProperty('--theme-primary-text', colors.primaryText)
+  root.style.setProperty('--theme-accent', colors.accent)
+  root.style.setProperty('--theme-border', colors.border)
+  root.style.setProperty('--theme-success', colors.success)
+  root.style.setProperty('--theme-error', colors.error)
+  root.style.setProperty('--theme-warning', colors.warning)
+  root.style.setProperty('--theme-info', colors.info)
+}
+
+function getThemeColors(data: SettingsData): ThemeColors {
+  if (data.customColors) {
+    return data.customColors
+  }
+  const preset = themePresets.find((p) => p.id === data.siteTheme)
+  return preset?.colors || themePresets[0].colors
+}
 
 // ============================================
 // Query Client
@@ -47,6 +79,14 @@ export function updateSettings(partial: Partial<SettingsData>) {
   setSettings(produce((s) => {
     Object.assign(s, partial)
   }))
+}
+
+// Dedicated setter for customColors to ensure SolidJS reactivity
+export function setCustomColors(colors: ThemeColors | null) {
+  setSettings('customColors', colors)
+  if (colors) {
+    applyThemeColors(colors)
+  }
 }
 
 export function updateLayoutSection(sectionId: string, updates: Partial<LayoutSection>) {
@@ -120,13 +160,20 @@ async function fetchSettings(): Promise<SettingsData> {
       const data: SettingsData = await res.json()
       isDemoMode = false
       const migratedData = migrateSettingsLayouts(data)
-      return {
+
+      // Use API data if pageLayout exists (even if empty), otherwise use defaults
+      // This allows users to intentionally clear all sections
+      const pageLayout = data.pageLayout !== undefined ? data.pageLayout : defaultSettings.pageLayout
+
+      const result = {
         ...defaultSettings,
         ...data,
         ...migratedData,
         layoutSections: data.layoutSections?.length ? data.layoutSections : defaultSettings.layoutSections,
-        pageLayout: data.pageLayout?.sections?.length ? data.pageLayout : defaultSettings.pageLayout,
+        pageLayout,
       } as SettingsData
+
+      return result
     }
     throw new Error('API unavailable')
   } catch (e) {
@@ -136,12 +183,15 @@ async function fetchSettings(): Promise<SettingsData> {
     const localData = loadFromLocalStorage()
     if (localData) {
       const migratedData = migrateSettingsLayouts(localData)
+      // Use localStorage data if pageLayout exists (even if empty), otherwise use defaults
+      const pageLayout = localData.pageLayout !== undefined ? localData.pageLayout : defaultSettings.pageLayout
+
       return {
         ...defaultSettings,
         ...localData,
         ...migratedData,
         layoutSections: localData.layoutSections?.length ? localData.layoutSections : defaultSettings.layoutSections,
-        pageLayout: localData.pageLayout?.sections?.length ? localData.pageLayout : defaultSettings.pageLayout,
+        pageLayout,
       } as SettingsData
     }
     return defaultSettings
@@ -152,10 +202,10 @@ async function saveSettingsToServer(data: SettingsData): Promise<boolean> {
   // Always save to localStorage for demo mode support
   saveToLocalStorage(data)
 
+  // Apply theme colors immediately
+  applyThemeColors(getThemeColors(data))
+
   if (isDemoMode) {
-    if (typeof document !== 'undefined') {
-      document.documentElement.setAttribute('data-theme', data.siteTheme)
-    }
     return true
   }
 
@@ -166,17 +216,9 @@ async function saveSettingsToServer(data: SettingsData): Promise<boolean> {
       body: JSON.stringify(data),
     })
 
-    if (res.ok) {
-      if (typeof document !== 'undefined') {
-        document.documentElement.setAttribute('data-theme', data.siteTheme)
-      }
-      return true
-    }
-    return false
+    await res.json()
+    return res.ok
   } catch {
-    if (typeof document !== 'undefined') {
-      document.documentElement.setAttribute('data-theme', data.siteTheme)
-    }
     return true
   }
 }
@@ -220,7 +262,6 @@ export function syncSettingsToStore(data: SettingsData) {
   setSettings(produce((s) => {
     Object.assign(s, data)
   }))
-  if (typeof document !== 'undefined') {
-    document.documentElement.setAttribute('data-theme', data.siteTheme || 'light')
-  }
+  // Apply theme colors from settings
+  applyThemeColors(getThemeColors(data))
 }

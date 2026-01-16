@@ -24,16 +24,41 @@ export const Settings: GlobalConfig = {
     // ============================================
     {
       name: 'siteTheme',
-      label: 'Motyw kolorystyczny',
-      type: 'select',
-      required: true,
+      label: 'Motyw kolorystyczny (preset ID)',
+      type: 'text',
       defaultValue: 'light',
-      options: [
-        { label: 'Jasny (Light)', value: 'light' },
-        { label: 'Ciemny (Dark)', value: 'dark' },
-        { label: 'Zielony (Green)', value: 'green' },
-        { label: 'Różowy (Pink)', value: 'pink' },
-      ],
+      admin: {
+        description: 'ID presetu motywu (light, dark, green, pink, ocean, sunset, forest, lavender, midnight, coffee)',
+      },
+    },
+    {
+      name: 'customColors',
+      label: 'Custom kolory (JSON)',
+      type: 'json',
+      admin: {
+        description: 'Własne kolory (puste = użyj presetu). Format: { bg, bgSecondary, bgCard, text, textMuted, primary, primaryHover, primaryText, accent, border, success, error, warning, info }',
+      },
+      validate: (value) => {
+        if (value === null || value === undefined) return true
+
+        const requiredKeys = [
+          'bg', 'bgSecondary', 'bgCard', 'text', 'textMuted',
+          'primary', 'primaryHover', 'primaryText', 'accent', 'border',
+          'success', 'error', 'warning', 'info'
+        ]
+
+        if (typeof value !== 'object') {
+          return 'customColors must be an object or null'
+        }
+
+        for (const key of requiredKeys) {
+          if (typeof value[key] !== 'string') {
+            return `customColors.${key} must be a string (hex color)`
+          }
+        }
+
+        return true
+      },
     },
     {
       name: 'siteName',
@@ -49,11 +74,11 @@ export const Settings: GlobalConfig = {
     },
 
     // ============================================
-    // Layout Sections (Drag & Drop)
+    // Layout Sections (Legacy - kept for backwards compatibility)
     // ============================================
     {
       name: 'layoutSections',
-      label: 'Układ sekcji strony',
+      label: 'Układ sekcji strony (legacy)',
       type: 'json',
       defaultValue: [
         { id: 'header', position: 'top', enabled: true },
@@ -61,6 +86,26 @@ export const Settings: GlobalConfig = {
         { id: 'posts', position: 'main', enabled: true },
         { id: 'footer', position: 'bottom', enabled: false },
       ],
+    },
+
+    // ============================================
+    // Page Layout (New Drag & Drop system)
+    // ============================================
+    {
+      name: 'pageLayout',
+      label: 'Page Layout (section-based)',
+      type: 'json',
+      defaultValue: {
+        sections: [
+          { id: 'page-sec-1', slot: 'top', orientation: 'horizontal', elements: ['header'] },
+          { id: 'page-sec-2', slot: 'sidebar-left', orientation: 'vertical', elements: ['authorProfile'] },
+          { id: 'page-sec-3', slot: 'main', orientation: 'vertical', elements: ['posts', 'comments'] },
+          { id: 'page-sec-4', slot: 'bottom', orientation: 'horizontal', elements: ['footer'] },
+        ],
+      },
+      admin: {
+        description: 'Page layout configuration with sections per slot (top, sidebar-left, main, sidebar-right, bottom)',
+      },
     },
 
     // ============================================
@@ -294,6 +339,14 @@ export const Settings: GlobalConfig = {
       min: 200,
       max: 400,
     },
+    {
+      name: 'headerMaxWidthPx',
+      label: 'Maksymalna szerokość nagłówka (px)',
+      type: 'number',
+      defaultValue: 1280,
+      min: 800,
+      max: 1920,
+    },
 
     // ============================================
     // Author Profile Extended Settings
@@ -489,6 +542,91 @@ export const Settings: GlobalConfig = {
       defaultValue: 16,
       min: 8,
       max: 32,
+    },
+
+    // ============================================
+    // Card Layouts (Drag & Drop for cards)
+    // ============================================
+    {
+      name: 'postCardLayout',
+      label: 'Post Card Layout',
+      type: 'json',
+      defaultValue: {
+        sections: [
+          { id: 'sec-1', orientation: 'horizontal', children: [{ type: 'element', id: 'thumbnail' }] },
+          { id: 'sec-2', orientation: 'vertical', children: [{ type: 'element', id: 'title' }, { type: 'element', id: 'summary' }] },
+          { id: 'sec-3', orientation: 'horizontal', children: [{ type: 'element', id: 'date' }, { type: 'element', id: 'votes' }, { type: 'element', id: 'comments' }, { type: 'element', id: 'payout' }] },
+          { id: 'sec-4', orientation: 'horizontal', children: [{ type: 'element', id: 'tags' }] },
+        ],
+      },
+      admin: {
+        description: 'Layout configuration for post cards with draggable sections',
+      },
+    },
+    {
+      name: 'commentCardLayout',
+      label: 'Comment Card Layout',
+      type: 'json',
+      defaultValue: {
+        sections: [
+          { id: 'sec-1', orientation: 'horizontal', children: [{ type: 'element', id: 'replyContext' }] },
+          { id: 'sec-2', orientation: 'horizontal', children: [{ type: 'element', id: 'avatar' }, { type: 'element', id: 'author' }, { type: 'element', id: 'timestamp' }] },
+          { id: 'sec-3', orientation: 'vertical', children: [{ type: 'element', id: 'body' }] },
+          { id: 'sec-4', orientation: 'horizontal', children: [{ type: 'element', id: 'replies' }, { type: 'element', id: 'votes' }, { type: 'element', id: 'payout' }, { type: 'element', id: 'viewLink' }] },
+        ],
+      },
+      admin: {
+        description: 'Layout configuration for comment cards with draggable sections',
+      },
+    },
+    {
+      name: 'authorProfileLayout2',
+      label: 'Author Profile Layout',
+      type: 'json',
+      defaultValue: {
+        sections: [
+          { id: 'sec-1', orientation: 'horizontal', children: [{ type: 'element', id: 'coverImage' }] },
+          { id: 'sec-2', orientation: 'horizontal', children: [{ type: 'element', id: 'avatar' }, { type: 'element', id: 'username' }, { type: 'element', id: 'reputation' }] },
+          { id: 'sec-3', orientation: 'vertical', children: [{ type: 'element', id: 'about' }] },
+          { id: 'sec-4', orientation: 'horizontal', children: [{ type: 'element', id: 'location' }, { type: 'element', id: 'website' }, { type: 'element', id: 'joinDate' }] },
+          { id: 'sec-5', orientation: 'horizontal', children: [{ type: 'element', id: 'followers' }, { type: 'element', id: 'following' }, { type: 'element', id: 'postCount' }, { type: 'element', id: 'hpEarned' }] },
+          { id: 'sec-6', orientation: 'horizontal', children: [{ type: 'element', id: 'votingPower' }, { type: 'element', id: 'hiveBalance' }, { type: 'element', id: 'hbdBalance' }] },
+        ],
+      },
+      admin: {
+        description: 'Layout configuration for author profile with draggable sections',
+      },
+    },
+
+    // ============================================
+    // Sorting Settings
+    // ============================================
+    {
+      name: 'postsSortOrder',
+      label: 'Sortowanie postów',
+      type: 'select',
+      defaultValue: 'blog',
+      options: [
+        { label: 'Blog (chronologicznie)', value: 'blog' },
+        { label: 'Tylko posty (bez reblogów)', value: 'posts' },
+        { label: 'Według wypłaty', value: 'payout' },
+      ],
+    },
+    {
+      name: 'commentsSortOrder',
+      label: 'Sortowanie komentarzy',
+      type: 'select',
+      defaultValue: 'comments',
+      options: [
+        { label: 'Komentarze użytkownika', value: 'comments' },
+        { label: 'Odpowiedzi do użytkownika', value: 'replies' },
+      ],
+    },
+    {
+      name: 'includeReblogs',
+      label: 'Uwzględnij reblogi',
+      type: 'checkbox',
+      defaultValue: false,
     },
   ],
 }
