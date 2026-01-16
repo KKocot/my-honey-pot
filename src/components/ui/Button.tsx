@@ -13,9 +13,9 @@ export function Button(props: ButtonProps) {
   const size = local.size || 'md'
 
   const variantClasses: Record<string, string> = {
-    primary: 'bg-primary text-white hover:bg-primary-hover',
+    primary: 'bg-primary text-primary-text hover:bg-primary-hover',
     secondary: 'bg-bg-secondary text-text hover:bg-border',
-    accent: 'bg-accent text-bg-card hover:opacity-90',
+    accent: 'bg-accent text-primary-text hover:opacity-90',
     ghost: 'bg-transparent text-text hover:bg-bg-secondary',
   }
 

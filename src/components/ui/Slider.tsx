@@ -21,7 +21,37 @@ export function Slider(props: SliderProps) {
   const handleInput: JSX.EventHandler<HTMLInputElement, InputEvent> = (e) => {
     setDisplayValue(e.currentTarget.value)
     if (typeof local.onInput === 'function') {
-      local.onInput(e)
+      // Cast to expected type - SolidJS passes Element as target but we know it's HTMLInputElement
+      ;(local.onInput as (e: InputEvent & { currentTarget: HTMLInputElement; target: Element }) => void)(e)
+    }
+  }
+
+  const handleNumberInput: JSX.EventHandler<HTMLInputElement, InputEvent> = (e) => {
+    let newValue = parseInt(e.currentTarget.value)
+    const minVal = typeof rest.min === 'number' ? rest.min : parseInt(String(rest.min)) || 0
+    const maxVal = typeof rest.max === 'number' ? rest.max : parseInt(String(rest.max)) || 100
+
+    // Clamp value to min/max
+    if (isNaN(newValue)) newValue = minVal
+    if (newValue < minVal) newValue = minVal
+    if (newValue > maxVal) newValue = maxVal
+
+    setDisplayValue(newValue)
+
+    // Create a synthetic event for the callback with proper types
+    if (typeof local.onInput === 'function') {
+      // Create a properly typed synthetic event
+      const syntheticTarget = Object.create(e.currentTarget, {
+        value: { value: String(newValue), writable: true }
+      }) as HTMLInputElement
+
+      const syntheticEvent = Object.assign(
+        Object.create(Object.getPrototypeOf(e)),
+        e,
+        { currentTarget: syntheticTarget, target: syntheticTarget }
+      ) as InputEvent & { currentTarget: HTMLInputElement; target: HTMLInputElement }
+
+      local.onInput(syntheticEvent)
     }
   }
 
@@ -29,23 +59,34 @@ export function Slider(props: SliderProps) {
     <div>
       <label for={inputId} class="block text-sm font-medium text-text mb-1">
         {local.label}
-        {local.showValue !== false && (
-          <span class="ml-1">
-            {displayValue()}{local.unit || ''}
-          </span>
-        )}
       </label>
-      <input
-        {...rest}
-        type="range"
-        id={inputId}
-        value={displayValue()}
-        onInput={handleInput}
-        class={`
-          w-full h-2 bg-bg-secondary rounded-lg appearance-none cursor-pointer accent-primary
-          ${local.class || ''}
-        `}
-      />
+      <div class="flex items-center gap-3">
+        <input
+          {...rest}
+          type="range"
+          id={inputId}
+          value={displayValue()}
+          onInput={handleInput}
+          class={`
+            flex-1 h-2 bg-bg-secondary rounded-lg appearance-none cursor-pointer accent-primary
+            ${local.class || ''}
+          `}
+        />
+        <div class="flex items-center gap-1">
+          <input
+            type="number"
+            value={displayValue()}
+            min={rest.min}
+            max={rest.max}
+            step={rest.step}
+            onInput={handleNumberInput}
+            class="w-16 px-2 py-1 text-sm bg-bg border border-border rounded text-text text-center focus:outline-none focus:ring-1 focus:ring-primary"
+          />
+          {local.unit && (
+            <span class="text-xs text-text-muted">{local.unit}</span>
+          )}
+        </div>
+      </div>
     </div>
   )
 }

@@ -40,8 +40,8 @@ export function Toast() {
     >
       <div
         class={`
-          px-6 py-4 rounded-lg shadow-lg flex items-center gap-3
-          ${state().type === 'success' ? 'bg-success text-white' : 'bg-error text-white'}
+          px-6 py-4 rounded-lg shadow-lg flex items-center gap-3 text-white
+          ${state().type === 'success' ? 'bg-success' : 'bg-error'}
         `}
       >
         <Show
