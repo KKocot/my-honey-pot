@@ -1,4 +1,5 @@
 export { AdminPanel } from './AdminPanel'
+export { TemplateSelector } from './TemplateSelector'
 export { LayoutEditor } from './LayoutEditor'
 export { SiteSettings } from './SiteSettings'
 export { ThemeSettings, getCurrentColors } from './ThemeSettings'

@@ -1,6 +1,7 @@
 import { createEffect, createSignal, Show } from 'solid-js'
 import { QueryClientProvider } from '@tanstack/solid-query'
 import { Toast, showToast, Button } from '../ui'
+import { TemplateSelector } from './TemplateSelector'
 import { UserSwitcher } from './UserSwitcher'
 import { LayoutEditor } from './LayoutEditor'
 import { SiteSettings } from './SiteSettings'
@@ -68,6 +69,7 @@ function AdminPanelContent() {
       </Show>
 
       <Show when={!settingsQuery.isLoading}>
+        <TemplateSelector />
         <UserSwitcher />
         <LayoutEditor />
         <SiteSettings />
