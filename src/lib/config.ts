@@ -5,6 +5,15 @@
 // Hive API Endpoints
 export const HIVE_API_ENDPOINT = import.meta.env.HIVE_API_ENDPOINT || 'https://api.openhive.network'
 
+// Fallback API endpoints for retry logic
+export const HIVE_API_ENDPOINTS = [
+  'https://api.openhive.network',
+  'https://api.hive.blog',
+  'https://api.deathwing.me',
+  'https://hive-api.arcange.eu',
+  'https://api.syncad.com',
+]
+
 // Layout Constants
 export const LAYOUT_CONSTANTS = {
   HEADER_MAX_WIDTH_PX: { min: 800, max: 1920, default: 1280 },

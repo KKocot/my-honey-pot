@@ -4,14 +4,39 @@ import { WorkerBeeError } from "./errors";
 import { BloggingPlaform } from "./BloggingPlatform";
 import type { IAccountPostsFilters, ICommonFilters, ICommunityFilters, IPagination, IPostCommentIdentity, IPostFilters, IVotesFilters } from "./interfaces";
 import { paginateData } from "./utils";
-import type { WaxExtendedChain } from "./wax";
+import { getWax, resetWax, type WaxExtendedChain } from "./wax";
+
+const MAX_RETRIES = 3;
+
+async function withRetry<T>(fn: () => Promise<T>): Promise<T> {
+  let lastError: Error | null = null;
+
+  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+      const isTimeout = lastError.message.toLowerCase().includes('timeout');
+
+      if (isTimeout && attempt < MAX_RETRIES - 1) {
+        console.warn(`API request timed out (attempt ${attempt + 1}/${MAX_RETRIES}), switching endpoint...`);
+        resetWax();
+        await new Promise(resolve => setTimeout(resolve, 300));
+      } else if (!isTimeout) {
+        throw lastError;
+      }
+    }
+  }
+
+  throw lastError || new Error('All retry attempts failed');
+}
 
 /**
  * Main class to call all of Blog Logic. The class is responsible for making instances of Blog Logic's objects and
  * getting and caching all the necessary data for them.
  */
 export class DataProvider {
-  public chain: WaxExtendedChain;
+  private _chain: WaxExtendedChain;
   public bloggingPlatform: BloggingPlaform;
 
   private comments: Map<string, PostBridgeApi> = new Map();
@@ -22,8 +47,18 @@ export class DataProvider {
 
 
   public constructor(chain: WaxExtendedChain) {
-    this.chain = chain;
+    this._chain = chain;
     this.bloggingPlatform = new BloggingPlaform(this);
+  }
+
+  // Getter that always returns fresh chain (allows endpoint switching on retry)
+  public get chain(): WaxExtendedChain {
+    return this._chain;
+  }
+
+  // Update chain reference after reset
+  public async refreshChain(): Promise<void> {
+    this._chain = await getWax();
   }
 
   /**
@@ -38,10 +73,13 @@ export class DataProvider {
   }
 
   public async fetchPost(postId: IPostCommentIdentity): Promise<void> {
-    const fetchedPostData = await this.chain.api.bridge.get_post({
-      author: postId.author,
-      permlink: postId.permlink,
-      observer: this.bloggingPlatform.viewerContext.name,
+    const fetchedPostData = await withRetry(async () => {
+      await this.refreshChain();
+      return this.chain.api.bridge.get_post({
+        author: postId.author,
+        permlink: postId.permlink,
+        observer: this.bloggingPlatform.viewerContext.name,
+      });
     });
     if (!fetchedPostData)
       throw new Error("Post not found");
@@ -49,10 +87,13 @@ export class DataProvider {
   }
 
   public async enumPosts(filter: IPostFilters, pagination: IPagination): Promise<IPostCommentIdentity[]> {
-    const posts = await this.chain.api.bridge.get_ranked_posts({
-      sort: filter.sort,
-      observer: this.bloggingPlatform.viewerContext.name,
-      tag: filter.tag
+    const posts = await withRetry(async () => {
+      await this.refreshChain();
+      return this.chain.api.bridge.get_ranked_posts({
+        sort: filter.sort,
+        observer: this.bloggingPlatform.viewerContext.name,
+        tag: filter.tag
+      });
     });
     if (!posts)
       throw new WorkerBeeError("Posts not found");
@@ -68,11 +109,14 @@ export class DataProvider {
    * Fetch posts for a specific account using bridge.get_account_posts
    */
   public async enumAccountPosts(filter: IAccountPostsFilters, pagination: IPagination): Promise<IPostCommentIdentity[]> {
-    const posts = await this.chain.api.bridge.get_account_posts({
-      sort: filter.sort,
-      account: filter.account,
-      observer: this.bloggingPlatform.viewerContext.name,
-      limit: pagination.pageSize,
+    const posts = await withRetry(async () => {
+      await this.refreshChain();
+      return this.chain.api.bridge.get_account_posts({
+        sort: filter.sort,
+        account: filter.account,
+        observer: this.bloggingPlatform.viewerContext.name,
+        limit: pagination.pageSize,
+      });
     });
     if (!posts)
       throw new WorkerBeeError("Posts not found");
@@ -88,10 +132,13 @@ export class DataProvider {
   }
 
   public async enumReplies(postId: IPostCommentIdentity, filter: ICommonFilters, pagination: IPagination): Promise<IPostCommentIdentity[]> {
-    const replies = await this.chain!.api.bridge.get_discussion({
-      author: postId.author,
-      permlink: postId.permlink,
-      observer: this.bloggingPlatform.viewerContext.name,
+    const replies = await withRetry(async () => {
+      await this.refreshChain();
+      return this.chain.api.bridge.get_discussion({
+        author: postId.author,
+        permlink: postId.permlink,
+        observer: this.bloggingPlatform.viewerContext.name,
+      });
     });
     if (!replies) throw WorkerBeeError;
     const filteredReplies = Object.values(replies).filter((rawReply) => !!rawReply.parent_author);
@@ -114,7 +161,10 @@ export class DataProvider {
   }
 
   public async fetchAccount(accountName: string): Promise<void> {
-    const account = await this.chain.restApi.hafbeApi.accounts.accountName({accountName: accountName});
+    const account = await withRetry(async () => {
+      await this.refreshChain();
+      return this.chain.restApi.hafbeApi.accounts.accountName({accountName: accountName});
+    });
     if (!account)
       throw new Error("Account not found");
     this.accounts.set(accountName, account);
@@ -124,10 +174,13 @@ export class DataProvider {
     return this.communities.get(communityName) || null;
   }
   public async enumCommunities(filter: ICommunityFilters, pagination: IPagination): Promise<string[]> {
-    const communities = await this.chain.api.bridge.list_communities({
-      observer: this.bloggingPlatform.viewerContext.name,
-      sort: filter.sort,
-      query: filter.query,
+    const communities = await withRetry(async () => {
+      await this.refreshChain();
+      return this.chain.api.bridge.list_communities({
+        observer: this.bloggingPlatform.viewerContext.name,
+        sort: filter.sort,
+        query: filter.query,
+      });
     });
     const communitiesNames: string[] = [];
     if (communities)
@@ -149,13 +202,15 @@ export class DataProvider {
   }
 
   public async enumVotes(commentId: IPostCommentIdentity, filter: IVotesFilters, pagination: IPagination): Promise<string[]> {
-    const votesData = (
-      await this.chain!.api.database_api.list_votes({
+    const votesData = await withRetry(async () => {
+      await this.refreshChain();
+      const result = await this.chain.api.database_api.list_votes({
         limit: filter.limit,
         order: filter.votesSort,
         start: [commentId.author, commentId.permlink, ""],
-      })
-    ).votes;
+      });
+      return result.votes;
+    });
     const votersForComment: string[] = [];
     const votesByVoters: Map<string, ActiveVotesDatabaseApi> = new Map();
     votesData.forEach((voteData) => {
