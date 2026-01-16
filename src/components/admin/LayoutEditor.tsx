@@ -75,9 +75,20 @@ export function LayoutEditor() {
       slot,
       orientation: 'horizontal',
       elements: [],
+      active: true,
     }
     updatePageLayout({
       sections: [...settings.pageLayout.sections, newSection],
+    })
+  }
+
+  const toggleSectionActive = (sectionId: string) => {
+    updatePageLayout({
+      sections: settings.pageLayout.sections.map((s) =>
+        s.id === sectionId
+          ? { ...s, active: s.active !== false ? false : true }
+          : s
+      ),
     })
   }
 
@@ -194,6 +205,7 @@ export function LayoutEditor() {
                 onAddSection={() => addSection(slot)}
                 onRemoveSection={removeSection}
                 onToggleOrientation={toggleOrientation}
+                onToggleSectionActive={toggleSectionActive}
                 onMoveSectionUp={(sectionId) => moveSectionUp(slot, sectionId)}
                 onMoveSectionDown={(sectionId) => moveSectionDown(slot, sectionId)}
                 onAddElement={addElementToSection}
@@ -223,6 +235,7 @@ interface SlotContainerProps {
   onAddSection: () => void
   onRemoveSection: (sectionId: string) => void
   onToggleOrientation: (sectionId: string) => void
+  onToggleSectionActive: (sectionId: string) => void
   onMoveSectionUp: (sectionId: string) => void
   onMoveSectionDown: (sectionId: string) => void
   onAddElement: (sectionId: string, elementId: string) => void
@@ -264,6 +277,7 @@ function SlotContainer(props: SlotContainerProps) {
               unusedElements={props.unusedElements}
               onRemove={() => props.onRemoveSection(section.id)}
               onToggleOrientation={() => props.onToggleOrientation(section.id)}
+              onToggleActive={() => props.onToggleSectionActive(section.id)}
               onMoveUp={() => props.onMoveSectionUp(section.id)}
               onMoveDown={() => props.onMoveSectionDown(section.id)}
               onAddElement={(elementId) => props.onAddElement(section.id, elementId)}
@@ -289,6 +303,7 @@ interface SectionCardProps {
   unusedElements: string[]
   onRemove: () => void
   onToggleOrientation: () => void
+  onToggleActive: () => void
   onMoveUp: () => void
   onMoveDown: () => void
   onAddElement: (elementId: string) => void
@@ -334,6 +349,25 @@ function SectionCard(props: SectionCardProps) {
 
         {/* Section number */}
         <span class="text-xs font-medium text-text-muted">Section {props.sectionIndex + 1}</span>
+
+        {/* Active toggle */}
+        <button
+          type="button"
+          onClick={props.onToggleActive}
+          class={`
+            flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium transition-colors
+            ${props.section.active !== false
+              ? 'bg-success/20 text-success'
+              : 'bg-text-muted/20 text-text-muted'}
+          `}
+          title={props.section.active !== false ? 'Click to hide section' : 'Click to show section'}
+        >
+          {props.section.active !== false ? (
+            <EyeIcon class="w-3 h-3" />
+          ) : (
+            <EyeOffIcon class="w-3 h-3" />
+          )}
+        </button>
 
         {/* Orientation toggle */}
         <button
@@ -494,8 +528,9 @@ function SectionCard(props: SectionCardProps) {
 // ============================================
 
 function PageLayoutPreview() {
+  // Only get active sections in a slot
   const getSectionsInSlot = (slot: PageSlotPosition) => {
-    return settings.pageLayout.sections.filter((s) => s.slot === slot)
+    return settings.pageLayout.sections.filter((s) => s.slot === slot && s.active !== false)
   }
 
   const slotHasElements = (slot: PageSlotPosition) => {
@@ -547,8 +582,10 @@ function PageLayoutPreview() {
     )
   }
 
-  const hasLeftSidebar = slotHasElements('sidebar-left')
-  const hasRightSidebar = slotHasElements('sidebar-right')
+  const hasLeftSidebar = () => slotHasElements('sidebar-left')
+  const hasRightSidebar = () => slotHasElements('sidebar-right')
+  const hasMain = () => slotHasElements('main')
+  const hasMiddleArea = () => hasLeftSidebar() || hasRightSidebar() || hasMain()
 
   return (
     <div class="bg-bg rounded-lg p-4 border border-border">
@@ -564,37 +601,34 @@ function PageLayoutPreview() {
           </div>
         </Show>
 
-        {/* Middle area */}
-        <div class="flex min-h-[250px]">
-          <Show when={hasLeftSidebar}>
-            <div class="w-1/4 border-r border-border p-2 bg-bg-secondary/30">
-              <For each={getSectionsInSlot('sidebar-left')}>
-                {(section) => renderSection(section, true)}
-              </For>
-            </div>
-          </Show>
-
-          <div class="flex-1 p-2">
-            <Show when={slotHasElements('main')}>
-              <For each={getSectionsInSlot('main')}>
-                {(section) => renderSection(section, false)}
-              </For>
+        {/* Middle area - only show if any of the middle slots have content */}
+        <Show when={hasMiddleArea()}>
+          <div class="flex min-h-[250px]">
+            <Show when={hasLeftSidebar()}>
+              <div class="w-1/4 border-r border-border p-2 bg-bg-secondary/30">
+                <For each={getSectionsInSlot('sidebar-left')}>
+                  {(section) => renderSection(section, true)}
+                </For>
+              </div>
             </Show>
-            <Show when={!slotHasElements('main')}>
-              <div class="text-xs text-text-muted text-center py-8 border border-dashed border-border rounded">
-                Main Content Area
+
+            <Show when={hasMain()}>
+              <div class="flex-1 p-2">
+                <For each={getSectionsInSlot('main')}>
+                  {(section) => renderSection(section, false)}
+                </For>
+              </div>
+            </Show>
+
+            <Show when={hasRightSidebar()}>
+              <div class="w-1/4 border-l border-border p-2 bg-bg-secondary/30">
+                <For each={getSectionsInSlot('sidebar-right')}>
+                  {(section) => renderSection(section, true)}
+                </For>
               </div>
             </Show>
           </div>
-
-          <Show when={hasRightSidebar}>
-            <div class="w-1/4 border-l border-border p-2 bg-bg-secondary/30">
-              <For each={getSectionsInSlot('sidebar-right')}>
-                {(section) => renderSection(section, true)}
-              </For>
-            </div>
-          </Show>
-        </div>
+        </Show>
 
         {/* Bottom slot */}
         <Show when={slotHasElements('bottom')}>
@@ -828,6 +862,23 @@ function SearchIcon(props: { class?: string }) {
   return (
     <svg class={props.class} fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+    </svg>
+  )
+}
+
+function EyeIcon(props: { class?: string }) {
+  return (
+    <svg class={props.class} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+    </svg>
+  )
+}
+
+function EyeOffIcon(props: { class?: string }) {
+  return (
+    <svg class={props.class} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
     </svg>
   )
 }

@@ -281,6 +281,7 @@ export interface PageLayoutSection {
   slot: PageSlotPosition
   orientation: 'horizontal' | 'vertical'
   elements: string[] // page element IDs
+  active: boolean // whether this section is visible in preview/output
 }
 
 /**
@@ -605,10 +606,10 @@ export const defaultSettings: SettingsData = {
   // Default page layout with sections per slot
   pageLayout: {
     sections: [
-      { id: 'page-sec-1', slot: 'top', orientation: 'horizontal', elements: ['header'] },
-      { id: 'page-sec-2', slot: 'sidebar-left', orientation: 'vertical', elements: ['authorProfile'] },
-      { id: 'page-sec-3', slot: 'main', orientation: 'vertical', elements: ['posts', 'comments'] },
-      { id: 'page-sec-4', slot: 'bottom', orientation: 'horizontal', elements: ['footer'] },
+      { id: 'page-sec-1', slot: 'top', orientation: 'horizontal', elements: ['header'], active: true },
+      { id: 'page-sec-2', slot: 'sidebar-left', orientation: 'vertical', elements: ['authorProfile'], active: true },
+      { id: 'page-sec-3', slot: 'main', orientation: 'vertical', elements: ['posts', 'comments'], active: true },
+      { id: 'page-sec-4', slot: 'bottom', orientation: 'horizontal', elements: ['footer'], active: true },
     ],
   },
   // Sorting defaults
