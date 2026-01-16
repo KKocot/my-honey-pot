@@ -11,10 +11,12 @@
   "dependencies": {
     "@astrojs/node": "^9.5.1",
     "@astrojs/solid-js": "^5.1.3",
+    "@hiveio/beekeeper": "^1.28.4-rc0",
     "@hiveio/hb-auth": "^1.28.4-rc0",
     "@hiveio/wax": "^1.28.4-rc0",
     "@hiveio/wax-api-hafbe": "^1.27.12",
     "@hiveio/wax-api-jsonrpc": "^1.28.4",
+    "@hiveio/wax-signers-beekeeper": "^1.28.4-rc0",
     "@payloadcms/db-mongodb": "^3.70.0",
     "@payloadcms/richtext-lexical": "^3.70.0",
     "@tailwindcss/vite": "^4.1.18",
