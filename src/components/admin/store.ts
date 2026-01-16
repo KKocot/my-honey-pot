@@ -5,6 +5,7 @@
 export {
   settings,
   updateSettings,
+  setCustomColors,
   updateLayoutSection,
   setLayoutSections,
   isInDemoMode,

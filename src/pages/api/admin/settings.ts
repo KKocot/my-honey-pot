@@ -31,6 +31,7 @@ export const GET: APIRoute = async () => {
 export const PUT: APIRoute = async ({ request }) => {
   try {
     const data: Partial<SettingsData> = await request.json()
+
     const payload = await getPayloadClient()
 
     const updatedSettings = await payload.updateGlobal({
@@ -44,9 +45,10 @@ export const PUT: APIRoute = async ({ request }) => {
         'Content-Type': 'application/json',
       },
     })
-  } catch {
+  } catch (error) {
+    console.error('Settings update error:', error)
     return new Response(
-      JSON.stringify({ error: 'Błąd aktualizacji ustawień' }),
+      JSON.stringify({ error: 'Błąd aktualizacji ustawień', details: String(error) }),
       {
         status: 500,
         headers: {

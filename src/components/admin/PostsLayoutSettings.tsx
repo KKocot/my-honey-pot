@@ -1,8 +1,7 @@
 import { For, Show } from 'solid-js'
 import { settings, updateSettings } from './store'
-import { Slider, Checkbox } from '../ui'
+import { Slider, Input } from '../ui'
 import { LayoutPreview } from './PostCardPreview'
-import { postsSortOptions, commentsSortOptions } from './types'
 
 // ============================================
 // Posts Layout Settings Section
@@ -76,71 +75,16 @@ export function PostsLayoutSettings() {
             onInput={(e) => updateSettings({ cardGapPx: parseInt(e.currentTarget.value) })}
           />
 
-          {/* Sorting Settings */}
-          <div class="pt-4 border-t border-border">
-            <h3 class="text-sm font-medium text-text mb-4 flex items-center gap-2">
-              <SortIcon />
-              Sorting & Filtering
-            </h3>
-
-            {/* Posts Sort Order */}
-            <div class="mb-4">
-              <label class="block text-sm font-medium text-text mb-2">Posts sort order</label>
-              <div class="flex flex-wrap gap-2">
-                <For each={postsSortOptions}>
-                  {(option) => (
-                    <button
-                      type="button"
-                      onClick={() => updateSettings({ postsSortOrder: option.value as 'blog' | 'posts' | 'payout' })}
-                      class={`
-                        px-3 py-1.5 rounded-md text-sm transition-all
-                        ${settings.postsSortOrder === option.value
-                          ? 'bg-primary text-white'
-                          : 'bg-bg-secondary text-text-muted hover:bg-bg-secondary/80 hover:text-text'
-                        }
-                      `}
-                    >
-                      {option.label}
-                    </button>
-                  )}
-                </For>
-              </div>
-            </div>
-
-            {/* Include Reblogs Checkbox - only for blog sort */}
-            <Show when={settings.postsSortOrder === 'blog'}>
-              <div class="mb-4">
-                <Checkbox
-                  label="Include reblogs"
-                  checked={settings.includeReblogs}
-                  onChange={(e) => updateSettings({ includeReblogs: e.currentTarget.checked })}
-                />
-              </div>
-            </Show>
-
-            {/* Comments Sort Order */}
-            <div>
-              <label class="block text-sm font-medium text-text mb-2">Comments sort order</label>
-              <div class="flex flex-wrap gap-2">
-                <For each={commentsSortOptions}>
-                  {(option) => (
-                    <button
-                      type="button"
-                      onClick={() => updateSettings({ commentsSortOrder: option.value as 'comments' | 'replies' })}
-                      class={`
-                        px-3 py-1.5 rounded-md text-sm transition-all
-                        ${settings.commentsSortOrder === option.value
-                          ? 'bg-primary text-white'
-                          : 'bg-bg-secondary text-text-muted hover:bg-bg-secondary/80 hover:text-text'
-                        }
-                      `}
-                    >
-                      {option.label}
-                    </button>
-                  )}
-                </For>
-              </div>
-            </div>
+          {/* Posts per page */}
+          <div>
+            <Input
+              type="number"
+              label="Posts per page"
+              min={5}
+              max={30}
+              value={settings.postsPerPage ?? 20}
+              onInput={(e) => updateSettings({ postsPerPage: parseInt(e.currentTarget.value) })}
+            />
           </div>
         </div>
 
@@ -183,14 +127,6 @@ function InfoIcon() {
   return (
     <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-    </svg>
-  )
-}
-
-function SortIcon() {
-  return (
-    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12" />
     </svg>
   )
 }

@@ -180,15 +180,21 @@ function CommentPreview() {
     payout: 2.34,
   }
 
+  // Use createMemo to make layout reactive
+  const sections = createMemo(() => settings.commentCardLayout.sections)
+  const avatarSize = createMemo(() => settings.commentAvatarSizePx)
+  const padding = createMemo(() => settings.commentPaddingPx)
+  const maxLength = createMemo(() => settings.commentMaxLength)
+
   const truncatedBody = createMemo(() => {
-    if (settings.commentMaxLength === 0) return mockComment.body
-    if (mockComment.body.length <= settings.commentMaxLength) return mockComment.body
-    return mockComment.body.slice(0, settings.commentMaxLength) + '...'
+    if (maxLength() === 0) return mockComment.body
+    if (mockComment.body.length <= maxLength()) return mockComment.body
+    return mockComment.body.slice(0, maxLength()) + '...'
   })
 
-  // Render element by ID
-  const renderElement = (id: string) => {
-    switch (id) {
+  // Element renderer component
+  const ElementRenderer = (props: { id: string }) => {
+    switch (props.id) {
       case 'replyContext':
         return (
           <div class="flex items-center gap-2 text-xs text-text-muted">
@@ -208,8 +214,8 @@ function CommentPreview() {
               src={`https://images.hive.blog/u/${mockComment.author}/avatar`}
               alt={mockComment.author}
               style={{
-                width: `${settings.commentAvatarSizePx}px`,
-                height: `${settings.commentAvatarSizePx}px`,
+                width: `${avatarSize()}px`,
+                height: `${avatarSize()}px`,
               }}
               class="rounded-full border border-border"
               onError={(e) => {
@@ -277,28 +283,31 @@ function CommentPreview() {
     }
   }
 
-  // Render a child (element or nested section)
-  const renderChild = (child: CardSectionChild): ReturnType<typeof renderElement> => {
-    if (child.type === 'element') {
-      return renderElement(child.id)
-    } else {
-      // Nested section - recursive render
-      return renderSection(child.section)
-    }
+  // Child renderer component (element or nested section)
+  const ChildRenderer = (props: { child: CardSectionChild }) => {
+    return (
+      <Show when={props.child.type === 'element'} fallback={
+        <Show when={props.child.type === 'section'}>
+          <SectionRenderer section={(props.child as { type: 'section'; section: CardSection }).section} />
+        </Show>
+      }>
+        <ElementRenderer id={(props.child as { type: 'element'; id: string }).id} />
+      </Show>
+    )
   }
 
-  // Render a section with its orientation (recursive)
-  const renderSection = (section: CardSection): ReturnType<typeof renderElement> => {
-    if (!section.children || section.children.length === 0) return null
-
+  // Section renderer component (recursive)
+  const SectionRenderer = (props: { section: CardSection }) => {
     return (
-      <div
-        class={`
-          ${section.orientation === 'horizontal' ? 'flex flex-wrap items-center gap-2' : 'flex flex-col gap-1'}
-        `}
-      >
-        <For each={section.children}>{(child) => renderChild(child)}</For>
-      </div>
+      <Show when={props.section.children && props.section.children.length > 0}>
+        <div
+          class={props.section.orientation === 'horizontal' ? 'flex flex-wrap items-center gap-2' : 'flex flex-col gap-1'}
+        >
+          <For each={props.section.children}>
+            {(child) => <ChildRenderer child={child} />}
+          </For>
+        </div>
+      </Show>
     )
   }
 
@@ -307,10 +316,10 @@ function CommentPreview() {
       <p class="text-xs text-text-muted mb-3 uppercase tracking-wide">Preview</p>
 
       <div class="bg-bg-card rounded-xl border border-border overflow-hidden">
-        <article style={{ padding: `${settings.commentPaddingPx}px` }}>
+        <article style={{ padding: `${padding()}px` }}>
           <div class="space-y-2">
-            <For each={settings.commentCardLayout.sections}>
-              {(section) => renderSection(section)}
+            <For each={sections()}>
+              {(section) => <SectionRenderer section={section} />}
             </For>
           </div>
         </article>

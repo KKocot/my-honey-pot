@@ -49,13 +49,13 @@ export function AuthorProfileSettings() {
             onInput={(e) => updateSettings({ authorAvatarSizePx: parseInt(e.currentTarget.value) })}
           />
 
-          {/* Card Layout Editor - Drag & Drop */}
+          {/* Card Layout Editor */}
           <div class="border-t border-border pt-4">
             <h3 class="text-sm font-medium text-text-muted uppercase tracking-wide mb-3">
               Profile Elements Layout
             </h3>
             <p class="text-xs text-text-muted mb-4">
-              Drag elements between sections. Each section can be horizontal or vertical.
+              Use buttons to move elements and sections. Click + to add elements or nested sections.
             </p>
             <CardLayoutEditor
               layout={settings.authorProfileLayout2}

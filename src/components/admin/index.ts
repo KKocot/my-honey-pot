@@ -1,10 +1,12 @@
 export { AdminPanel } from './AdminPanel'
 export { LayoutEditor } from './LayoutEditor'
 export { SiteSettings } from './SiteSettings'
+export { ThemeSettings, getCurrentColors } from './ThemeSettings'
+export { applyThemeColors } from './queries'
 export { PostsLayoutSettings } from './PostsLayoutSettings'
 export { CardAppearanceSettings } from './CardAppearanceSettings'
 export { AuthorProfileSettings } from './AuthorProfileSettings'
-export { PostCard, LayoutPreview, ResponsivePreview, SingleCardPreview } from './PostCardPreview'
+export { PostCard, LayoutPreview, ResponsivePreview, samplePosts } from './PostCardPreview'
 
 export * from './types'
 export * from './store'
