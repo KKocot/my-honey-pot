@@ -1,4 +1,4 @@
-import { For, Show, createMemo } from 'solid-js'
+import { For, Show, createMemo, createSignal } from 'solid-js'
 import { settings } from './store'
 import type { CardSection, CardSectionChild } from './types'
 
@@ -78,6 +78,51 @@ export function PostCard(props: PostCardProps) {
   const borderRadius = createMemo(() => settings.cardBorderRadiusPx)
   const maxTags = createMemo(() => settings.maxTags)
   const summaryMaxLen = createMemo(() => settings.summaryMaxLength)
+
+  // Animation settings
+  const hoverEffect = createMemo(() => settings.cardHoverEffect)
+  const transitionDuration = createMemo(() => settings.cardTransitionDuration)
+  const hoverScale = createMemo(() => settings.cardHoverScale)
+  const hoverShadow = createMemo(() => settings.cardHoverShadow)
+  const hoverBrightness = createMemo(() => settings.cardHoverBrightness)
+
+  // Generate hover styles based on effect type
+  const getHoverStyles = createMemo(() => {
+    const effect = hoverEffect()
+    const duration = transitionDuration()
+    const scale = hoverScale()
+    const shadow = hoverShadow()
+    const brightness = hoverBrightness()
+
+    // Shadow map
+    const shadowMap: Record<string, string> = {
+      sm: '0 1px 2px 0 rgb(0 0 0 / 0.05)',
+      md: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
+      lg: '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)',
+      xl: '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)',
+      '2xl': '0 25px 50px -12px rgb(0 0 0 / 0.25)',
+    }
+
+    const base = {
+      transition: `all ${duration}ms ease-out`,
+    }
+
+    const hover: Record<string, string> = {}
+
+    if (effect === 'shadow') {
+      hover.boxShadow = shadowMap[shadow] || shadowMap.md
+    } else if (effect === 'scale') {
+      hover.transform = `scale(${scale})`
+    } else if (effect === 'lift') {
+      hover.transform = `scale(${scale}) translateY(-4px)`
+      hover.boxShadow = shadowMap[shadow] || shadowMap.lg
+    } else if (effect === 'glow') {
+      hover.filter = `brightness(${brightness})`
+      hover.boxShadow = `0 0 20px var(--color-primary)`
+    }
+
+    return { base, hover }
+  })
 
   const truncatedSummary = createMemo(() => {
     const text = props.post.summary
@@ -178,14 +223,31 @@ export function PostCard(props: PostCardProps) {
     )
   }
 
+  const [isHovered, setIsHovered] = createSignal(false)
+
+  // Compute current style based on hover state
+  const cardStyle = createMemo(() => {
+    const styles = getHoverStyles()
+    const baseStyle: Record<string, string> = {
+      padding: `${padding()}px`,
+      'border-radius': `${borderRadius()}px`,
+      border: settings.cardBorder ? '1px solid var(--color-border)' : 'none',
+      ...styles.base,
+    }
+
+    if (isHovered() && hoverEffect() !== 'none') {
+      return { ...baseStyle, ...styles.hover }
+    }
+
+    return baseStyle
+  })
+
   return (
     <article
-      class="bg-bg-card shadow-sm transition-all duration-200 overflow-hidden"
-      style={{
-        padding: `${padding()}px`,
-        'border-radius': `${borderRadius()}px`,
-        border: settings.cardBorder ? '1px solid var(--color-border)' : 'none',
-      }}
+      class="bg-bg-card shadow-sm overflow-hidden cursor-pointer"
+      style={cardStyle()}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
     >
       <div class="flex flex-col gap-3">
         <For each={sections()}>

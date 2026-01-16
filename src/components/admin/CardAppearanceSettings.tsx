@@ -1,7 +1,7 @@
 import { Show, For, createMemo } from 'solid-js'
 import { settings, updateSettings } from './store'
-import { Select, Slider } from '../ui'
-import { cardLayoutOptions, thumbnailPositionOptions, collectAllElementIds, postCardElementLabels, type CardLayout } from './types'
+import { Slider } from '../ui'
+import { collectAllElementIds, postCardElementLabels, type CardLayout } from './types'
 import { CardLayoutEditor } from './CardLayoutEditor'
 import { PostCard, samplePosts } from './PostCardPreview'
 
@@ -69,24 +69,6 @@ function CardLayoutSection() {
   return (
     <div class="space-y-4">
       <h3 class="text-sm font-medium text-text-muted uppercase tracking-wide">Card Settings</h3>
-
-      <div class="grid grid-cols-2 gap-4">
-        <Select
-          label="Orientation (list)"
-          options={cardLayoutOptions}
-          value={settings.cardLayout}
-          onChange={(e) => updateSettings({ cardLayout: e.currentTarget.value as 'horizontal' | 'vertical' })}
-        />
-
-        <Show when={settings.cardLayout === 'horizontal' && settings.postsLayout === 'list'}>
-          <Select
-            label="Thumbnail position"
-            options={thumbnailPositionOptions}
-            value={settings.thumbnailPosition}
-            onChange={(e) => updateSettings({ thumbnailPosition: e.currentTarget.value as 'left' | 'right' })}
-          />
-        </Show>
-      </div>
 
       <div class="grid grid-cols-2 gap-4">
         <Slider
@@ -172,7 +154,7 @@ function AdditionalSettings() {
 function PostCardPreviewSection() {
   return (
     <div class="bg-bg rounded-lg p-4 border border-border">
-      <p class="text-xs text-text-muted mb-3 uppercase tracking-wide">Preview</p>
+      <p class="text-xs text-text-muted mb-3 uppercase tracking-wide">Preview (hover to test)</p>
       <PostCard post={samplePosts[0]} />
     </div>
   )
