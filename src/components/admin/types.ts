@@ -714,21 +714,21 @@ export const pageElementLabels: Record<string, string> = {
   recentPosts: 'Recent Posts',
 }
 
-// Colors for page elements - distinct colors for better visual hierarchy
+// Colors for page elements - unified color for consistent look
 export const pageElementColors: Record<string, string> = {
-  header: 'bg-primary text-white',
+  header: 'bg-accent text-white',
   authorProfile: 'bg-accent text-white',
-  posts: 'bg-success text-white',
-  comments: 'bg-info text-white',
-  footer: 'bg-text-muted text-white',
-  navigation: 'bg-warning text-white',
-  search: 'bg-primary/80 text-white',
-  tags: 'bg-accent/80 text-white',
-  recentPosts: 'bg-success/80 text-white',
+  posts: 'bg-accent text-white',
+  comments: 'bg-accent text-white',
+  footer: 'bg-accent text-white',
+  navigation: 'bg-accent text-white',
+  search: 'bg-accent text-white',
+  tags: 'bg-accent text-white',
+  recentPosts: 'bg-accent text-white',
 }
 
 // Default fallback color for page elements
-export const pageElementColor = 'bg-primary text-white'
+export const pageElementColor = 'bg-accent text-white'
 
 // Helper to get color for a page element
 export function getPageElementColor(elementId: string): string {
