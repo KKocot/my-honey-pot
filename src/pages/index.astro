@@ -1,21 +1,21 @@
 ---
 import Layout from '../layouts/Layout.astro'
-import {
-  getHiveCommentsPaginated,
-  getHiveAccount,
-  getHiveProfile,
-  getDynamicGlobalProperties,
-  type BridgePost,
-  type DatabaseAccount,
-  type BridgeProfile,
-  type DynamicGlobalProperties,
-  type CommentSortOption,
-  type PaginationCursor,
-} from '../lib/hive'
 import { loadConfigFromHive } from '../components/admin/hive-broadcast'
 
-// Blog Logic imports
-import { DataProvider, getWax, type Post, type IAccountPostsFilters, type IAccountManabars } from '../lib/blog-logic'
+// Blog Logic imports - all data goes through blog-logic
+import {
+  DataProvider,
+  getWax,
+  type Post,
+  type IAccountManabars,
+  type IProfile,
+  type IDatabaseAccount,
+  type IGlobalProperties,
+  type AccountPostsSortOption,
+  type CommentSortOption,
+  type IPaginationCursor,
+  type BridgeComment,
+} from '../lib/blog-logic'
 
 import Header from '../components/home/Header.astro'
 import AuthorProfile from '../components/home/AuthorProfile.astro'
@@ -33,17 +33,17 @@ import { type SiteSettings, type PageLayout, type PageSlotPosition, defaultPageL
 const url = new URL(Astro.request.url)
 
 let blogLogicPosts: Post[] = []
-let hiveComments: readonly BridgePost[] = []
-let hiveAccount: DatabaseAccount | null = null
-let hiveProfile: BridgeProfile | null = null
-let globalProperties: DynamicGlobalProperties | null = null
+let hiveComments: readonly BridgeComment[] = []
+let hiveAccount: IDatabaseAccount | null = null
+let hiveProfile: IProfile | null = null
+let globalProperties: IGlobalProperties | null = null
 let accountManabars: IAccountManabars | null = null
 let settings: SiteSettings = {}
 let error: string | null = null
 let hasMorePosts = false
 let hasMoreComments = false
-let nextPostsCursor: PaginationCursor | undefined
-let nextCommentsCursor: PaginationCursor | undefined
+let nextPostsCursor: IPaginationCursor | undefined
+let nextCommentsCursor: IPaginationCursor | undefined
 
 // Get hive username from env variable first (this is the blog owner)
 const hiveUsername = import.meta.env.HIVE_USERNAME
@@ -74,8 +74,10 @@ const requestedTab = url.searchParams.get('tab') || 'posts'
 const activeTab = (requestedTab === 'comments' && !showCommentsTab) ? 'posts' : requestedTab
 
 // Tab configuration
-const tabs = [
-  { id: 'posts', label: 'Posts', count: hiveProfile?.post_count },
+type TabConfig = { id: string; label: string; count?: number }
+const postCount: number | undefined = hiveProfile?.postCount
+const tabs: TabConfig[] = [
+  { id: 'posts', label: 'Posts', count: postCount },
   ...(showCommentsTab ? [{ id: 'comments', label: 'Comments' }] : []),
 ]
 
@@ -85,31 +87,30 @@ const tabs = [
 
 const startAuthor = url.searchParams.get('start_author') || undefined
 const startPermlink = url.searchParams.get('start_permlink') || undefined
-const cursor: PaginationCursor | undefined = (startAuthor && startPermlink)
+const cursor: IPaginationCursor | undefined = (startAuthor && startPermlink)
   ? { startAuthor, startPermlink }
   : undefined
 
 // ============================================
-// Fetch Hive data
+// Fetch Hive data (all through blog-logic)
 // ============================================
 
 try {
   const postsLimit = settings.postsPerPage || 20
-  const postsSortOrder = (settings.postsSortOrder || 'blog') as IAccountPostsFilters['sort']
-  const commentsSortOrder = (settings.commentsSortOrder || 'comments') as CommentSortOption
+  const postsSortOrder: AccountPostsSortOption = settings.postsSortOrder || 'blog'
+  const commentsSortOrder: CommentSortOption = settings.commentsSortOrder || 'comments'
 
   if (hiveUsername) {
-    // Initialize Blog Logic DataProvider (used for posts and manabars)
+    // Initialize Blog Logic DataProvider (used for all data fetching)
     const chain = await getWax()
     const dataProvider = new DataProvider(chain)
 
-    // Fetch account, profile, global properties, and manabars (via Blog Logic)
+    // Fetch account, profile, global properties, and manabars
     // Using Promise.allSettled for resilience - if one fails, others still succeed
     const [accountResult, profileResult, globalPropsResult, manabarResult] = await Promise.allSettled([
-      getHiveAccount(hiveUsername),
-      getHiveProfile(hiveUsername),
-      getDynamicGlobalProperties(),
-      // Use Blog Logic for manabars - fetch account first, then get manabars
+      dataProvider.getDatabaseAccount(hiveUsername),
+      dataProvider.getProfile(hiveUsername),
+      dataProvider.getGlobalProperties(),
       dataProvider.bloggingPlatform.getAccount(hiveUsername).then(account => account.getManabars()),
     ])
 
@@ -140,7 +141,7 @@ try {
 
     // Fetch content based on active tab with pagination
     if (activeTab === 'comments' && showCommentsTab) {
-      const result = await getHiveCommentsPaginated(hiveUsername, commentsSortOrder, postsLimit, cursor)
+      const result = await dataProvider.getCommentsPaginated(hiveUsername, commentsSortOrder, postsLimit, cursor)
       hiveComments = result.items
       hasMoreComments = result.hasMore
       nextCommentsCursor = result.nextCursor

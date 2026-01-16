@@ -1,13 +1,17 @@
 ---
-import type { DatabaseAccount, BridgeProfile, DynamicGlobalProperties } from '../../lib/hive'
-import { convertVestsToHP, calculateEffectiveHP } from '../../lib/hive'
-import type { IAccountManabars } from '../../lib/blog-logic'
+import type {
+  IProfile,
+  IDatabaseAccount,
+  IGlobalProperties,
+  IAccountManabars,
+} from '../../lib/blog-logic'
+import { convertVestsToHP, calculateEffectiveHP, parseBalance } from '../../lib/blog-logic'
 
 interface Props {
   username: string
-  account: DatabaseAccount
-  profile: BridgeProfile | null
-  globalProperties: DynamicGlobalProperties | null
+  account: IDatabaseAccount | null
+  profile: IProfile | null
+  globalProperties: IGlobalProperties | null
   accountManabars: IAccountManabars | null
   avatarSize: number
   showPostCount: boolean
@@ -53,62 +57,44 @@ const {
 
 const isVertical = layout === 'vertical'
 
-// Profile metadata from bridge.get_profile
-const displayName = profile?.metadata?.profile?.name
-const about = profile?.metadata?.profile?.about
-const location = profile?.metadata?.profile?.location
-const website = profile?.metadata?.profile?.website
-const coverImage = profile?.metadata?.profile?.cover_image
-const profileImage = profile?.metadata?.profile?.profile_image
+// Profile metadata from IProfile
+const displayName = profile?.metadata?.name
+const about = profile?.metadata?.about
+const location = profile?.metadata?.location
+const website = profile?.metadata?.website
+const coverImage = profile?.metadata?.coverImage
+const profileImage = profile?.metadata?.profileImage
 
-// Stats from bridge.get_profile
+// Stats from IProfile
 const reputation = profile?.reputation
 const followers = profile?.stats?.followers
 const following = profile?.stats?.following
 const joinDate = profile?.created ? new Date(profile.created) : null
 
-// Financial data from database_api
-const postCount = account.post_count
-const postingRewardsVests = account.posting_rewards
-const curationRewardsVests = account.curation_rewards
+// Financial data from IDatabaseAccount
+const postCount = account?.postCount ?? 0
+const postingRewardsVests = account?.postingRewards ?? 0
+const curationRewardsVests = account?.curationRewards ?? 0
 const totalRewardsVests = postingRewardsVests + curationRewardsVests
 
-// Parse balance amounts (handles both string format "123.456 HIVE" and asset object format)
-function parseBalance(balance: string | { amount: string; precision: number; nai: string }): number {
-  if (typeof balance === 'string') {
-    // Handle string format: "123.456 HIVE" or "123.456 HBD"
-    return parseFloat(balance.replace(/\s*(HIVE|HBD|VESTS)$/i, ''))
-  }
-  // Handle asset object format: { amount: "123456", precision: 3, nai: "..." }
-  return parseInt(balance.amount) / Math.pow(10, balance.precision)
-}
-
-const hiveBalance = parseBalance(account.balance as string | { amount: string; precision: number; nai: string })
-const hbdBalance = parseBalance(account.hbd_balance as string | { amount: string; precision: number; nai: string })
+// Parse balance amounts
+const hiveBalance = account ? parseBalance(account.balance) : 0
+const hbdBalance = account ? parseBalance(account.hbdBalance) : 0
 
 // Calculate HP values using global properties
 let hivePower = 0
 let hpEarned = 0
-if (globalProperties) {
-  const { total_vesting_fund_hive, total_vesting_shares } = globalProperties
-
+if (globalProperties && account) {
   // Effective HP (own + received - delegated)
-  // account.vesting_shares etc. can be string or asset object format
   hivePower = calculateEffectiveHP(
-    account.vesting_shares,
-    account.delegated_vesting_shares,
-    account.received_vesting_shares,
-    total_vesting_fund_hive,
-    total_vesting_shares
+    account.vestingShares,
+    account.delegatedVestingShares,
+    account.receivedVestingShares,
+    globalProperties
   )
 
   // HP Earned (posting + curation rewards converted from VESTS to HP)
-  // Note: posting_rewards and curation_rewards are in VESTS (as numbers, not strings)
-  hpEarned = convertVestsToHP(
-    totalRewardsVests,
-    total_vesting_fund_hive,
-    total_vesting_shares
-  )
+  hpEarned = convertVestsToHP(totalRewardsVests, globalProperties)
 }
 
 // Use Blog Logic manabar data (WAX-calculated, accurate like Denser)

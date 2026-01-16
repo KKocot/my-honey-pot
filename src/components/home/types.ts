@@ -1,4 +1,4 @@
-import type { BridgePost, DatabaseAccount } from '../../lib/hive'
+import type { BridgePost, IDatabaseAccount, AccountPostsSortOption, CommentSortOption } from '../../lib/blog-logic'
 
 // ============================================
 // Types for homepage components
@@ -113,13 +113,22 @@ export interface SiteSettings {
   cardHoverScale?: number
   cardHoverShadow?: string
   cardHoverBrightness?: number
+  // Sorting settings
+  postsSortOrder?: AccountPostsSortOption
+  commentsSortOrder?: CommentSortOption
+  includeReblogs?: boolean
+  // Scroll Animation settings
+  scrollAnimationEnabled?: boolean
+  scrollAnimationType?: 'none' | 'fade' | 'slide-up' | 'slide-left' | 'zoom' | 'flip'
+  scrollAnimationDuration?: number
+  scrollAnimationDelay?: number
 }
 
 export interface HomePageData {
   siteName: string
   siteDescription: string
   hiveUsername: string | undefined
-  hiveAccount: DatabaseAccount | null
+  hiveAccount: IDatabaseAccount | null
   hivePosts: readonly BridgePost[]
   settings: SiteSettings
   error: string | null

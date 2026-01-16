@@ -1,7 +1,6 @@
 ---
 import Layout from '../layouts/Layout.astro'
-import { DataProvider, getWax, type Post as BlogLogicPost } from '../lib/blog-logic'
-import { formatHiveAmount } from '../lib/hive'
+import { DataProvider, getWax, formatHiveAmount, type Post as BlogLogicPost } from '../lib/blog-logic'
 
 const { slug } = Astro.params
 const author = import.meta.env.HIVE_USERNAME
