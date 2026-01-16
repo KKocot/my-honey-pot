@@ -1,27 +1,32 @@
 ---
 import Layout from '../layouts/Layout.astro'
-import {
-  getHivePost,
-  getNetVotes,
-  parsePostMetadata,
-  formatHiveAmount,
-  type BridgePost,
-} from '../lib/hive'
+import { DataProvider, getWax, type Post as BlogLogicPost } from '../lib/blog-logic'
+import { formatHiveAmount } from '../lib/hive'
 
 const { slug } = Astro.params
 const author = import.meta.env.HIVE_USERNAME
 const permlink = slug ?? ''
 
-let post: BridgePost | null = null
+let post: BlogLogicPost | null = null
+let postContent: string = ''
 let error: string | null = null
 
 if (!author || !permlink) {
   error = 'Invalid post address.'
 } else {
   try {
-    post = await getHivePost(author, permlink)
-    if (!post || !post.author) {
+    const chain = await getWax()
+    const dataProvider = new DataProvider(chain)
+    await dataProvider.fetchPost({ author, permlink })
+    const rawPost = dataProvider.getComment({ author, permlink })
+
+    if (!rawPost || !rawPost.author) {
       error = 'Post not found.'
+    } else {
+      // Import Post class to create the object
+      const { Post } = await import('../lib/blog-logic')
+      post = new Post({ author, permlink }, dataProvider)
+      postContent = await post.getContent()
     }
   } catch (e) {
     console.error('Error fetching Hive post:', e)
@@ -49,8 +54,18 @@ function markdownToHtml(markdown: string): string {
     .replace(/\n/gim, '<br />')
 }
 
-const metadata = post ? parsePostMetadata(post.json_metadata) : {}
-const tags = metadata.tags ?? []
+// Get tags from Blog Logic Post
+const tags = post?.tags ?? []
+
+// Get comments count (async call done during data fetching)
+let commentsCount = 0
+if (post) {
+  try {
+    commentsCount = await post.getCommentsCount()
+  } catch {
+    // If counting fails, use 0
+  }
+}
 ---
 
 <Layout title={`${post?.title ?? 'Post'} | Hive Blog`}>
@@ -92,7 +107,7 @@ const tags = metadata.tags ?? []
               @{post.author}
             </a>
             <p class="text-text-muted text-sm">
-              {new Date(post.created + 'Z').toLocaleDateString('en-US', {
+              {post.publishedAt.toLocaleDateString('en-US', {
                 year: 'numeric',
                 month: 'long',
                 day: 'numeric',
@@ -103,7 +118,7 @@ const tags = metadata.tags ?? []
 
         <div
           class="prose max-w-none mb-6"
-          set:html={`<p class="mb-4 text-text leading-relaxed">${markdownToHtml(post.body)}</p>`}
+          set:html={`<p class="mb-4 text-text leading-relaxed">${markdownToHtml(postContent)}</p>`}
         />
 
         <div class="flex flex-wrap items-center gap-x-6 gap-y-2 pt-4 border-t border-border text-text-muted">
@@ -111,16 +126,16 @@ const tags = metadata.tags ?? []
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" />
             </svg>
-            {getNetVotes(post)} votes
+            {post.votesCount} votes
           </span>
           <span class="flex items-center gap-1">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
             </svg>
-            {post.children} comments
+            {commentsCount} comments
           </span>
           <span class="text-success font-medium">
-            ${formatHiveAmount(post.pending_payout_value)} payout
+            ${formatHiveAmount(post.pendingPayoutValue)} payout
           </span>
         </div>
 
@@ -136,7 +151,7 @@ const tags = metadata.tags ?? []
 
         <div class="mt-6 pt-4 border-t border-border">
           <a
-            href={`https://hive.blog${post.url}`}
+            href={`https://hive.blog/@${post.author}/${post.permlink}`}
             target="_blank"
             rel="noopener"
             class="inline-flex items-center px-4 py-2 bg-primary text-bg-card rounded-lg hover:bg-primary-hover transition-colors font-medium"
