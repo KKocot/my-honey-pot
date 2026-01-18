@@ -36,3 +36,61 @@
   --theme-warning: #f59e0b;
   --theme-info: #06b6d4;
 }
+
+/* ============================================
+   Responsive Sidebar Layout
+   Mobile: sidebars stack above main content
+   Desktop (lg: 1024px+): sidebars on sides, main in center
+   ============================================ */
+
+.sidebar-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.sidebar-layout .sidebar-left,
+.sidebar-layout .sidebar-right {
+  width: 100%;
+  flex-shrink: 0;
+}
+
+.sidebar-layout .main-content {
+  flex: 1;
+  min-width: 0;
+  order: 3; /* Main content last on mobile */
+}
+
+.sidebar-layout .sidebar-left {
+  order: 1; /* Left sidebar first on mobile */
+}
+
+.sidebar-layout .sidebar-right {
+  order: 2; /* Right sidebar second on mobile */
+}
+
+/* Desktop layout (lg: 1024px and up) */
+@media (min-width: 1024px) {
+  .sidebar-layout {
+    flex-direction: row;
+    gap: 2rem;
+  }
+
+  .sidebar-layout .sidebar-left,
+  .sidebar-layout .sidebar-right {
+    /* Width is set via inline style --sidebar-width */
+    width: var(--sidebar-width, 280px);
+  }
+
+  .sidebar-layout .sidebar-left {
+    order: 1;
+  }
+
+  .sidebar-layout .sidebar-right {
+    order: 3;
+  }
+
+  .sidebar-layout .main-content {
+    order: 2; /* Main content in center on desktop */
+  }
+}
