@@ -368,7 +368,7 @@ export function FullPreview(props: FullPreviewProps) {
           {/* Main content */}
           <Show when={data() && !loading()}>
             <div class="max-w-7xl mx-auto px-4 py-16">
-              {/* Top slot */}
+              {/* Top slot - full width on all screens */}
               <For each={getElementsInSlot('top')}>
                 {(elementId) => (
                   <div class="mb-6">
@@ -377,12 +377,16 @@ export function FullPreview(props: FullPreviewProps) {
                 )}
               </For>
 
-              {/* Main area with optional sidebars */}
+              {/* Main area with optional sidebars - responsive layout */}
               <Show when={hasLeftSidebar() || hasRightSidebar()}>
-                <div class="flex gap-8">
+                {/* Uses sidebar-layout CSS class from global.css */}
+                <div class="sidebar-layout">
                   {/* Left Sidebar */}
                   <Show when={hasLeftSidebar()}>
-                    <aside style={`width: ${settings.sidebarWidthPx || 280}px; flex-shrink: 0;`}>
+                    <aside
+                      class="sidebar-left"
+                      style={`--sidebar-width: ${settings.sidebarWidthPx || 280}px;`}
+                    >
                       <For each={getElementsInSlot('sidebar-left')}>
                         {(elementId) => (
                           <div class="mb-4">
@@ -393,20 +397,12 @@ export function FullPreview(props: FullPreviewProps) {
                     </aside>
                   </Show>
 
-                  {/* Main Content */}
-                  <main class="flex-1 min-w-0">
-                    <For each={getElementsInSlot('main')}>
-                      {(elementId) => (
-                        <div class="mb-6">
-                          <ElementRenderer elementId={elementId} />
-                        </div>
-                      )}
-                    </For>
-                  </main>
-
                   {/* Right Sidebar */}
                   <Show when={hasRightSidebar()}>
-                    <aside style={`width: ${settings.sidebarWidthPx || 280}px; flex-shrink: 0;`}>
+                    <aside
+                      class="sidebar-right"
+                      style={`--sidebar-width: ${settings.sidebarWidthPx || 280}px;`}
+                    >
                       <For each={getElementsInSlot('sidebar-right')}>
                         {(elementId) => (
                           <div class="mb-4">
@@ -416,6 +412,17 @@ export function FullPreview(props: FullPreviewProps) {
                       </For>
                     </aside>
                   </Show>
+
+                  {/* Main Content */}
+                  <main class="main-content">
+                    <For each={getElementsInSlot('main')}>
+                      {(elementId) => (
+                        <div class="mb-6">
+                          <ElementRenderer elementId={elementId} />
+                        </div>
+                      )}
+                    </For>
+                  </main>
                 </div>
               </Show>
 
@@ -430,7 +437,7 @@ export function FullPreview(props: FullPreviewProps) {
                 </For>
               </Show>
 
-              {/* Bottom slot */}
+              {/* Bottom slot - full width on all screens */}
               <For each={getElementsInSlot('bottom')}>
                 {(elementId) => (
                   <div class="mt-6">

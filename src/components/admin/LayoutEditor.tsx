@@ -589,55 +589,81 @@ function PageLayoutPreview() {
 
   return (
     <div class="bg-bg rounded-lg p-4 border border-border">
-      <p class="text-xs text-text-muted mb-3 uppercase tracking-wide">Preview (scaled)</p>
+      <div class="flex items-center justify-between mb-3">
+        <p class="text-xs text-text-muted uppercase tracking-wide">Preview (scaled)</p>
+        <div class="flex items-center gap-2 text-[9px] text-text-muted">
+          <span class="hidden sm:inline px-1.5 py-0.5 rounded bg-bg-secondary border border-border">Desktop</span>
+          <span class="sm:hidden px-1.5 py-0.5 rounded bg-primary/20 text-primary border border-primary/30">Mobile</span>
+        </div>
+      </div>
 
       <div class="border-2 border-dashed border-border rounded-lg overflow-hidden bg-bg-card min-h-[400px]">
-        {/* Top slot */}
+        {/* Top slot - full width on all screens */}
         <Show when={slotHasElements('top')}>
           <div class="border-b border-border p-2 bg-bg-secondary/50">
+            <div class="text-[7px] text-text-muted mb-1 uppercase tracking-wider opacity-60">Header Area</div>
             <For each={getSectionsInSlot('top')}>
               {(section) => renderSection(section, true)}
             </For>
           </div>
         </Show>
 
-        {/* Middle area - only show if any of the middle slots have content */}
+        {/* Middle area - responsive layout */}
         <Show when={hasMiddleArea()}>
-          <div class="flex min-h-[250px]">
+          {/* Desktop: flex row | Mobile: flex column (sidebars above main) */}
+          <div class="flex flex-col sm:flex-row min-h-[250px]">
+            {/* Left Sidebar */}
             <Show when={hasLeftSidebar()}>
-              <div class="w-1/4 border-r border-border p-2 bg-bg-secondary/30">
+              <div class="w-full sm:w-1/4 border-b sm:border-b-0 sm:border-r border-border p-2 bg-bg-secondary/30">
+                <div class="text-[7px] text-text-muted mb-1 uppercase tracking-wider opacity-60">
+                  Left Sidebar <span class="sm:hidden">(mobile: above)</span>
+                </div>
                 <For each={getSectionsInSlot('sidebar-left')}>
                   {(section) => renderSection(section, true)}
                 </For>
               </div>
             </Show>
 
-            <Show when={hasMain()}>
-              <div class="flex-1 p-2">
-                <For each={getSectionsInSlot('main')}>
-                  {(section) => renderSection(section, false)}
-                </For>
-              </div>
-            </Show>
-
+            {/* Right Sidebar - on mobile appears after left sidebar, on desktop is on right */}
             <Show when={hasRightSidebar()}>
-              <div class="w-1/4 border-l border-border p-2 bg-bg-secondary/30">
+              <div class="w-full sm:w-1/4 border-b sm:border-b-0 sm:border-l border-border p-2 bg-bg-secondary/30 order-none sm:order-last">
+                <div class="text-[7px] text-text-muted mb-1 uppercase tracking-wider opacity-60">
+                  Right Sidebar <span class="sm:hidden">(mobile: above)</span>
+                </div>
                 <For each={getSectionsInSlot('sidebar-right')}>
                   {(section) => renderSection(section, true)}
                 </For>
               </div>
             </Show>
+
+            {/* Main Content - always in center, on mobile appears last */}
+            <Show when={hasMain()}>
+              <div class="flex-1 p-2 order-last sm:order-none">
+                <div class="text-[7px] text-text-muted mb-1 uppercase tracking-wider opacity-60 sm:hidden">Main Content</div>
+                <For each={getSectionsInSlot('main')}>
+                  {(section) => renderSection(section, false)}
+                </For>
+              </div>
+            </Show>
           </div>
         </Show>
 
-        {/* Bottom slot */}
+        {/* Bottom slot - full width on all screens */}
         <Show when={slotHasElements('bottom')}>
           <div class="border-t border-border p-2 bg-bg-secondary/50">
+            <div class="text-[7px] text-text-muted mb-1 uppercase tracking-wider opacity-60">Footer Area</div>
             <For each={getSectionsInSlot('bottom')}>
               {(section) => renderSection(section, true)}
             </For>
           </div>
         </Show>
+      </div>
+
+      {/* Responsive behavior info */}
+      <div class="mt-3 p-2 bg-bg-secondary/50 rounded-lg border border-border">
+        <p class="text-[9px] text-text-muted">
+          <span class="font-medium text-text">Mobile behavior:</span> Both sidebars stack above the main content. Main content always appears last on mobile screens.
+        </p>
       </div>
     </div>
   )

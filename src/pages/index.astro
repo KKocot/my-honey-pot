@@ -351,75 +351,75 @@ const isFirstPage = !cursor
       </div>
     )}
 
-    {/* Main content with optional sidebars */}
+    {/* Main content with optional sidebars - Responsive Layout */}
     {hasSidebars ? (
-      <div class="flex gap-8">
-        {/* Left Sidebar */}
+      <div class="sidebar-layout">
+        {/* Left Sidebar - Mobile: above main content | Desktop: left side with fixed width */}
         {hasLeftSidebar && (
-          <aside style={`width: ${sidebarWidthPx}px; flex-shrink: 0;`}>
-            {getElementsInSlot('sidebar-left').map(elementId => (
-              <div class="mb-4">
-                {elementId === 'header' && showHeader && (
-                  <div class="pb-4 border-b border-border">
-                    <h1 class="text-xl font-bold text-text">{siteName}</h1>
-                    <p class="text-text-muted mt-1 text-sm">{siteDescription}</p>
-                  </div>
-                )}
-                {elementId === 'authorProfile' && showAuthorProfile && hiveUsername && hiveAccount && (
-                  <AuthorProfile {...authorProfileBaseProps} layout="vertical" />
-                )}
-                {elementId === 'navigation' && (
-                  <nav class="bg-bg-card rounded-lg p-3 border border-border">
-                    <p class="text-text-muted text-xs">Navigation</p>
-                  </nav>
-                )}
-                {elementId === 'search' && (
-                  <div class="bg-bg-card rounded-lg p-3 border border-border">
-                    <p class="text-text-muted text-xs">Search</p>
-                  </div>
-                )}
-                {elementId === 'tags' && (
-                  <div class="bg-bg-card rounded-lg p-3 border border-border">
-                    <p class="text-text-muted text-xs">Tags</p>
-                  </div>
-                )}
-                {elementId === 'recentPosts' && (
-                  <div class="bg-bg-card rounded-lg p-3 border border-border">
-                    <p class="text-text-muted text-xs">Recent Posts</p>
-                  </div>
-                )}
-                {elementId === 'posts' && hiveUsername && (
-                  <div class="bg-bg-card rounded-lg p-3 border border-border">
-                    {blogLogicPosts.length > 0 ? (
-                      <BlogLogicPostsGrid posts={blogLogicPosts} settings={settings} />
-                    ) : (
-                      <p class="text-text-muted text-xs">No posts</p>
-                    )}
-                  </div>
-                )}
-                {elementId === 'comments' && hiveUsername && showCommentsTab && (
-                  <div class="bg-bg-card rounded-lg p-3 border border-border">
-                    {hiveComments.length > 0 ? (
-                      <div class="space-y-2">
-                        {hiveComments.slice(0, 5).map(comment => (
-                          <CommentCard comment={comment} settings={settings} layout="list" />
-                        ))}
-                      </div>
-                    ) : (
-                      <p class="text-text-muted text-xs">No comments</p>
-                    )}
-                  </div>
-                )}
-                {elementId === 'footer' && (
-                  <Footer />
-                )}
-              </div>
-            ))}
+          <aside class="sidebar-left" style={`--sidebar-width: ${sidebarWidthPx}px;`}>
+              {getElementsInSlot('sidebar-left').map(elementId => (
+                <div class="mb-4">
+                  {elementId === 'header' && showHeader && (
+                    <div class="pb-4 border-b border-border">
+                      <h1 class="text-xl font-bold text-text">{siteName}</h1>
+                      <p class="text-text-muted mt-1 text-sm">{siteDescription}</p>
+                    </div>
+                  )}
+                  {elementId === 'authorProfile' && showAuthorProfile && hiveUsername && hiveAccount && (
+                    <AuthorProfile {...authorProfileBaseProps} layout="vertical" />
+                  )}
+                  {elementId === 'navigation' && (
+                    <nav class="bg-bg-card rounded-lg p-3 border border-border">
+                      <p class="text-text-muted text-xs">Navigation</p>
+                    </nav>
+                  )}
+                  {elementId === 'search' && (
+                    <div class="bg-bg-card rounded-lg p-3 border border-border">
+                      <p class="text-text-muted text-xs">Search</p>
+                    </div>
+                  )}
+                  {elementId === 'tags' && (
+                    <div class="bg-bg-card rounded-lg p-3 border border-border">
+                      <p class="text-text-muted text-xs">Tags</p>
+                    </div>
+                  )}
+                  {elementId === 'recentPosts' && (
+                    <div class="bg-bg-card rounded-lg p-3 border border-border">
+                      <p class="text-text-muted text-xs">Recent Posts</p>
+                    </div>
+                  )}
+                  {elementId === 'posts' && hiveUsername && (
+                    <div class="bg-bg-card rounded-lg p-3 border border-border">
+                      {blogLogicPosts.length > 0 ? (
+                        <BlogLogicPostsGrid posts={blogLogicPosts} settings={settings} />
+                      ) : (
+                        <p class="text-text-muted text-xs">No posts</p>
+                      )}
+                    </div>
+                  )}
+                  {elementId === 'comments' && hiveUsername && showCommentsTab && (
+                    <div class="bg-bg-card rounded-lg p-3 border border-border">
+                      {hiveComments.length > 0 ? (
+                        <div class="space-y-2">
+                          {hiveComments.slice(0, 5).map(comment => (
+                            <CommentCard comment={comment} settings={settings} layout="list" />
+                          ))}
+                        </div>
+                      ) : (
+                        <p class="text-text-muted text-xs">No comments</p>
+                      )}
+                    </div>
+                  )}
+                  {elementId === 'footer' && (
+                    <Footer />
+                  )}
+                </div>
+              ))}
           </aside>
         )}
 
-        {/* Main Content */}
-        <main class="flex-1 min-w-0">
+        {/* Main Content - always in the center */}
+        <main class="main-content">
           {getElementsInSlot('main').map(elementId => (
             <div class="mb-6">
               {elementId === 'header' && showHeader && (
@@ -544,67 +544,67 @@ const isFirstPage = !cursor
           ))}
         </main>
 
-        {/* Right Sidebar */}
+        {/* Right Sidebar - Mobile: above main content (after left sidebar) | Desktop: right side */}
         {hasRightSidebar && (
-          <aside style={`width: ${sidebarWidthPx}px; flex-shrink: 0;`}>
-            {getElementsInSlot('sidebar-right').map(elementId => (
-              <div class="mb-4">
-                {elementId === 'header' && showHeader && (
-                  <div class="pb-4 border-b border-border">
-                    <h1 class="text-xl font-bold text-text">{siteName}</h1>
-                    <p class="text-text-muted mt-1 text-sm">{siteDescription}</p>
-                  </div>
-                )}
-                {elementId === 'authorProfile' && showAuthorProfile && hiveUsername && hiveAccount && (
-                  <AuthorProfile {...authorProfileBaseProps} layout="vertical" />
-                )}
-                {elementId === 'navigation' && (
-                  <nav class="bg-bg-card rounded-lg p-3 border border-border">
-                    <p class="text-text-muted text-xs">Navigation</p>
-                  </nav>
-                )}
-                {elementId === 'search' && (
-                  <div class="bg-bg-card rounded-lg p-3 border border-border">
-                    <p class="text-text-muted text-xs">Search</p>
-                  </div>
-                )}
-                {elementId === 'tags' && (
-                  <div class="bg-bg-card rounded-lg p-3 border border-border">
-                    <p class="text-text-muted text-xs">Tags</p>
-                  </div>
-                )}
-                {elementId === 'recentPosts' && (
-                  <div class="bg-bg-card rounded-lg p-3 border border-border">
-                    <p class="text-text-muted text-xs">Recent Posts</p>
-                  </div>
-                )}
-                {elementId === 'posts' && hiveUsername && (
-                  <div class="bg-bg-card rounded-lg p-3 border border-border">
-                    {blogLogicPosts.length > 0 ? (
-                      <BlogLogicPostsGrid posts={blogLogicPosts} settings={settings} />
-                    ) : (
-                      <p class="text-text-muted text-xs">No posts</p>
-                    )}
-                  </div>
-                )}
-                {elementId === 'comments' && hiveUsername && showCommentsTab && (
-                  <div class="bg-bg-card rounded-lg p-3 border border-border">
-                    {hiveComments.length > 0 ? (
-                      <div class="space-y-2">
-                        {hiveComments.slice(0, 5).map(comment => (
-                          <CommentCard comment={comment} settings={settings} layout="list" />
-                        ))}
-                      </div>
-                    ) : (
-                      <p class="text-text-muted text-xs">No comments</p>
-                    )}
-                  </div>
-                )}
-                {elementId === 'footer' && (
-                  <Footer />
-                )}
-              </div>
-            ))}
+          <aside class="sidebar-right" style={`--sidebar-width: ${sidebarWidthPx}px;`}>
+              {getElementsInSlot('sidebar-right').map(elementId => (
+                <div class="mb-4">
+                  {elementId === 'header' && showHeader && (
+                    <div class="pb-4 border-b border-border">
+                      <h1 class="text-xl font-bold text-text">{siteName}</h1>
+                      <p class="text-text-muted mt-1 text-sm">{siteDescription}</p>
+                    </div>
+                  )}
+                  {elementId === 'authorProfile' && showAuthorProfile && hiveUsername && hiveAccount && (
+                    <AuthorProfile {...authorProfileBaseProps} layout="vertical" />
+                  )}
+                  {elementId === 'navigation' && (
+                    <nav class="bg-bg-card rounded-lg p-3 border border-border">
+                      <p class="text-text-muted text-xs">Navigation</p>
+                    </nav>
+                  )}
+                  {elementId === 'search' && (
+                    <div class="bg-bg-card rounded-lg p-3 border border-border">
+                      <p class="text-text-muted text-xs">Search</p>
+                    </div>
+                  )}
+                  {elementId === 'tags' && (
+                    <div class="bg-bg-card rounded-lg p-3 border border-border">
+                      <p class="text-text-muted text-xs">Tags</p>
+                    </div>
+                  )}
+                  {elementId === 'recentPosts' && (
+                    <div class="bg-bg-card rounded-lg p-3 border border-border">
+                      <p class="text-text-muted text-xs">Recent Posts</p>
+                    </div>
+                  )}
+                  {elementId === 'posts' && hiveUsername && (
+                    <div class="bg-bg-card rounded-lg p-3 border border-border">
+                      {blogLogicPosts.length > 0 ? (
+                        <BlogLogicPostsGrid posts={blogLogicPosts} settings={settings} />
+                      ) : (
+                        <p class="text-text-muted text-xs">No posts</p>
+                      )}
+                    </div>
+                  )}
+                  {elementId === 'comments' && hiveUsername && showCommentsTab && (
+                    <div class="bg-bg-card rounded-lg p-3 border border-border">
+                      {hiveComments.length > 0 ? (
+                        <div class="space-y-2">
+                          {hiveComments.slice(0, 5).map(comment => (
+                            <CommentCard comment={comment} settings={settings} layout="list" />
+                          ))}
+                        </div>
+                      ) : (
+                        <p class="text-text-muted text-xs">No comments</p>
+                      )}
+                    </div>
+                  )}
+                  {elementId === 'footer' && (
+                    <Footer />
+                  )}
+                </div>
+              ))}
           </aside>
         )}
       </div>
