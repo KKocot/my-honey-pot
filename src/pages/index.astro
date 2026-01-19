@@ -18,6 +18,7 @@ import {
 } from '../lib/blog-logic'
 
 import Header from '../components/home/Header.astro'
+import Navigation from '../components/home/Navigation.astro'
 import AuthorProfile from '../components/home/AuthorProfile.astro'
 import BlogLogicPostsGrid from '../components/home/BlogLogicPostsGrid.astro'
 import Footer from '../components/home/Footer.astro'
@@ -281,6 +282,9 @@ const isFirstPage = !cursor
         {elementId === 'header' && showHeader && (
           <Header siteName={siteName} siteDescription={siteDescription} />
         )}
+        {elementId === 'navigation' && (
+          <Navigation activeTab={activeTab} postsCount={blogLogicPosts.length} commentsCount={hiveComments.length} />
+        )}
         {elementId === 'authorProfile' && showAuthorProfile && hiveUsername && hiveAccount && (
           <AuthorProfile {...authorProfileBaseProps} layout={authorProfileLayout} />
         )}
@@ -307,26 +311,6 @@ const isFirstPage = !cursor
               </div>
             )}
           </>
-        )}
-        {elementId === 'navigation' && (
-          <nav class="bg-bg-card rounded-xl p-4 border border-border">
-            <p class="text-text-muted text-sm">Navigation (placeholder)</p>
-          </nav>
-        )}
-        {elementId === 'search' && (
-          <div class="bg-bg-card rounded-xl p-4 border border-border">
-            <p class="text-text-muted text-sm">Search (placeholder)</p>
-          </div>
-        )}
-        {elementId === 'tags' && (
-          <div class="bg-bg-card rounded-xl p-4 border border-border">
-            <p class="text-text-muted text-sm">Tags Cloud (placeholder)</p>
-          </div>
-        )}
-        {elementId === 'recentPosts' && (
-          <div class="bg-bg-card rounded-xl p-4 border border-border">
-            <p class="text-text-muted text-sm">Recent Posts (placeholder)</p>
-          </div>
         )}
         {elementId === 'footer' && (
           <Footer />
@@ -361,28 +345,11 @@ const isFirstPage = !cursor
                       <p class="text-text-muted mt-1 text-sm">{siteDescription}</p>
                     </div>
                   )}
+                  {elementId === 'navigation' && (
+                    <Navigation activeTab={activeTab} postsCount={blogLogicPosts.length} commentsCount={hiveComments.length} />
+                  )}
                   {elementId === 'authorProfile' && showAuthorProfile && hiveUsername && hiveAccount && (
                     <AuthorProfile {...authorProfileBaseProps} layout="vertical" />
-                  )}
-                  {elementId === 'navigation' && (
-                    <nav class="bg-bg-card rounded-lg p-3 border border-border">
-                      <p class="text-text-muted text-xs">Navigation</p>
-                    </nav>
-                  )}
-                  {elementId === 'search' && (
-                    <div class="bg-bg-card rounded-lg p-3 border border-border">
-                      <p class="text-text-muted text-xs">Search</p>
-                    </div>
-                  )}
-                  {elementId === 'tags' && (
-                    <div class="bg-bg-card rounded-lg p-3 border border-border">
-                      <p class="text-text-muted text-xs">Tags</p>
-                    </div>
-                  )}
-                  {elementId === 'recentPosts' && (
-                    <div class="bg-bg-card rounded-lg p-3 border border-border">
-                      <p class="text-text-muted text-xs">Recent Posts</p>
-                    </div>
                   )}
                   {elementId === 'posts' && hiveUsername && (
                     <div class="bg-bg-card rounded-lg p-3 border border-border">
@@ -420,6 +387,9 @@ const isFirstPage = !cursor
             <div class="mb-6">
               {elementId === 'header' && showHeader && (
                 <Header siteName={siteName} siteDescription={siteDescription} />
+              )}
+              {elementId === 'navigation' && (
+                <Navigation activeTab={activeTab} postsCount={blogLogicPosts.length} commentsCount={hiveComments.length} />
               )}
               {elementId === 'authorProfile' && showAuthorProfile && hiveUsername && hiveAccount && (
                 <AuthorProfile {...authorProfileBaseProps} layout={authorProfileLayout} />
@@ -497,26 +467,6 @@ const isFirstPage = !cursor
                   ))}
                 </div>
               )}
-              {elementId === 'navigation' && (
-                <nav class="bg-bg-card rounded-xl p-4 border border-border">
-                  <p class="text-text-muted text-sm">Navigation (placeholder)</p>
-                </nav>
-              )}
-              {elementId === 'search' && (
-                <div class="bg-bg-card rounded-xl p-4 border border-border">
-                  <p class="text-text-muted text-sm">Search (placeholder)</p>
-                </div>
-              )}
-              {elementId === 'tags' && (
-                <div class="bg-bg-card rounded-xl p-4 border border-border">
-                  <p class="text-text-muted text-sm">Tags Cloud (placeholder)</p>
-                </div>
-              )}
-              {elementId === 'recentPosts' && (
-                <div class="bg-bg-card rounded-xl p-4 border border-border">
-                  <p class="text-text-muted text-sm">Recent Posts (placeholder)</p>
-                </div>
-              )}
               {elementId === 'footer' && (
                 <Footer />
               )}
@@ -535,28 +485,11 @@ const isFirstPage = !cursor
                       <p class="text-text-muted mt-1 text-sm">{siteDescription}</p>
                     </div>
                   )}
+                  {elementId === 'navigation' && (
+                    <Navigation activeTab={activeTab} postsCount={blogLogicPosts.length} commentsCount={hiveComments.length} />
+                  )}
                   {elementId === 'authorProfile' && showAuthorProfile && hiveUsername && hiveAccount && (
                     <AuthorProfile {...authorProfileBaseProps} layout="vertical" />
-                  )}
-                  {elementId === 'navigation' && (
-                    <nav class="bg-bg-card rounded-lg p-3 border border-border">
-                      <p class="text-text-muted text-xs">Navigation</p>
-                    </nav>
-                  )}
-                  {elementId === 'search' && (
-                    <div class="bg-bg-card rounded-lg p-3 border border-border">
-                      <p class="text-text-muted text-xs">Search</p>
-                    </div>
-                  )}
-                  {elementId === 'tags' && (
-                    <div class="bg-bg-card rounded-lg p-3 border border-border">
-                      <p class="text-text-muted text-xs">Tags</p>
-                    </div>
-                  )}
-                  {elementId === 'recentPosts' && (
-                    <div class="bg-bg-card rounded-lg p-3 border border-border">
-                      <p class="text-text-muted text-xs">Recent Posts</p>
-                    </div>
                   )}
                   {elementId === 'posts' && hiveUsername && (
                     <div class="bg-bg-card rounded-lg p-3 border border-border">
@@ -595,6 +528,9 @@ const isFirstPage = !cursor
           <div class="mb-6">
             {elementId === 'header' && showHeader && (
               <Header siteName={siteName} siteDescription={siteDescription} />
+            )}
+            {elementId === 'navigation' && (
+              <Navigation activeTab={activeTab} postsCount={blogLogicPosts.length} commentsCount={hiveComments.length} />
             )}
             {elementId === 'authorProfile' && showAuthorProfile && hiveUsername && hiveAccount && (
               <AuthorProfile {...authorProfileBaseProps} layout={authorProfileLayout} />
@@ -672,26 +608,6 @@ const isFirstPage = !cursor
                 ))}
               </div>
             )}
-            {elementId === 'navigation' && (
-              <nav class="bg-bg-card rounded-xl p-4 border border-border">
-                <p class="text-text-muted text-sm">Navigation (placeholder)</p>
-              </nav>
-            )}
-            {elementId === 'search' && (
-              <div class="bg-bg-card rounded-xl p-4 border border-border">
-                <p class="text-text-muted text-sm">Search (placeholder)</p>
-              </div>
-            )}
-            {elementId === 'tags' && (
-              <div class="bg-bg-card rounded-xl p-4 border border-border">
-                <p class="text-text-muted text-sm">Tags Cloud (placeholder)</p>
-              </div>
-            )}
-            {elementId === 'recentPosts' && (
-              <div class="bg-bg-card rounded-xl p-4 border border-border">
-                <p class="text-text-muted text-sm">Recent Posts (placeholder)</p>
-              </div>
-            )}
             {elementId === 'footer' && (
               <Footer />
             )}
@@ -708,6 +624,9 @@ const isFirstPage = !cursor
             <h1 class="text-2xl font-bold text-text">{siteName}</h1>
             <p class="text-text-muted mt-1">{siteDescription}</p>
           </div>
+        )}
+        {elementId === 'navigation' && (
+          <Navigation activeTab={activeTab} postsCount={blogLogicPosts.length} commentsCount={hiveComments.length} />
         )}
         {elementId === 'authorProfile' && showAuthorProfile && hiveUsername && hiveAccount && (
           <AuthorProfile {...authorProfileBaseProps} layout={authorProfileLayout} />
@@ -733,26 +652,6 @@ const isFirstPage = !cursor
               </div>
             )}
           </>
-        )}
-        {elementId === 'navigation' && (
-          <nav class="bg-bg-card rounded-xl p-4 border border-border">
-            <p class="text-text-muted text-sm">Navigation (placeholder)</p>
-          </nav>
-        )}
-        {elementId === 'search' && (
-          <div class="bg-bg-card rounded-xl p-4 border border-border">
-            <p class="text-text-muted text-sm">Search (placeholder)</p>
-          </div>
-        )}
-        {elementId === 'tags' && (
-          <div class="bg-bg-card rounded-xl p-4 border border-border">
-            <p class="text-text-muted text-sm">Tags Cloud (placeholder)</p>
-          </div>
-        )}
-        {elementId === 'recentPosts' && (
-          <div class="bg-bg-card rounded-xl p-4 border border-border">
-            <p class="text-text-muted text-sm">Recent Posts (placeholder)</p>
-          </div>
         )}
         {elementId === 'footer' && (
           <Footer />
