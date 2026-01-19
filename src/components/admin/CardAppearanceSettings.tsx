@@ -6,11 +6,12 @@ import { CardLayoutEditor } from './CardLayoutEditor'
 import { PostCard, samplePosts } from './PostCardPreview'
 
 // All available post card element IDs
-const POST_CARD_ELEMENT_IDS = ['thumbnail', 'title', 'summary', 'date', 'votes', 'comments', 'payout', 'tags']
+const POST_CARD_ELEMENT_IDS = ['thumbnail', 'avatar', 'title', 'summary', 'date', 'votes', 'comments', 'payout', 'tags']
 
 // Extended labels for individual elements
 const extendedPostCardElementLabels: Record<string, string> = {
   ...postCardElementLabels,
+  avatar: 'Avatar',
   date: 'Date',
   votes: 'Votes',
   comments: 'Comments',
