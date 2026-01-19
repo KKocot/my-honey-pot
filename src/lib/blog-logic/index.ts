@@ -49,6 +49,7 @@ export type {
   IProfileMetadata,
   IDatabaseAccount,
   IGlobalProperties,
+  IFullUserData,
   CommentSortOption,
   IPaginationCursor,
   IPaginatedResult,
@@ -63,6 +64,12 @@ export {
   parseBalance,
   parseVests,
   parseHive,
+  // Display formatting utilities
+  formatCompactNumber,
+  formatNumber,
+  formatJoinDate,
+  calculateVotingPower,
+  formatReputation,
 } from "./utils";
 export { WorkerBeeError } from "./errors";
 

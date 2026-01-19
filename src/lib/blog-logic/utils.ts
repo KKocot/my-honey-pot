@@ -99,3 +99,61 @@ export function calculateEffectiveHP(
 
   return convertVestsToHP(effectiveVests, globalProps);
 }
+
+// ============================================================================
+// Formatting Utilities for Display
+// ============================================================================
+
+/**
+ * Format a large number with K/M suffix
+ * @example 12500 -> "12.5K", 1234567 -> "1.2M"
+ */
+export function formatCompactNumber(num: number): string {
+  if (num >= 1000000) {
+    return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+  }
+  if (num >= 1000) {
+    return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
+  }
+  return num.toString();
+}
+
+/**
+ * Format a number with fixed decimals
+ * @example 12345.678 -> "12,345.678"
+ */
+export function formatNumber(num: number, decimals = 3): string {
+  return num.toLocaleString('en-US', {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+  });
+}
+
+/**
+ * Format date to readable string
+ * @example "2016-03-25T15:09:27" -> "Mar 2016"
+ */
+export function formatJoinDate(dateStr: string): string {
+  const date = new Date(dateStr + 'Z');
+  return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+}
+
+/**
+ * Calculate voting power percentage from manabar
+ * Voting power regenerates 20% per day (full in 5 days)
+ */
+export function calculateVotingPower(current: bigint, max: bigint): number {
+  if (max === 0n) return 100;
+  return Number((current * 10000n) / max) / 100;
+}
+
+/**
+ * Format reputation score
+ * Hive reputation is stored as a large number, need to convert to readable format
+ * Formula: log10(rep - 10^12) * 9 - 56 (approximately)
+ * For bridge.get_profile, reputation is already formatted as float
+ */
+export function formatReputation(rep: number): number {
+  // bridge.get_profile already returns formatted reputation (e.g., 78.5)
+  return Math.floor(rep);
+}

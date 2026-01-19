@@ -13,11 +13,12 @@ import type {
   IProfile,
   IDatabaseAccount,
   IGlobalProperties,
+  IFullUserData,
   CommentSortOption,
   IPaginationCursor,
   IPaginatedResult,
 } from "./interfaces";
-import { paginateData } from "./utils";
+import { paginateData, convertVestsToHP, calculateEffectiveHP, parseBalance } from "./utils";
 import { getWax, resetWax, type WaxExtendedChain } from "./wax";
 
 const MAX_RETRIES = 3;
@@ -383,6 +384,58 @@ export class DataProvider {
       items,
       hasMore,
       nextCursor,
+    };
+  }
+
+  /**
+   * Get complete user data combining profile and financial information
+   * Uses bridge.get_profile (no condenser_api) and database_api.find_accounts
+   */
+  public async getFullUserData(username: string): Promise<IFullUserData | null> {
+    // Fetch profile and database account in parallel
+    const [profile, dbAccount, globalProps] = await Promise.all([
+      this.getProfile(username),
+      this.getDatabaseAccount(username),
+      this.getGlobalProperties(),
+    ]);
+
+    if (!profile) return null;
+
+    // Calculate HP values
+    const hivePower = dbAccount
+      ? convertVestsToHP(parseBalance(dbAccount.vestingShares), globalProps)
+      : 0;
+
+    const effectiveHivePower = dbAccount
+      ? calculateEffectiveHP(
+          dbAccount.vestingShares,
+          dbAccount.delegatedVestingShares,
+          dbAccount.receivedVestingShares,
+          globalProps
+        )
+      : 0;
+
+    return {
+      // Profile data
+      name: profile.name,
+      created: profile.created,
+      postCount: profile.postCount,
+      reputation: profile.reputation,
+      stats: profile.stats,
+      metadata: profile.metadata,
+
+      // Financial data
+      balance: dbAccount?.balance ?? "0 HIVE",
+      hbdBalance: dbAccount?.hbdBalance ?? "0 HBD",
+      vestingShares: dbAccount?.vestingShares ?? "0 VESTS",
+      delegatedVestingShares: dbAccount?.delegatedVestingShares ?? "0 VESTS",
+      receivedVestingShares: dbAccount?.receivedVestingShares ?? "0 VESTS",
+      curationRewards: dbAccount?.curationRewards ?? 0,
+      postingRewards: dbAccount?.postingRewards ?? 0,
+
+      // Calculated values
+      hivePower,
+      effectiveHivePower,
     };
   }
 

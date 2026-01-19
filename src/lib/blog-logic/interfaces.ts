@@ -128,6 +128,30 @@ export interface IGlobalProperties {
   readonly totalVestingShares: string;
 }
 
+/** Complete user data combining profile and financial information */
+export interface IFullUserData {
+  // From bridge.get_profile
+  readonly name: string;
+  readonly created: string;
+  readonly postCount: number;
+  readonly reputation: number;
+  readonly stats: IProfileStats;
+  readonly metadata: IProfileMetadata;
+
+  // From database_api.find_accounts - financial data
+  readonly balance: string;
+  readonly hbdBalance: string;
+  readonly vestingShares: string;
+  readonly delegatedVestingShares: string;
+  readonly receivedVestingShares: string;
+  readonly curationRewards: number;
+  readonly postingRewards: number;
+
+  // Calculated values
+  readonly hivePower: number;
+  readonly effectiveHivePower: number;
+}
+
 /** Comment sort options */
 export type CommentSortOption = "comments" | "replies";
 
