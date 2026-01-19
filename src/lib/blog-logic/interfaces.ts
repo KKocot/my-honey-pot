@@ -1,6 +1,8 @@
 // WORK IN PROGRESS
-import type { TAccountName, IOnlineSignatureProvider } from "@hiveio/wax";
+import type { TAccountName, IOnlineSignatureProvider, NaiAsset } from "@hiveio/wax";
 import { type Observer } from "./types";
+
+export type { NaiAsset };
 
 export interface IPagination {
   page: number;
@@ -112,11 +114,16 @@ export interface IProfile {
 /** Database account data for financial information */
 export interface IDatabaseAccount {
   readonly name: string;
+  /** Formatted string e.g. "123.456 HIVE" */
   readonly balance: string;
+  /** Formatted string e.g. "45.678 HBD" */
   readonly hbdBalance: string;
-  readonly vestingShares: string;
-  readonly delegatedVestingShares: string;
-  readonly receivedVestingShares: string;
+  /** Raw NaiAsset for HP calculations */
+  readonly vestingShares: NaiAsset;
+  /** Raw NaiAsset for HP calculations */
+  readonly delegatedVestingShares: NaiAsset;
+  /** Raw NaiAsset for HP calculations */
+  readonly receivedVestingShares: NaiAsset;
   readonly postCount: number;
   readonly curationRewards: number;
   readonly postingRewards: number;
@@ -124,8 +131,10 @@ export interface IDatabaseAccount {
 
 /** Dynamic global properties for VESTS to HP conversion */
 export interface IGlobalProperties {
-  readonly totalVestingFundHive: string;
-  readonly totalVestingShares: string;
+  /** Raw NaiAsset for HP calculations */
+  readonly totalVestingFundHive: NaiAsset;
+  /** Raw NaiAsset for HP calculations */
+  readonly totalVestingShares: NaiAsset;
 }
 
 /** Complete user data combining profile and financial information */
@@ -138,18 +147,15 @@ export interface IFullUserData {
   readonly stats: IProfileStats;
   readonly metadata: IProfileMetadata;
 
-  // From database_api.find_accounts - financial data
+  // From database_api.find_accounts - financial data (formatted for display)
   readonly balance: string;
   readonly hbdBalance: string;
-  readonly vestingShares: string;
-  readonly delegatedVestingShares: string;
-  readonly receivedVestingShares: string;
   readonly curationRewards: number;
   readonly postingRewards: number;
 
-  // Calculated values
-  readonly hivePower: number;
-  readonly effectiveHivePower: number;
+  // Calculated HP values (formatted strings e.g. "1234.567 HIVE")
+  readonly hivePower: string;
+  readonly effectiveHivePower: string;
 }
 
 /** Comment sort options */

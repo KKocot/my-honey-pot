@@ -13,6 +13,7 @@ import {
   type IDatabaseAccount,
   type IGlobalProperties,
   type BridgePost,
+  type NaiAsset,
 } from '../../lib/blog-logic'
 
 // ============================================
@@ -275,32 +276,19 @@ export interface HiveData {
 // Re-export utilities from blog-logic for convenience
 export { formatCompactNumber, formatJoinDate }
 
-// Calculate effective HP using blog-logic (exported for backwards compatibility)
-// Accepts either blog-logic IDatabaseAccount or individual vesting strings
+// Calculate effective HP using blog-logic
+// Accepts NaiAsset values (from IDatabaseAccount and IGlobalProperties)
 export function calculateEffectiveHivePower(
-  vestingSharesOrAccount: string | IDatabaseAccount,
-  delegatedOrGlobalProps?: string | IGlobalProperties,
-  received?: string,
-  globalProps?: IGlobalProperties
+  vestingShares: NaiAsset,
+  delegatedVestingShares: NaiAsset,
+  receivedVestingShares: NaiAsset,
+  globalProps: IGlobalProperties
 ): number {
-  // New signature: (dbAccount, globalProps)
-  if (typeof vestingSharesOrAccount === 'object' && 'vestingShares' in vestingSharesOrAccount) {
-    const dbAccount = vestingSharesOrAccount
-    const props = delegatedOrGlobalProps as IGlobalProperties
-    return calculateEffectiveHP(
-      dbAccount.vestingShares,
-      dbAccount.delegatedVestingShares,
-      dbAccount.receivedVestingShares,
-      props
-    )
-  }
-
-  // Legacy signature: (vestingShares, delegatedVestingShares, receivedVestingShares, globalProps)
   return calculateEffectiveHP(
-    vestingSharesOrAccount as string,
-    delegatedOrGlobalProps as string,
-    received!,
-    globalProps!
+    vestingShares,
+    delegatedVestingShares,
+    receivedVestingShares,
+    globalProps
   )
 }
 

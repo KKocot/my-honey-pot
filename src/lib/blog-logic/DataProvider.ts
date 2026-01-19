@@ -18,7 +18,7 @@ import type {
   IPaginationCursor,
   IPaginatedResult,
 } from "./interfaces";
-import { paginateData, convertVestsToHP, calculateEffectiveHP, parseBalance } from "./utils";
+import { paginateData } from "./utils";
 import { getWax, resetWax, type WaxExtendedChain } from "./wax";
 
 const MAX_RETRIES = 3;
@@ -176,13 +176,18 @@ export class DataProvider {
   }
 
   public async fetchAccount(accountName: string): Promise<void> {
-    const account = await withRetry(async () => {
+    // Use database_api.find_accounts instead of HAFBE REST API (more reliable)
+    const result = await withRetry(async () => {
       await this.refreshChain();
-      return this.chain.restApi.hafbeApi.accounts.accountName({accountName: accountName});
+      return this.chain.api.database_api.find_accounts({
+        accounts: [accountName],
+      });
     });
-    if (!account)
+    if (!result.accounts || result.accounts.length === 0)
       throw new Error("Account not found");
-    this.accounts.set(accountName, account);
+    // Store the account data - note: this is DatabaseApiAccount format, not HafbeTypesAccount
+    // but they share the same essential fields we use (name, posting_json_metadata, created)
+    this.accounts.set(accountName, result.accounts[0] as unknown as HafbeTypesAccount);
   }
 
   public getCommunity(communityName: string): CommunityData | null {
@@ -291,27 +296,16 @@ export class DataProvider {
     if (!result.accounts || result.accounts.length === 0) return null;
 
     const account = result.accounts[0];
-    // Convert NaiAsset to string format "amount unit"
-    // NaiAsset has: { amount: string, precision: number, nai: string }
-    const assetToString = (asset: unknown, unit: string): string => {
-      if (typeof asset === "string") return asset;
-      if (asset && typeof asset === "object" && "amount" in asset && "precision" in asset) {
-        const naiAsset = asset as { amount: string; precision: number; nai: string };
-        const value = parseInt(naiAsset.amount) / Math.pow(10, naiAsset.precision);
-        return `${value} ${unit}`;
-      }
-      // Fallback - try to use toString if it's defined and doesn't return [object Object]
-      const str = String(asset);
-      if (str !== "[object Object]") return str;
-      return JSON.stringify(asset);
-    };
+    const formatter = this.chain.formatter;
+
     return {
       name: account.name,
-      balance: assetToString(account.balance, "HIVE"),
-      hbdBalance: assetToString(account.hbd_balance, "HBD"),
-      vestingShares: assetToString(account.vesting_shares, "VESTS"),
-      delegatedVestingShares: assetToString(account.delegated_vesting_shares, "VESTS"),
-      receivedVestingShares: assetToString(account.received_vesting_shares, "VESTS"),
+      balance: formatter.format(account.balance),
+      hbdBalance: formatter.format(account.hbd_balance),
+      // Keep raw NaiAsset for HP calculations via chain.vestsToHp()
+      vestingShares: account.vesting_shares,
+      delegatedVestingShares: account.delegated_vesting_shares,
+      receivedVestingShares: account.received_vesting_shares,
       postCount: Number(account.post_count),
       curationRewards: Number(account.curation_rewards),
       postingRewards: Number(account.posting_rewards),
@@ -327,24 +321,10 @@ export class DataProvider {
       return this.chain.api.database_api.get_dynamic_global_properties({});
     });
 
-    // Convert NaiAsset to string format "amount unit"
-    // NaiAsset has: { amount: string, precision: number, nai: string }
-    const assetToString = (asset: unknown, unit: string): string => {
-      if (typeof asset === "string") return asset;
-      if (asset && typeof asset === "object" && "amount" in asset && "precision" in asset) {
-        const naiAsset = asset as { amount: string; precision: number; nai: string };
-        const value = parseInt(naiAsset.amount) / Math.pow(10, naiAsset.precision);
-        return `${value} ${unit}`;
-      }
-      // Fallback - try to use toString if it's defined and doesn't return [object Object]
-      const str = String(asset);
-      if (str !== "[object Object]") return str;
-      return JSON.stringify(asset);
-    };
-
+    // Keep raw NaiAsset for HP calculations via chain.vestsToHp()
     return {
-      totalVestingFundHive: assetToString(props.total_vesting_fund_hive, "HIVE"),
-      totalVestingShares: assetToString(props.total_vesting_shares, "VESTS"),
+      totalVestingFundHive: props.total_vesting_fund_hive,
+      totalVestingShares: props.total_vesting_shares,
     };
   }
 
@@ -413,19 +393,41 @@ export class DataProvider {
 
     if (!profile) return null;
 
-    // Calculate HP values
-    const hivePower = dbAccount
-      ? convertVestsToHP(parseBalance(dbAccount.vestingShares), globalProps)
-      : 0;
+    const formatter = this.chain.formatter;
+    const zeroHive = this.chain.hiveSatoshis(0);
 
-    const effectiveHivePower = dbAccount
-      ? calculateEffectiveHP(
+    // Calculate HP using wax's vestsToHp method
+    const hivePowerAsset = dbAccount
+      ? this.chain.vestsToHp(
           dbAccount.vestingShares,
-          dbAccount.delegatedVestingShares,
-          dbAccount.receivedVestingShares,
-          globalProps
+          globalProps.totalVestingFundHive,
+          globalProps.totalVestingShares
         )
-      : 0;
+      : zeroHive;
+
+    // Calculate effective HP (own - delegated + received)
+    const effectiveHivePowerAsset = dbAccount
+      ? (() => {
+          const ownHp = this.chain.vestsToHp(
+            dbAccount.vestingShares,
+            globalProps.totalVestingFundHive,
+            globalProps.totalVestingShares
+          );
+          const delegatedHp = this.chain.vestsToHp(
+            dbAccount.delegatedVestingShares,
+            globalProps.totalVestingFundHive,
+            globalProps.totalVestingShares
+          );
+          const receivedHp = this.chain.vestsToHp(
+            dbAccount.receivedVestingShares,
+            globalProps.totalVestingFundHive,
+            globalProps.totalVestingShares
+          );
+          // own - delegated + received (amounts are in satoshis)
+          const effectiveAmount = BigInt(ownHp.amount) - BigInt(delegatedHp.amount) + BigInt(receivedHp.amount);
+          return { ...ownHp, amount: effectiveAmount.toString() };
+        })()
+      : zeroHive;
 
     return {
       // Profile data
@@ -436,18 +438,15 @@ export class DataProvider {
       stats: profile.stats,
       metadata: profile.metadata,
 
-      // Financial data
+      // Financial data (formatted for display)
       balance: dbAccount?.balance ?? "0 HIVE",
       hbdBalance: dbAccount?.hbdBalance ?? "0 HBD",
-      vestingShares: dbAccount?.vestingShares ?? "0 VESTS",
-      delegatedVestingShares: dbAccount?.delegatedVestingShares ?? "0 VESTS",
-      receivedVestingShares: dbAccount?.receivedVestingShares ?? "0 VESTS",
       curationRewards: dbAccount?.curationRewards ?? 0,
       postingRewards: dbAccount?.postingRewards ?? 0,
 
-      // Calculated values
-      hivePower,
-      effectiveHivePower,
+      // Calculated HP values (formatted via wax formatter)
+      hivePower: formatter.format(hivePowerAsset),
+      effectiveHivePower: formatter.format(effectiveHivePowerAsset),
     };
   }
 

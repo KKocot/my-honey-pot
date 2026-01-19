@@ -53,6 +53,8 @@ export type {
   CommentSortOption,
   IPaginationCursor,
   IPaginatedResult,
+  // NaiAsset type from wax
+  NaiAsset,
 } from "./interfaces";
 
 // Re-export utilities
