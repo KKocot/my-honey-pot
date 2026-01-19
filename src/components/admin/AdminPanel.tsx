@@ -1,7 +1,7 @@
 import { createEffect, createSignal, Show, onMount, onCleanup } from 'solid-js'
 import { QueryClientProvider } from '@tanstack/solid-query'
 import { Toast, showToast, Button } from '../ui'
-import { HBAuthLogin, currentUser, isAuthenticated, login, logout, type AuthUser } from '../auth'
+import { HBAuthLogin, currentUser, isAuthenticated, login, logout, needsReauth, type AuthUser } from '../auth'
 import { broadcastConfigToHive, getConfigUrlSync } from './hive-broadcast'
 import { TemplateSelector } from './TemplateSelector'
 import { UserSwitcher } from './UserSwitcher'
@@ -48,6 +48,7 @@ function AdminPanelContent(props: AdminPanelContentProps) {
   const [showPreview, setShowPreview] = createSignal(false)
   const [showLoginModal, setShowLoginModal] = createSignal(false)
   const [isBroadcasting, setIsBroadcasting] = createSignal(false)
+  const [reauthSession, setReauthSession] = createSignal(needsReauth())
 
   // Check if logged in user is the blog owner (can save changes)
   const isOwner = () => {
@@ -92,6 +93,7 @@ function AdminPanelContent(props: AdminPanelContentProps) {
   const handleLoginSuccess = async (user: AuthUser) => {
     login(user)
     setShowLoginModal(false)
+    setReauthSession(null) // Clear reauth state
     showToast(`Welcome, @${user.username}!`, 'success')
 
     // Set username for Hive config loading and refetch settings
@@ -178,6 +180,31 @@ function AdminPanelContent(props: AdminPanelContentProps) {
 
             {/* Login form */}
             <HBAuthLogin onSuccess={handleLoginSuccess} />
+          </div>
+        </div>
+      </Show>
+
+      {/* Session expired banner */}
+      <Show when={reauthSession()}>
+        <div class="bg-warning/10 border border-warning rounded-lg p-4 mb-4">
+          <div class="flex items-center gap-3">
+            <svg class="w-5 h-5 text-warning flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <div class="flex-1">
+              <p class="text-sm text-warning font-medium">
+                Session expired for @{reauthSession()?.username}
+              </p>
+              <p class="text-xs text-warning/70 mt-0.5">
+                Please enter your password again to continue. Your private key is never stored in browser storage for security.
+              </p>
+            </div>
+            <button
+              onClick={() => setShowLoginModal(true)}
+              class="px-3 py-1.5 bg-warning text-white text-sm font-medium rounded-lg hover:bg-warning/90 transition-colors"
+            >
+              Unlock
+            </button>
           </div>
         </div>
       </Show>
