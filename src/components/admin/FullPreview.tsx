@@ -1,7 +1,7 @@
-import { Show, For, type Accessor } from 'solid-js'
+import { Show, For, createMemo, type Accessor } from 'solid-js'
 import { Portal } from 'solid-js/web'
-import { settings } from './store'
-import { pageElementLabels, type PageSlotPosition } from './types'
+import { settings, updateSettings } from './store'
+import { pageElementLabels, type PageSlotPosition, type PageLayoutSection } from './types'
 import {
   useHivePreviewQuery,
   formatCompactNumber,
@@ -43,15 +43,35 @@ export function FullPreview(props: FullPreviewProps) {
     }
   }
 
-  // Get elements in slot
-  const getElementsInSlot = (slot: PageSlotPosition): string[] => {
-    return settings.pageLayout.sections
-      .filter(s => s.slot === slot)
-      .flatMap(s => s.elements)
-  }
+  // Reactive memos for each slot - these track changes to settings.pageLayout
+  // Returns full sections with orientation info
+  const topSections = createMemo(() => {
+    const sections = settings.pageLayout?.sections || []
+    return sections.filter(s => s.slot === 'top' && s.active !== false && s.elements.length > 0)
+  })
 
-  const hasLeftSidebar = () => getElementsInSlot('sidebar-left').length > 0
-  const hasRightSidebar = () => getElementsInSlot('sidebar-right').length > 0
+  const mainSections = createMemo(() => {
+    const sections = settings.pageLayout?.sections || []
+    return sections.filter(s => s.slot === 'main' && s.active !== false && s.elements.length > 0)
+  })
+
+  const bottomSections = createMemo(() => {
+    const sections = settings.pageLayout?.sections || []
+    return sections.filter(s => s.slot === 'bottom' && s.active !== false && s.elements.length > 0)
+  })
+
+  const leftSidebarSections = createMemo(() => {
+    const sections = settings.pageLayout?.sections || []
+    return sections.filter(s => s.slot === 'sidebar-left' && s.active !== false && s.elements.length > 0)
+  })
+
+  const rightSidebarSections = createMemo(() => {
+    const sections = settings.pageLayout?.sections || []
+    return sections.filter(s => s.slot === 'sidebar-right' && s.active !== false && s.elements.length > 0)
+  })
+
+  const hasLeftSidebar = createMemo(() => leftSidebarSections().length > 0)
+  const hasRightSidebar = createMemo(() => rightSidebarSections().length > 0)
 
   // Parse post thumbnail
   const getPostThumbnail = (post: HivePost): string | null => {
@@ -193,42 +213,144 @@ export function FullPreview(props: FullPreviewProps) {
     )
   }
 
+  // Sorting bar component for posts
+  const PostsSortBar = () => {
+    const sortOptions = [
+      { value: 'blog', label: 'Blog (with reblogs)' },
+      { value: 'posts', label: 'Posts only' },
+      { value: 'payout', label: 'By payout' },
+    ] as const
+
+    return (
+      <div class="flex items-center justify-between bg-bg-card rounded-lg px-4 py-2 mb-4 border border-border">
+        <span class="text-sm text-text-muted">Sort posts:</span>
+        <div class="flex gap-1">
+          <For each={sortOptions}>
+            {(option) => (
+              <button
+                type="button"
+                onClick={() => updateSettings({ postsSortOrder: option.value })}
+                class={`px-3 py-1 text-sm rounded-md transition-colors ${
+                  settings.postsSortOrder === option.value
+                    ? 'bg-primary text-primary-text'
+                    : 'bg-bg hover:bg-bg-secondary text-text-muted hover:text-text'
+                }`}
+              >
+                {option.label}
+              </button>
+            )}
+          </For>
+        </div>
+      </div>
+    )
+  }
+
   // Posts component - reactive
   const PostsSection = () => {
     const posts = () => data()?.posts || []
 
     return (
-      <Show when={posts().length > 0} fallback={
-        <div class="text-center py-8 bg-bg-card rounded-xl border border-border">
-          <p class="text-text-muted">No posts found</p>
+      <div>
+        <PostsSortBar />
+        <Show when={posts().length > 0} fallback={
+          <div class="text-center py-8 bg-bg-card rounded-xl border border-border">
+            <p class="text-text-muted">No posts found</p>
+          </div>
+        }>
+          <Show when={settings.postsLayout === 'list'}>
+            <div class="flex flex-col" style={`gap: ${settings.cardGapPx || 24}px;`}>
+              <For each={posts()}>
+                {(post) => <PostCard post={post} forceVertical={false} />}
+              </For>
+            </div>
+          </Show>
+          <Show when={settings.postsLayout === 'masonry'}>
+            <div style={`column-count: ${settings.gridColumns || 2}; column-gap: ${settings.cardGapPx || 24}px;`}>
+              <For each={posts()}>
+                {(post) => (
+                  <div class="break-inside-avoid" style={`margin-bottom: ${settings.cardGapPx || 24}px;`}>
+                    <PostCard post={post} forceVertical={true} />
+                  </div>
+                )}
+              </For>
+            </div>
+          </Show>
+          <Show when={settings.postsLayout === 'grid'}>
+            <div style={`display: grid; grid-template-columns: repeat(${settings.gridColumns || 2}, 1fr); gap: ${settings.cardGapPx || 24}px;`}>
+              <For each={posts()}>
+                {(post) => <PostCard post={post} forceVertical={true} />}
+              </For>
+            </div>
+          </Show>
+        </Show>
+      </div>
+    )
+  }
+
+  // Sorting bar component for comments
+  const CommentsSortBar = () => {
+    const sortOptions = [
+      { value: 'comments', label: 'Recent comments' },
+      { value: 'replies', label: 'Recent replies' },
+    ] as const
+
+    return (
+      <div class="flex items-center justify-between bg-bg-card rounded-lg px-4 py-2 mb-4 border border-border">
+        <span class="text-sm text-text-muted">Sort comments:</span>
+        <div class="flex gap-1">
+          <For each={sortOptions}>
+            {(option) => (
+              <button
+                type="button"
+                onClick={() => updateSettings({ commentsSortOrder: option.value })}
+                class={`px-3 py-1 text-sm rounded-md transition-colors ${
+                  settings.commentsSortOrder === option.value
+                    ? 'bg-primary text-primary-text'
+                    : 'bg-bg hover:bg-bg-secondary text-text-muted hover:text-text'
+                }`}
+              >
+                {option.label}
+              </button>
+            )}
+          </For>
         </div>
-      }>
-        <Show when={settings.postsLayout === 'list'}>
-          <div class="flex flex-col" style={`gap: ${settings.cardGapPx || 24}px;`}>
-            <For each={posts()}>
-              {(post) => <PostCard post={post} forceVertical={false} />}
-            </For>
-          </div>
-        </Show>
-        <Show when={settings.postsLayout === 'masonry'}>
-          <div style={`column-count: ${settings.gridColumns || 2}; column-gap: ${settings.cardGapPx || 24}px;`}>
-            <For each={posts()}>
-              {(post) => (
-                <div class="break-inside-avoid" style={`margin-bottom: ${settings.cardGapPx || 24}px;`}>
-                  <PostCard post={post} forceVertical={true} />
+      </div>
+    )
+  }
+
+  // Comments section component
+  const CommentsSection = () => {
+    // Mock comments for preview - in real app would come from data()
+    const mockComments = [
+      { author: 'user1', body: 'Great post! Really enjoyed reading this.', created: '2 hours ago' },
+      { author: 'user2', body: 'Thanks for sharing this information.', created: '5 hours ago' },
+      { author: 'user3', body: 'Very insightful analysis.', created: '1 day ago' },
+    ]
+
+    return (
+      <div>
+        <CommentsSortBar />
+        <div class="space-y-3">
+          <For each={mockComments}>
+            {(comment) => (
+              <div class="bg-bg-card rounded-lg p-4 border border-border">
+                <div class="flex items-center gap-2 mb-2">
+                  <div class="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
+                    <span class="text-xs text-primary font-medium">
+                      {comment.author[0].toUpperCase()}
+                    </span>
+                  </div>
+                  <div>
+                    <span class="text-sm font-medium text-text">@{comment.author}</span>
+                    <span class="text-xs text-text-muted ml-2">{comment.created}</span>
+                  </div>
                 </div>
-              )}
-            </For>
-          </div>
-        </Show>
-        <Show when={settings.postsLayout === 'grid'}>
-          <div style={`display: grid; grid-template-columns: repeat(${settings.gridColumns || 2}, 1fr); gap: ${settings.cardGapPx || 24}px;`}>
-            <For each={posts()}>
-              {(post) => <PostCard post={post} forceVertical={true} />}
-            </For>
-          </div>
-        </Show>
-      </Show>
+                <p class="text-sm text-text-muted">{comment.body}</p>
+              </div>
+            )}
+          </For>
+        </div>
+      </div>
     )
   }
 
@@ -302,6 +424,72 @@ export function FullPreview(props: FullPreviewProps) {
     </footer>
   )
 
+  // Navigation preview component
+  const NavigationPreview = () => {
+    const navItems = [
+      { id: 'posts', label: 'Posts', count: 42, active: true },
+      { id: 'threads', label: 'My Threads', disabled: true },
+      { id: 'comments', label: 'Comments', count: 128 },
+      { id: 'instagram', label: 'Instagram', disabled: true },
+      { id: 'x', label: 'X', disabled: true },
+      { id: 'more', label: 'More', disabled: true },
+    ]
+
+    return (
+      <nav class="border-b border-border mb-6">
+        <div class="flex flex-wrap">
+          <For each={navItems}>
+            {(item) => (
+              <div
+                class={`
+                  relative px-4 py-3 text-sm font-medium transition-colors
+                  ${item.disabled ? 'text-text-muted/50 cursor-not-allowed' : item.active ? 'text-text' : 'text-text-muted hover:text-text'}
+                `}
+              >
+                <span class="flex items-center gap-2">
+                  {item.label}
+                  {item.count !== undefined && (
+                    <span class={`
+                      text-xs px-1.5 py-0.5 rounded-full
+                      ${item.active ? 'bg-primary/10 text-primary' : 'bg-bg text-text-muted'}
+                    `}>
+                      {item.count}
+                    </span>
+                  )}
+                </span>
+                {item.active && (
+                  <span class="absolute bottom-0 left-0 right-0 h-1 bg-primary rounded-t-full" />
+                )}
+              </div>
+            )}
+          </For>
+        </div>
+        <div class="px-4 py-2 text-xs text-text-muted bg-bg-secondary/30 border-t border-border/50">
+          We're working on integrating more platforms. Stay tuned!
+        </div>
+      </nav>
+    )
+  }
+
+  // Section renderer - renders a section with proper orientation
+  const SectionRenderer = (props: { section: PageLayoutSection; inSidebar?: boolean }) => {
+    const isHorizontal = () => props.section.orientation === 'horizontal'
+
+    return (
+      <div
+        class={isHorizontal() ? 'flex flex-wrap items-start gap-4' : 'flex flex-col gap-4'}
+      >
+        <For each={props.section.elements}>
+          {(elementId) => (
+            <div class={isHorizontal() ? 'flex-shrink-0' : 'w-full'}>
+              <ElementRenderer elementId={elementId} inSidebar={props.inSidebar} />
+            </div>
+          )}
+        </For>
+      </div>
+    )
+  }
+
   // Element renderer component - reactive
   const ElementRenderer = (props: { elementId: string; inSidebar?: boolean }) => {
     return (
@@ -318,10 +506,11 @@ export function FullPreview(props: FullPreviewProps) {
         <Show when={props.elementId === 'footer'}>
           {renderFooter()}
         </Show>
-        <Show when={['navigation', 'search', 'tags', 'recentPosts', 'comments'].includes(props.elementId)}>
-          <div class="bg-bg-card rounded-xl p-4 border border-border">
-            <p class="text-text-muted text-sm">{pageElementLabels[props.elementId]} (placeholder)</p>
-          </div>
+        <Show when={props.elementId === 'navigation'}>
+          <NavigationPreview />
+        </Show>
+        <Show when={props.elementId === 'comments'}>
+          <CommentsSection />
         </Show>
       </>
     )
@@ -377,10 +566,10 @@ export function FullPreview(props: FullPreviewProps) {
           <Show when={data() && !loading()}>
             <div class="max-w-7xl mx-auto px-4 py-16">
               {/* Top slot - full width on all screens */}
-              <For each={getElementsInSlot('top')}>
-                {(elementId) => (
+              <For each={topSections()}>
+                {(section) => (
                   <div class="mb-6">
-                    <ElementRenderer elementId={elementId} />
+                    <SectionRenderer section={section} />
                   </div>
                 )}
               </For>
@@ -395,10 +584,10 @@ export function FullPreview(props: FullPreviewProps) {
                       class="sidebar-left"
                       style={`--sidebar-width: ${settings.sidebarWidthPx || 280}px;`}
                     >
-                      <For each={getElementsInSlot('sidebar-left')}>
-                        {(elementId) => (
+                      <For each={leftSidebarSections()}>
+                        {(section) => (
                           <div class="mb-4">
-                            <ElementRenderer elementId={elementId} inSidebar={true} />
+                            <SectionRenderer section={section} inSidebar={true} />
                           </div>
                         )}
                       </For>
@@ -411,10 +600,10 @@ export function FullPreview(props: FullPreviewProps) {
                       class="sidebar-right"
                       style={`--sidebar-width: ${settings.sidebarWidthPx || 280}px;`}
                     >
-                      <For each={getElementsInSlot('sidebar-right')}>
-                        {(elementId) => (
+                      <For each={rightSidebarSections()}>
+                        {(section) => (
                           <div class="mb-4">
-                            <ElementRenderer elementId={elementId} inSidebar={true} />
+                            <SectionRenderer section={section} inSidebar={true} />
                           </div>
                         )}
                       </For>
@@ -423,10 +612,10 @@ export function FullPreview(props: FullPreviewProps) {
 
                   {/* Main Content */}
                   <main class="main-content">
-                    <For each={getElementsInSlot('main')}>
-                      {(elementId) => (
+                    <For each={mainSections()}>
+                      {(section) => (
                         <div class="mb-6">
-                          <ElementRenderer elementId={elementId} />
+                          <SectionRenderer section={section} />
                         </div>
                       )}
                     </For>
@@ -436,20 +625,20 @@ export function FullPreview(props: FullPreviewProps) {
 
               {/* No sidebars - render main directly */}
               <Show when={!hasLeftSidebar() && !hasRightSidebar()}>
-                <For each={getElementsInSlot('main')}>
-                  {(elementId) => (
+                <For each={mainSections()}>
+                  {(section) => (
                     <div class="mb-6">
-                      <ElementRenderer elementId={elementId} />
+                      <SectionRenderer section={section} />
                     </div>
                   )}
                 </For>
               </Show>
 
               {/* Bottom slot - full width on all screens */}
-              <For each={getElementsInSlot('bottom')}>
-                {(elementId) => (
+              <For each={bottomSections()}>
+                {(section) => (
                   <div class="mt-6">
-                    <ElementRenderer elementId={elementId} />
+                    <SectionRenderer section={section} />
                   </div>
                 )}
               </For>
