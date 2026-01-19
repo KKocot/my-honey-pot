@@ -293,7 +293,7 @@ export interface PageLayout {
 }
 
 // Page elements that can be placed in slots
-export type PageElementId = 'header' | 'navigation' | 'authorProfile' | 'posts' | 'comments' | 'footer'
+export type PageElementId = 'header' | 'navigation' | 'authorProfile' | 'posts' | 'footer'
 
 // Card element that can be reordered
 export interface CardElement {
@@ -503,7 +503,6 @@ export interface SettingsData {
   pageLayout: PageLayout
   // Sorting settings
   postsSortOrder: 'blog' | 'posts' | 'payout'
-  commentsSortOrder: 'comments' | 'replies'
   includeReblogs: boolean
   // Card Hover Animation settings
   cardHoverEffect: 'none' | 'shadow' | 'lift' | 'scale' | 'glow'
@@ -516,6 +515,19 @@ export interface SettingsData {
   scrollAnimationType: 'none' | 'fade' | 'slide-up' | 'slide-left' | 'zoom' | 'flip'
   scrollAnimationDuration: number // ms
   scrollAnimationDelay: number // ms delay between each card
+  // Navigation Tabs settings
+  navigationTabs: NavigationTab[]
+}
+
+// Navigation Tab configuration
+export interface NavigationTab {
+  id: string
+  label: string
+  enabled: boolean
+  showCount: boolean
+  href?: string
+  external?: boolean
+  tooltip?: string
 }
 
 export const defaultSettings: SettingsData = {
@@ -619,13 +631,12 @@ export const defaultSettings: SettingsData = {
     sections: [
       { id: 'page-sec-1', slot: 'top', orientation: 'horizontal', elements: ['header'], active: true },
       { id: 'page-sec-2', slot: 'sidebar-left', orientation: 'vertical', elements: ['authorProfile'], active: true },
-      { id: 'page-sec-3', slot: 'main', orientation: 'vertical', elements: ['posts', 'comments'], active: true },
+      { id: 'page-sec-3', slot: 'main', orientation: 'vertical', elements: ['posts'], active: true },
       { id: 'page-sec-4', slot: 'bottom', orientation: 'horizontal', elements: ['footer'], active: true },
     ],
   },
   // Sorting defaults
   postsSortOrder: 'blog',
-  commentsSortOrder: 'comments',
   includeReblogs: false,
   // Card Hover Animation defaults
   cardHoverEffect: 'shadow',
@@ -638,6 +649,15 @@ export const defaultSettings: SettingsData = {
   scrollAnimationType: 'fade',
   scrollAnimationDuration: 400,
   scrollAnimationDelay: 100,
+  // Navigation Tabs defaults
+  navigationTabs: [
+    { id: 'posts', label: 'Posts', enabled: true, showCount: true },
+    { id: 'threads', label: 'My Threads', enabled: true, showCount: false, tooltip: 'Coming soon' },
+    { id: 'comments', label: 'Comments', enabled: true, showCount: true },
+    { id: 'instagram', label: 'Instagram', enabled: false, showCount: false, tooltip: 'Coming soon' },
+    { id: 'x', label: 'X', enabled: false, showCount: false, tooltip: 'Coming soon' },
+    { id: 'more', label: 'More', enabled: false, showCount: false, tooltip: 'More integrations coming soon' },
+  ],
 }
 
 export const sectionLabels: Record<string, string> = {
@@ -676,11 +696,6 @@ export const postsSortOptions = [
   { value: 'blog', label: 'Blog (chronological)' },
   { value: 'posts', label: 'Posts only (no reblogs)' },
   { value: 'payout', label: 'By payout' },
-]
-
-export const commentsSortOptions = [
-  { value: 'comments', label: 'Comments by user' },
-  { value: 'replies', label: 'Replies to user' },
 ]
 
 // Card hover effect options
@@ -758,7 +773,6 @@ export const pageElementLabels: Record<string, string> = {
   navigation: 'Navigation Tabs',
   authorProfile: 'Author Profile',
   posts: 'Posts List',
-  comments: 'Comments List',
   footer: 'Footer',
 }
 
@@ -768,7 +782,6 @@ export const pageElementColors: Record<string, string> = {
   navigation: 'bg-accent text-white',
   authorProfile: 'bg-accent text-white',
   posts: 'bg-accent text-white',
-  comments: 'bg-accent text-white',
   footer: 'bg-accent text-white',
 }
 
@@ -795,7 +808,6 @@ export const ALL_PAGE_ELEMENT_IDS = [
   'navigation',
   'authorProfile',
   'posts',
-  'comments',
   'footer',
 ]
 
@@ -889,7 +901,7 @@ export const websiteTemplates: WebsiteTemplate[] = [
         sections: [
           { id: 'page-sec-1', slot: 'top', orientation: 'horizontal', elements: ['header'], active: true },
           { id: 'page-sec-2', slot: 'sidebar-left', orientation: 'vertical', elements: ['authorProfile'], active: true },
-          { id: 'page-sec-3', slot: 'main', orientation: 'vertical', elements: ['posts', 'comments'], active: true },
+          { id: 'page-sec-3', slot: 'main', orientation: 'vertical', elements: ['posts'], active: true },
           { id: 'page-sec-4', slot: 'bottom', orientation: 'horizontal', elements: ['footer'], active: true },
         ],
       },
@@ -1212,7 +1224,7 @@ export const websiteTemplates: WebsiteTemplate[] = [
         sections: [
           { id: 'page-sec-1', slot: 'top', orientation: 'horizontal', elements: ['header'], active: true },
           { id: 'page-sec-2', slot: 'sidebar-left', orientation: 'vertical', elements: ['authorProfile'], active: true },
-          { id: 'page-sec-3', slot: 'main', orientation: 'vertical', elements: ['posts', 'comments'], active: true },
+          { id: 'page-sec-3', slot: 'main', orientation: 'vertical', elements: ['posts'], active: true },
           { id: 'page-sec-4', slot: 'bottom', orientation: 'horizontal', elements: ['footer'], active: true },
         ],
       },
