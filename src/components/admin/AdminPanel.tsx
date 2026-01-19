@@ -11,6 +11,7 @@ import { PostsLayoutSettings } from './PostsLayoutSettings'
 import { CardAppearanceSettings } from './CardAppearanceSettings'
 import { AuthorProfileSettings } from './AuthorProfileSettings'
 import { CommentSettings } from './CommentSettings'
+import { NavigationSettings } from './NavigationSettings'
 import { FullPreview } from './FullPreview'
 import type { SettingsData } from './types'
 import {
@@ -287,6 +288,7 @@ function AdminPanelContent(props: AdminPanelContentProps) {
         <TemplateSelector />
         <UserSwitcher />
         <LayoutEditor />
+        <NavigationSettings />
         <SiteSettings />
         <AuthorProfileSettings />
         <PostsLayoutSettings />
