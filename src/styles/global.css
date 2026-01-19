@@ -94,3 +94,77 @@
     order: 2; /* Main content in center on desktop */
   }
 }
+
+/* ============================================
+   Range Slider Styling
+   Uses theme colors for consistent appearance
+   ============================================ */
+
+/* Track styling for all browsers */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+/* Track */
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--theme-border, #d1d5db);
+}
+
+input[type="range"]::-moz-range-track {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--theme-border, #d1d5db);
+}
+
+/* Thumb */
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--theme-primary, #3b82f6);
+  border: 2px solid var(--theme-bg-card, #ffffff);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  margin-top: -5px;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+input[type="range"]::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--theme-primary, #3b82f6);
+  border: 2px solid var(--theme-bg-card, #ffffff);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+/* Hover state */
+input[type="range"]:hover::-webkit-slider-thumb {
+  transform: scale(1.1);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+
+input[type="range"]:hover::-moz-range-thumb {
+  transform: scale(1.1);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+
+/* Focus state */
+input[type="range"]:focus {
+  outline: none;
+}
+
+input[type="range"]:focus::-webkit-slider-thumb {
+  box-shadow: 0 0 0 3px var(--theme-primary, #3b82f6), 0 0 0 5px rgba(59, 130, 246, 0.2);
+}
+
+input[type="range"]:focus::-moz-range-thumb {
+  box-shadow: 0 0 0 3px var(--theme-primary, #3b82f6), 0 0 0 5px rgba(59, 130, 246, 0.2);
+}

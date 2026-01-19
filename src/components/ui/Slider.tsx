@@ -67,10 +67,7 @@ export function Slider(props: SliderProps) {
           id={inputId}
           value={displayValue()}
           onInput={handleInput}
-          class={`
-            flex-1 h-2 bg-bg-secondary rounded-lg appearance-none cursor-pointer accent-primary
-            ${local.class || ''}
-          `}
+          class={`flex-1 ${local.class || ''}`}
         />
         <div class="flex items-center gap-1">
           <input
