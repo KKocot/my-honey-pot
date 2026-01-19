@@ -1,4 +1,4 @@
-import { For, createSignal } from 'solid-js'
+import { For } from 'solid-js'
 import { settings, updateSettings } from './store'
 import { applyThemeColors } from './queries'
 import { websiteTemplates, themePresets, type WebsiteTemplate, type SettingsData } from './types'
@@ -102,8 +102,6 @@ function TemplateCard(props: TemplateCardProps) {
 // ============================================
 
 export function TemplateSelector() {
-  const [isExpanded, setIsExpanded] = createSignal(true)
-
   const applyTemplate = (template: WebsiteTemplate) => {
     // Apply all template settings
     const newSettings: Partial<SettingsData> = {
@@ -302,59 +300,41 @@ export function TemplateSelector() {
 
   return (
     <div class="bg-bg-card rounded-xl p-6 mb-6 border border-border">
-      <button
-        type="button"
-        class="flex w-full items-center justify-between text-left"
-        onClick={() => setIsExpanded(!isExpanded())}
-      >
-        <div>
-          <h2 class="text-xl font-semibold text-primary">Quick Start Templates</h2>
-          <p class="text-sm text-text-muted mt-1">
-            Choose a template to instantly apply a complete design preset
-          </p>
-        </div>
-        <svg
-          class={`w-6 h-6 text-text-muted transition-transform ${isExpanded() ? 'rotate-180' : ''}`}
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
+      <div class="mb-6">
+        <h2 class="text-xl font-semibold text-primary">Quick Start Templates</h2>
+        <p class="text-sm text-text-muted mt-1">
+          Choose a template to instantly apply a complete design preset
+        </p>
+      </div>
+
+      <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+        {/* Randomize Button */}
+        <button
+          type="button"
+          class="group relative flex flex-col rounded-xl border-2 border-dashed border-primary/50 bg-primary/5 p-3 text-left transition-all hover:border-primary hover:bg-primary/10 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+          onClick={randomizeTemplate}
         >
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-        </svg>
-      </button>
-
-      {isExpanded() && (
-        <div class="mt-6">
-          <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-            {/* Randomize Button */}
-            <button
-              type="button"
-              class="group relative flex flex-col rounded-xl border-2 border-dashed border-primary/50 bg-primary/5 p-3 text-left transition-all hover:border-primary hover:bg-primary/10 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
-              onClick={randomizeTemplate}
-            >
-              {/* Dice Preview */}
-              <div class="mb-3 aspect-video w-full overflow-hidden rounded-lg bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
-                <span class="text-4xl">🎲</span>
-              </div>
-
-              {/* Info */}
-              <div class="flex items-start gap-2">
-                <span class="text-2xl">✨</span>
-                <div class="flex-1 min-w-0">
-                  <h3 class="font-medium text-primary truncate">Randomize</h3>
-                  <p class="text-xs text-text-muted line-clamp-2">Apply a random template</p>
-                </div>
-              </div>
-            </button>
-
-            <For each={websiteTemplates}>
-              {(template) => (
-                <TemplateCard template={template} onSelect={applyTemplate} />
-              )}
-            </For>
+          {/* Dice Preview */}
+          <div class="mb-3 aspect-video w-full overflow-hidden rounded-lg bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
+            <span class="text-4xl">🎲</span>
           </div>
-        </div>
-      )}
+
+          {/* Info */}
+          <div class="flex items-start gap-2">
+            <span class="text-2xl">✨</span>
+            <div class="flex-1 min-w-0">
+              <h3 class="font-medium text-primary truncate">Randomize</h3>
+              <p class="text-xs text-text-muted line-clamp-2">Apply a random template</p>
+            </div>
+          </div>
+        </button>
+
+        <For each={websiteTemplates}>
+          {(template) => (
+            <TemplateCard template={template} onSelect={applyTemplate} />
+          )}
+        </For>
+      </div>
     </div>
   )
 }
