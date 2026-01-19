@@ -3,11 +3,16 @@ import { createStore, produce } from 'solid-js/store'
 import { defaultSettings, migrateCardLayout, themePresets, type SettingsData, type LayoutSection, type ThemeColors } from './types'
 import { loadConfigFromHive } from './hive-broadcast'
 import { setHasUnsavedChanges } from './AdminPanel'
-import { HIVE_API_ENDPOINTS } from '../../lib/config'
 import {
+  DataProvider,
+  getWax,
   formatCompactNumber,
   formatJoinDate,
-  parseVests,
+  calculateEffectiveHP,
+  type IProfile,
+  type IDatabaseAccount,
+  type IGlobalProperties,
+  type BridgePost,
 } from '../../lib/blog-logic'
 
 // ============================================
@@ -251,281 +256,97 @@ export function isSettingsLoaded(): boolean {
 }
 
 // ============================================
-// Hive Preview Data Types
+// Hive Preview Data Types (using blog-logic)
 // ============================================
 
-export interface HivePost {
-  author: string
-  permlink: string
-  title: string
-  body: string
-  created: string
-  json_metadata: { image?: string[]; tags?: string[] } | string
-  active_votes: { voter: string }[]
-  children: number
-  pending_payout_value: string
-}
-
-// NAI Asset format from database_api
-interface NaiAsset {
-  amount: string
-  precision: number
-  nai: string
-}
-
-// Profile data from bridge.get_profile
-export interface HiveBridgeProfile {
-  name: string
-  created: string
-  post_count: number
-  reputation: number
-  stats: {
-    followers: number
-    following: number
-    rank: number
-  }
-  metadata: {
-    profile?: {
-      name?: string
-      about?: string
-      location?: string
-      website?: string
-      profile_image?: string
-      cover_image?: string
-    }
-  }
-}
-
-// Database account data from database_api.find_accounts
-export interface HiveDatabaseAccount {
-  name: string
-  balance: NaiAsset
-  hbd_balance: NaiAsset
-  vesting_shares: NaiAsset
-  delegated_vesting_shares: NaiAsset
-  received_vesting_shares: NaiAsset
-  post_count: number
-  curation_rewards: number
-  posting_rewards: number
-}
-
-// Global properties for VESTS to HP conversion
-export interface HiveGlobalProps {
-  total_vesting_fund_hive: NaiAsset
-  total_vesting_shares: NaiAsset
-}
+// Re-export blog-logic types with legacy names for backwards compatibility
+export type HiveBridgeProfile = IProfile
+export type HiveDatabaseAccount = IDatabaseAccount
+export type HiveGlobalProps = IGlobalProperties
+export type HivePost = BridgePost
 
 export interface HiveData {
-  profile: HiveBridgeProfile | null
-  dbAccount: HiveDatabaseAccount | null
-  globalProps: HiveGlobalProps | null
-  posts: HivePost[]
-}
-
-// ============================================
-// Hive API Client with Fallback (uses config endpoints)
-// ============================================
-
-let currentEndpointIndex = 0
-let lastCheckedEndpoint: string | null = null
-
-/**
- * Check if an API endpoint is healthy
- */
-async function checkEndpointHealth(endpoint: string): Promise<boolean> {
-  try {
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 3000)
-
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        jsonrpc: '2.0',
-        method: 'database_api.get_dynamic_global_properties',
-        params: {},
-        id: 1,
-      }),
-      signal: controller.signal,
-    })
-
-    clearTimeout(timeoutId)
-    if (!response.ok) return false
-
-    const data = await response.json()
-    return !!data.result
-  } catch {
-    return false
-  }
-}
-
-/**
- * Get a working API endpoint with fallback
- */
-async function getWorkingEndpoint(): Promise<string> {
-  const currentEndpoint = HIVE_API_ENDPOINTS[currentEndpointIndex]
-
-  if (lastCheckedEndpoint === currentEndpoint) {
-    return currentEndpoint
-  }
-
-  if (await checkEndpointHealth(currentEndpoint)) {
-    lastCheckedEndpoint = currentEndpoint
-    return currentEndpoint
-  }
-
-  for (let i = 0; i < HIVE_API_ENDPOINTS.length; i++) {
-    const endpoint = HIVE_API_ENDPOINTS[i]
-    if (endpoint === currentEndpoint) continue
-
-    if (await checkEndpointHealth(endpoint)) {
-      currentEndpointIndex = i
-      lastCheckedEndpoint = endpoint
-      console.log(`Switched to API endpoint: ${endpoint}`)
-      return endpoint
-    }
-  }
-
-  console.warn('No healthy API endpoints found, using first endpoint')
-  return HIVE_API_ENDPOINTS[0]
-}
-
-/**
- * Make a fetch request with automatic endpoint fallback and retry
- */
-async function fetchWithFallback(body: object, retries = 2): Promise<Response> {
-  let lastError: Error | null = null
-
-  for (let attempt = 0; attempt <= retries; attempt++) {
-    const endpoint = await getWorkingEndpoint()
-
-    try {
-      const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 10000)
-
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-        signal: controller.signal,
-      })
-
-      clearTimeout(timeoutId)
-
-      if (response.ok) {
-        return response
-      }
-
-      const isTimeout = false // Response received but not ok
-      console.warn(`API request failed (attempt ${attempt + 1}/${retries + 1}), switching endpoint...`)
-      lastCheckedEndpoint = null
-      currentEndpointIndex = (currentEndpointIndex + 1) % HIVE_API_ENDPOINTS.length
-    } catch (error) {
-      lastError = error instanceof Error ? error : new Error(String(error))
-      const isTimeout = lastError.message.includes('abort') || lastError.name === 'AbortError'
-
-      if (isTimeout) {
-        console.warn(`API request timed out (attempt ${attempt + 1}/${retries + 1}), switching endpoint...`)
-      }
-
-      lastCheckedEndpoint = null
-      currentEndpointIndex = (currentEndpointIndex + 1) % HIVE_API_ENDPOINTS.length
-    }
-  }
-
-  throw lastError || new Error('All API endpoints failed')
-}
-
-// ============================================
-// Helper functions for parsing Hive data
-// Uses parseVests from blog-logic where possible
-// ============================================
-
-/**
- * Parse NAI asset format to number
- */
-function parseNaiAsset(asset: NaiAsset): number {
-  return parseInt(asset.amount) / Math.pow(10, asset.precision)
-}
-
-/**
- * Calculate effective Hive Power from vesting shares
- */
-export function calculateEffectiveHivePower(
-  vestingShares: NaiAsset,
-  delegatedVestingShares: NaiAsset,
-  receivedVestingShares: NaiAsset,
-  globalProps: HiveGlobalProps
-): number {
-  const own = parseNaiAsset(vestingShares)
-  const delegated = parseNaiAsset(delegatedVestingShares)
-  const received = parseNaiAsset(receivedVestingShares)
-  const effectiveVests = own - delegated + received
-
-  const fundHive = parseNaiAsset(globalProps.total_vesting_fund_hive)
-  const totalShares = parseNaiAsset(globalProps.total_vesting_shares)
-  if (totalShares === 0) return 0
-
-  return effectiveVests * (fundHive / totalShares)
+  profile: IProfile | null
+  dbAccount: IDatabaseAccount | null
+  globalProps: IGlobalProperties | null
+  posts: BridgePost[]
 }
 
 // Re-export utilities from blog-logic for convenience
 export { formatCompactNumber, formatJoinDate }
 
+// Calculate effective HP using blog-logic (exported for backwards compatibility)
+// Accepts either blog-logic IDatabaseAccount or individual vesting strings
+export function calculateEffectiveHivePower(
+  vestingSharesOrAccount: string | IDatabaseAccount,
+  delegatedOrGlobalProps?: string | IGlobalProperties,
+  received?: string,
+  globalProps?: IGlobalProperties
+): number {
+  // New signature: (dbAccount, globalProps)
+  if (typeof vestingSharesOrAccount === 'object' && 'vestingShares' in vestingSharesOrAccount) {
+    const dbAccount = vestingSharesOrAccount
+    const props = delegatedOrGlobalProps as IGlobalProperties
+    return calculateEffectiveHP(
+      dbAccount.vestingShares,
+      dbAccount.delegatedVestingShares,
+      dbAccount.receivedVestingShares,
+      props
+    )
+  }
+
+  // Legacy signature: (vestingShares, delegatedVestingShares, receivedVestingShares, globalProps)
+  return calculateEffectiveHP(
+    vestingSharesOrAccount as string,
+    delegatedOrGlobalProps as string,
+    received!,
+    globalProps!
+  )
+}
+
 // ============================================
-// Hive Preview Data Fetcher (using bridge.get_profile - no condenser_api)
-// Uses fetchWithFallback for automatic endpoint switching
+// Hive Preview Data Fetcher (using blog-logic DataProvider)
 // ============================================
 
 async function fetchHivePreviewData(username: string, postsPerPage: number): Promise<HiveData | null> {
   if (!username) return null
 
   try {
+    // Initialize Blog Logic DataProvider
+    const chain = await getWax()
+    const dataProvider = new DataProvider(chain)
+
+    // Fetch account object first (needed for profile)
+    const account = await dataProvider.bloggingPlatform.getAccount(username)
+
     // Fetch profile, database account, global props, and posts in parallel
-    // Uses bridge.get_profile (includes followers/following in stats)
-    // Uses database_api.find_accounts for financial data
-    // Uses database_api.get_dynamic_global_properties for VESTS to HP conversion
-    const [profileRes, dbAccountRes, globalPropsRes, postsRes] = await Promise.all([
-      fetchWithFallback({
-        jsonrpc: '2.0',
-        method: 'bridge.get_profile',
-        params: { account: username, observer: '' },
-        id: 1,
-      }),
-      fetchWithFallback({
-        jsonrpc: '2.0',
-        method: 'database_api.find_accounts',
-        params: { accounts: [username] },
-        id: 2,
-      }),
-      fetchWithFallback({
-        jsonrpc: '2.0',
-        method: 'database_api.get_dynamic_global_properties',
-        params: {},
-        id: 3,
-      }),
-      fetchWithFallback({
-        jsonrpc: '2.0',
-        method: 'bridge.get_account_posts',
-        params: { sort: 'blog', account: username, limit: postsPerPage },
-        id: 4,
-      }),
+    const [profile, dbAccount, globalProps, posts] = await Promise.all([
+      account.getProfile(),
+      dataProvider.getDatabaseAccount(username),
+      dataProvider.getGlobalProperties(),
+      dataProvider.bloggingPlatform.enumAccountPosts(
+        { sort: 'blog', account: username },
+        { page: 1, pageSize: postsPerPage }
+      ),
     ])
 
-    const [profileData, dbAccountData, globalPropsData, postsData] = await Promise.all([
-      profileRes.json(),
-      dbAccountRes.json(),
-      globalPropsRes.json(),
-      postsRes.json(),
-    ])
+    // Convert posts iterator to array of BridgePost
+    const postsArray: BridgePost[] = []
+    for (const post of posts) {
+      const postData = dataProvider.getComment({ author: post.author, permlink: post.permlink })
+      if (postData) {
+        postsArray.push(postData)
+      }
+    }
 
-    const profile: HiveBridgeProfile | null = profileData.result || null
-    const dbAccount: HiveDatabaseAccount | null = dbAccountData.result?.accounts?.[0] || null
-    const globalProps: HiveGlobalProps | null = globalPropsData.result || null
-    const posts: HivePost[] = postsData.result || []
-
-    return { profile, dbAccount, globalProps, posts }
-  } catch {
+    return {
+      profile,
+      dbAccount,
+      globalProps,
+      posts: postsArray,
+    }
+  } catch (error) {
+    console.error('Failed to fetch Hive preview data:', error)
     return null
   }
 }

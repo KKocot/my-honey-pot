@@ -107,13 +107,16 @@ try {
     const chain = await getWax()
     const dataProvider = new DataProvider(chain)
 
-    // Fetch account, profile, global properties, and manabars
+    // Fetch account object first (needed for profile and manabars)
+    const account = await dataProvider.bloggingPlatform.getAccount(hiveUsername)
+
+    // Fetch account data, profile, global properties, and manabars
     // Using Promise.allSettled for resilience - if one fails, others still succeed
     const [accountResult, profileResult, globalPropsResult, manabarResult] = await Promise.allSettled([
       dataProvider.getDatabaseAccount(hiveUsername),
-      dataProvider.getProfile(hiveUsername),
+      account.getProfile(),
       dataProvider.getGlobalProperties(),
-      dataProvider.bloggingPlatform.getAccount(hiveUsername).then(account => account.getManabars()),
+      account.getManabars(),
     ])
 
     // Extract successful results, log failures

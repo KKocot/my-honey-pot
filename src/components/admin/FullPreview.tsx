@@ -8,16 +8,12 @@ import {
   calculateEffectiveHivePower,
   type HivePost,
 } from './queries'
+import { parseBalance } from '../../lib/blog-logic'
 
 // ============================================
 // Full Preview Dialog Component
 // Shows live preview with real Hive data
 // ============================================
-
-// Helper to parse NAI asset to number (module-level for efficiency)
-function parseNaiAsset(asset: { amount: string; precision: number; nai: string }): number {
-  return parseInt(asset.amount) / Math.pow(10, asset.precision)
-}
 
 interface FullPreviewProps {
   open: Accessor<boolean>
@@ -123,14 +119,14 @@ export function FullPreview(props: FullPreviewProps) {
     const globalProps = currentData?.globalProps
     if (!profile) return null
 
-    const profileMeta = profile.metadata?.profile
+    const profileMeta = profile.metadata
 
     return (
       <div class={`bg-bg-card rounded-xl shadow-sm border border-border overflow-hidden ${layout === 'vertical' ? 'p-4' : 'p-6'}`}>
-        {settings.showAuthorCoverImage && profileMeta?.cover_image && (
+        {settings.showAuthorCoverImage && profileMeta?.coverImage && (
           <div
             class="h-24 bg-cover bg-center -mx-4 -mt-4 mb-4 rounded-t-xl"
-            style={`background-image: url(${profileMeta.cover_image});`}
+            style={`background-image: url(${profileMeta.coverImage});`}
           />
         )}
         <div class={`flex ${layout === 'vertical' ? 'flex-col items-center text-center' : 'items-center'} gap-4`}>
@@ -167,7 +163,7 @@ export function FullPreview(props: FullPreviewProps) {
         <div class="flex flex-wrap gap-4 mt-4 pt-4 border-t border-border justify-center text-center">
           {settings.showPostCount !== false && (
             <div>
-              <p class="font-bold text-text">{formatCompactNumber(profile.post_count)}</p>
+              <p class="font-bold text-text">{formatCompactNumber(profile.postCount)}</p>
               <p class="text-xs text-text-muted">Posts</p>
             </div>
           )}
@@ -185,23 +181,23 @@ export function FullPreview(props: FullPreviewProps) {
           )}
           {settings.showAuthorHiveBalance !== false && dbAccount && (
             <div>
-              <p class="font-bold text-text">{parseNaiAsset(dbAccount.balance).toFixed(3)}</p>
+              <p class="font-bold text-text">{parseBalance(dbAccount.balance).toFixed(3)}</p>
               <p class="text-xs text-text-muted">HIVE</p>
             </div>
           )}
           {settings.showAuthorHbdBalance !== false && dbAccount && (
             <div>
-              <p class="font-bold text-text">{parseNaiAsset(dbAccount.hbd_balance).toFixed(3)}</p>
+              <p class="font-bold text-text">{parseBalance(dbAccount.hbdBalance).toFixed(3)}</p>
               <p class="text-xs text-text-muted">HBD</p>
             </div>
           )}
-          {settings.showAuthorHivePower !== false && dbAccount && globalProps && (
+          {settings.showAuthorVotingPower !== false && dbAccount && globalProps && (
             <div>
               <p class="font-bold text-text">
                 {formatCompactNumber(calculateEffectiveHivePower(
-                  dbAccount.vesting_shares,
-                  dbAccount.delegated_vesting_shares,
-                  dbAccount.received_vesting_shares,
+                  dbAccount.vestingShares,
+                  dbAccount.delegatedVestingShares,
+                  dbAccount.receivedVestingShares,
                   globalProps
                 ))}
               </p>
@@ -422,8 +418,8 @@ export function FullPreview(props: FullPreviewProps) {
               <Show when={settings.showComments !== false}>
                 <span>{props.post.children} comments</span>
               </Show>
-              <Show when={settings.showPayout !== false}>
-                <span class="text-success">{formatPayout(props.post.pending_payout_value)}</span>
+              <Show when={settings.showPayout !== false && props.post.pending_payout_value}>
+                <span class="text-success">{formatPayout(props.post.pending_payout_value!)}</span>
               </Show>
             </div>
             <Show when={settings.showTags !== false && tags().length > 0}>

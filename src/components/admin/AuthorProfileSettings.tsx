@@ -9,19 +9,10 @@ import {
   formatJoinDate,
   calculateEffectiveHivePower,
 } from './queries'
-
-// Helper to parse NAI asset to number (module-level for efficiency)
-function parseNaiAsset(asset: { amount: string; precision: number; nai: string }): number {
-  return parseInt(asset.amount) / Math.pow(10, asset.precision)
-}
-
-// Convert VESTS to HP using global properties
-function convertVestsToHP(vests: number, globalProps: { total_vesting_fund_hive: { amount: string; precision: number; nai: string }; total_vesting_shares: { amount: string; precision: number; nai: string } }): number {
-  const fundHive = parseNaiAsset(globalProps.total_vesting_fund_hive)
-  const totalShares = parseNaiAsset(globalProps.total_vesting_shares)
-  if (totalShares === 0) return 0
-  return vests * (fundHive / totalShares)
-}
+import {
+  parseBalance,
+  convertVestsToHP as blogLogicConvertVestsToHP,
+} from '../../lib/blog-logic'
 
 // All available author profile element IDs
 const AUTHOR_PROFILE_ELEMENT_IDS = [
@@ -118,14 +109,14 @@ function AuthorProfilePreview() {
     const profile = d.profile
     const dbAccount = d.dbAccount
     const globalProps = d.globalProps
-    const profileMeta = profile.metadata?.profile
+    const profileMeta = profile.metadata
 
     // Calculate HP if we have all data
     const hivePower = dbAccount && globalProps
       ? calculateEffectiveHivePower(
-          dbAccount.vesting_shares,
-          dbAccount.delegated_vesting_shares,
-          dbAccount.received_vesting_shares,
+          dbAccount.vestingShares,
+          dbAccount.delegatedVestingShares,
+          dbAccount.receivedVestingShares,
           globalProps
         )
       : 0
@@ -135,17 +126,17 @@ function AuthorProfilePreview() {
       about: profileMeta?.about || '',
       location: profileMeta?.location || '',
       website: profileMeta?.website || '',
-      coverImage: profileMeta?.cover_image || '',
+      coverImage: profileMeta?.coverImage || '',
       reputation: Math.floor(profile.reputation),
       followers: profile.stats.followers,
       following: profile.stats.following,
-      postCount: profile.post_count,
+      postCount: profile.postCount,
       hivePower,
-      hiveBalance: dbAccount ? parseNaiAsset(dbAccount.balance) : 0,
-      hbdBalance: dbAccount ? parseNaiAsset(dbAccount.hbd_balance) : 0,
+      hiveBalance: dbAccount ? parseBalance(dbAccount.balance) : 0,
+      hbdBalance: dbAccount ? parseBalance(dbAccount.hbdBalance) : 0,
       joinDate: formatJoinDate(profile.created),
-      curationRewards: dbAccount?.curation_rewards ?? 0,
-      postingRewards: dbAccount?.posting_rewards ?? 0,
+      curationRewards: dbAccount?.curationRewards ?? 0,
+      postingRewards: dbAccount?.postingRewards ?? 0,
       globalProps: globalProps ?? null,
     }
   })
@@ -334,7 +325,7 @@ function AuthorProfilePreview() {
       case 'hpEarned':
         // curation_rewards and posting_rewards are in VESTS (not millionths)
         const totalRewardsVests = pd.curationRewards + pd.postingRewards
-        const hpEarned = pd.globalProps ? convertVestsToHP(totalRewardsVests, pd.globalProps) : 0
+        const hpEarned = pd.globalProps ? blogLogicConvertVestsToHP(totalRewardsVests, pd.globalProps) : 0
         return (
           <div class="text-center">
             <p class="text-xs font-bold text-success">

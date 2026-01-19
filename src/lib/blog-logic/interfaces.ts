@@ -177,6 +177,7 @@ export interface IAccount extends IAccountIdentity {
   readonly avatar: string;
   getSlug(): string;
   getManabars(): Promise<IAccountManabars>;
+  getProfile(): Promise<IProfile>;
 }
 
 /**

@@ -1,6 +1,6 @@
 import { WorkerBeeError } from "./errors";
 import { DataProvider } from "./DataProvider";
-import type { IAccount, IAccountManabars, IManabar } from "./interfaces";
+import type { IAccount, IAccountManabars, IManabar, IProfile } from "./interfaces";
 
 export class Account implements IAccount {
   public readonly name: string;
@@ -57,5 +57,13 @@ export class Account implements IAccount {
       downvote: downvoteManabar as IManabar,
       rc: rcManabar as IManabar,
     };
+  }
+
+  public async getProfile(): Promise<IProfile> {
+    const profile = await this.dataProvider.getProfile(this.name);
+    if (!profile) {
+      throw new WorkerBeeError("Profile not found");
+    }
+    return profile;
   }
 }
