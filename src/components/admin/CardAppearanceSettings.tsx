@@ -73,6 +73,15 @@ function CardLayoutSection() {
 
       <div class="grid grid-cols-2 gap-4">
         <Slider
+          label="Thumbnail:"
+          unit="px"
+          min={32}
+          max={400}
+          value={settings.thumbnailSizePx}
+          onInput={(e) => updateSettings({ thumbnailSizePx: parseInt(e.currentTarget.value) })}
+        />
+
+        <Slider
           label="Padding:"
           unit="px"
           min={0}
@@ -115,17 +124,6 @@ function AdditionalSettings() {
 
   return (
     <div class="space-y-4">
-      <Show when={isElementUsed('thumbnail')}>
-        <Slider
-          label="Thumbnail size:"
-          unit="px"
-          min={32}
-          max={400}
-          value={settings.thumbnailSizePx}
-          onInput={(e) => updateSettings({ thumbnailSizePx: parseInt(e.currentTarget.value) })}
-        />
-      </Show>
-
       <Show when={isElementUsed('summary')}>
         <Slider
           label="Summary length:"
