@@ -15,6 +15,14 @@ function parseNaiAsset(asset: { amount: string; precision: number; nai: string }
   return parseInt(asset.amount) / Math.pow(10, asset.precision)
 }
 
+// Convert VESTS to HP using global properties
+function convertVestsToHP(vests: number, globalProps: { total_vesting_fund_hive: { amount: string; precision: number; nai: string }; total_vesting_shares: { amount: string; precision: number; nai: string } }): number {
+  const fundHive = parseNaiAsset(globalProps.total_vesting_fund_hive)
+  const totalShares = parseNaiAsset(globalProps.total_vesting_shares)
+  if (totalShares === 0) return 0
+  return vests * (fundHive / totalShares)
+}
+
 // All available author profile element IDs
 const AUTHOR_PROFILE_ELEMENT_IDS = [
   'coverImage',
@@ -138,6 +146,7 @@ function AuthorProfilePreview() {
       joinDate: formatJoinDate(profile.created),
       curationRewards: dbAccount?.curation_rewards ?? 0,
       postingRewards: dbAccount?.posting_rewards ?? 0,
+      globalProps: globalProps ?? null,
     }
   })
 
@@ -323,13 +332,13 @@ function AuthorProfilePreview() {
         )
 
       case 'hpEarned':
-        // curation_rewards and posting_rewards are in VESTS (6 decimal precision)
-        // Convert to HP using same ratio as hivePower
-        const totalRewardsVests = (pd.curationRewards + pd.postingRewards) / 1000000
+        // curation_rewards and posting_rewards are in VESTS (not millionths)
+        const totalRewardsVests = pd.curationRewards + pd.postingRewards
+        const hpEarned = pd.globalProps ? convertVestsToHP(totalRewardsVests, pd.globalProps) : 0
         return (
           <div class="text-center">
             <p class="text-xs font-bold text-success">
-              {formatCompactNumber(totalRewardsVests)}
+              {formatCompactNumber(hpEarned)}
             </p>
             <p class="text-xs text-text-muted">HP Earned</p>
           </div>

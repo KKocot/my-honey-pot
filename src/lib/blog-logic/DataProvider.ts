@@ -291,21 +291,27 @@ export class DataProvider {
     if (!result.accounts || result.accounts.length === 0) return null;
 
     const account = result.accounts[0];
-    // Convert NaiAsset to string - use toString() if available, otherwise stringify
-    const assetToString = (asset: unknown): string => {
+    // Convert NaiAsset to string format "amount unit"
+    // NaiAsset has: { amount: string, precision: number, nai: string }
+    const assetToString = (asset: unknown, unit: string): string => {
       if (typeof asset === "string") return asset;
-      if (asset && typeof asset === "object" && "toString" in asset) {
-        return String(asset);
+      if (asset && typeof asset === "object" && "amount" in asset && "precision" in asset) {
+        const naiAsset = asset as { amount: string; precision: number; nai: string };
+        const value = parseInt(naiAsset.amount) / Math.pow(10, naiAsset.precision);
+        return `${value} ${unit}`;
       }
+      // Fallback - try to use toString if it's defined and doesn't return [object Object]
+      const str = String(asset);
+      if (str !== "[object Object]") return str;
       return JSON.stringify(asset);
     };
     return {
       name: account.name,
-      balance: assetToString(account.balance),
-      hbdBalance: assetToString(account.hbd_balance),
-      vestingShares: assetToString(account.vesting_shares),
-      delegatedVestingShares: assetToString(account.delegated_vesting_shares),
-      receivedVestingShares: assetToString(account.received_vesting_shares),
+      balance: assetToString(account.balance, "HIVE"),
+      hbdBalance: assetToString(account.hbd_balance, "HBD"),
+      vestingShares: assetToString(account.vesting_shares, "VESTS"),
+      delegatedVestingShares: assetToString(account.delegated_vesting_shares, "VESTS"),
+      receivedVestingShares: assetToString(account.received_vesting_shares, "VESTS"),
       postCount: Number(account.post_count),
       curationRewards: Number(account.curation_rewards),
       postingRewards: Number(account.posting_rewards),
@@ -321,18 +327,24 @@ export class DataProvider {
       return this.chain.api.database_api.get_dynamic_global_properties({});
     });
 
-    // Convert NaiAsset to string
-    const assetToString = (asset: unknown): string => {
+    // Convert NaiAsset to string format "amount unit"
+    // NaiAsset has: { amount: string, precision: number, nai: string }
+    const assetToString = (asset: unknown, unit: string): string => {
       if (typeof asset === "string") return asset;
-      if (asset && typeof asset === "object" && "toString" in asset) {
-        return String(asset);
+      if (asset && typeof asset === "object" && "amount" in asset && "precision" in asset) {
+        const naiAsset = asset as { amount: string; precision: number; nai: string };
+        const value = parseInt(naiAsset.amount) / Math.pow(10, naiAsset.precision);
+        return `${value} ${unit}`;
       }
+      // Fallback - try to use toString if it's defined and doesn't return [object Object]
+      const str = String(asset);
+      if (str !== "[object Object]") return str;
       return JSON.stringify(asset);
     };
 
     return {
-      totalVestingFundHive: assetToString(props.total_vesting_fund_hive),
-      totalVestingShares: assetToString(props.total_vesting_shares),
+      totalVestingFundHive: assetToString(props.total_vesting_fund_hive, "HIVE"),
+      totalVestingShares: assetToString(props.total_vesting_shares, "VESTS"),
     };
   }
 

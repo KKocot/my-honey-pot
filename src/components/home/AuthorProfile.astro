@@ -94,6 +94,7 @@ if (globalProperties && account) {
   )
 
   // HP Earned (posting + curation rewards converted from VESTS to HP)
+  // curation_rewards and posting_rewards from database_api are in VESTS (not millionths)
   hpEarned = convertVestsToHP(totalRewardsVests, globalProperties)
 }
 
