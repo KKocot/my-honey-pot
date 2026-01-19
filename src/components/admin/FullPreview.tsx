@@ -1,4 +1,4 @@
-import { Show, For, createMemo, type Accessor } from 'solid-js'
+import { Show, For, createMemo, createSignal, onMount, type Accessor } from 'solid-js'
 import { Portal } from 'solid-js/web'
 import { settings, updateSettings } from './store'
 import { pageElementLabels, type PageSlotPosition, type PageLayoutSection } from './types'
@@ -260,16 +260,16 @@ export function FullPreview(props: FullPreviewProps) {
           <Show when={settings.postsLayout === 'list'}>
             <div class="flex flex-col" style={`gap: ${settings.cardGapPx || 24}px;`}>
               <For each={posts()}>
-                {(post) => <PostCard post={post} forceVertical={false} />}
+                {(post, index) => <PostCard post={post} forceVertical={false} index={index()} />}
               </For>
             </div>
           </Show>
           <Show when={settings.postsLayout === 'masonry'}>
             <div style={`column-count: ${settings.gridColumns || 2}; column-gap: ${settings.cardGapPx || 24}px;`}>
               <For each={posts()}>
-                {(post) => (
+                {(post, index) => (
                   <div class="break-inside-avoid" style={`margin-bottom: ${settings.cardGapPx || 24}px;`}>
-                    <PostCard post={post} forceVertical={true} />
+                    <PostCard post={post} forceVertical={true} index={index()} />
                   </div>
                 )}
               </For>
@@ -278,7 +278,7 @@ export function FullPreview(props: FullPreviewProps) {
           <Show when={settings.postsLayout === 'grid'}>
             <div style={`display: grid; grid-template-columns: repeat(${settings.gridColumns || 2}, 1fr); gap: ${settings.cardGapPx || 24}px;`}>
               <For each={posts()}>
-                {(post) => <PostCard post={post} forceVertical={true} />}
+                {(post, index) => <PostCard post={post} forceVertical={true} index={index()} />}
               </For>
             </div>
           </Show>
@@ -287,83 +287,109 @@ export function FullPreview(props: FullPreviewProps) {
     )
   }
 
-  // Sorting bar component for comments
-  const CommentsSortBar = () => {
-    const sortOptions = [
-      { value: 'comments', label: 'Recent comments' },
-      { value: 'replies', label: 'Recent replies' },
-    ] as const
-
-    return (
-      <div class="flex items-center justify-between bg-bg-card rounded-lg px-4 py-2 mb-4 border border-border">
-        <span class="text-sm text-text-muted">Sort comments:</span>
-        <div class="flex gap-1">
-          <For each={sortOptions}>
-            {(option) => (
-              <button
-                type="button"
-                onClick={() => updateSettings({ commentsSortOrder: option.value })}
-                class={`px-3 py-1 text-sm rounded-md transition-colors ${
-                  settings.commentsSortOrder === option.value
-                    ? 'bg-primary text-primary-text'
-                    : 'bg-bg hover:bg-bg-secondary text-text-muted hover:text-text'
-                }`}
-              >
-                {option.label}
-              </button>
-            )}
-          </For>
-        </div>
-      </div>
-    )
+  // Shadow map for hover effects
+  const shadowMap: Record<string, string> = {
+    sm: '0 1px 2px 0 rgb(0 0 0 / 0.05)',
+    md: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
+    lg: '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)',
+    xl: '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)',
+    '2xl': '0 25px 50px -12px rgb(0 0 0 / 0.25)',
   }
 
-  // Comments section component
-  const CommentsSection = () => {
-    // Mock comments for preview - in real app would come from data()
-    const mockComments = [
-      { author: 'user1', body: 'Great post! Really enjoyed reading this.', created: '2 hours ago' },
-      { author: 'user2', body: 'Thanks for sharing this information.', created: '5 hours ago' },
-      { author: 'user3', body: 'Very insightful analysis.', created: '1 day ago' },
-    ]
-
-    return (
-      <div>
-        <CommentsSortBar />
-        <div class="space-y-3">
-          <For each={mockComments}>
-            {(comment) => (
-              <div class="bg-bg-card rounded-lg p-4 border border-border">
-                <div class="flex items-center gap-2 mb-2">
-                  <div class="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
-                    <span class="text-xs text-primary font-medium">
-                      {comment.author[0].toUpperCase()}
-                    </span>
-                  </div>
-                  <div>
-                    <span class="text-sm font-medium text-text">@{comment.author}</span>
-                    <span class="text-xs text-text-muted ml-2">{comment.created}</span>
-                  </div>
-                </div>
-                <p class="text-sm text-text-muted">{comment.body}</p>
-              </div>
-            )}
-          </For>
-        </div>
-      </div>
-    )
+  // Get initial scroll animation style based on type
+  const getInitialScrollStyle = (type: string): Record<string, string> => {
+    const base: Record<string, string> = { opacity: '0' }
+    switch (type) {
+      case 'fade':
+        return base
+      case 'slide-up':
+        return { ...base, transform: 'translateY(20px)' }
+      case 'slide-left':
+        return { ...base, transform: 'translateX(-20px)' }
+      case 'zoom':
+        return { ...base, transform: 'scale(0.9)' }
+      case 'flip':
+        return { ...base, transform: 'perspective(600px) rotateX(-10deg)' }
+      default:
+        return {}
+    }
   }
 
-  // Single post card component - reactive
-  const PostCard = (props: { post: HivePost; forceVertical: boolean }) => {
+  // Get visible scroll animation style
+  const getVisibleScrollStyle = (): Record<string, string> => {
+    return { opacity: '1', transform: 'none' }
+  }
+
+  // Single post card component - reactive with hover and scroll animations
+  const PostCard = (props: { post: HivePost; forceVertical: boolean; index: number }) => {
     const thumbnail = () => getPostThumbnail(props.post)
     const tags = () => getPostTags(props.post)
     const isVertical = () => props.forceVertical || settings.cardLayout === 'vertical' || settings.postsLayout !== 'list'
 
+    // Hover state
+    const [isHovered, setIsHovered] = createSignal(false)
+    // Scroll animation visibility state
+    const [isVisible, setIsVisible] = createSignal(false)
+
+    // Trigger scroll animation on mount with staggered delay
+    onMount(() => {
+      if (settings.scrollAnimationType !== 'none' && settings.scrollAnimationEnabled) {
+        const delay = props.index * (settings.scrollAnimationDelay || 100)
+        setTimeout(() => setIsVisible(true), delay)
+      } else {
+        setIsVisible(true)
+      }
+    })
+
+    // Compute card styles with hover and scroll animations
+    const cardStyle = createMemo(() => {
+      const effect = settings.cardHoverEffect || 'none'
+      const hoverDuration = settings.cardTransitionDuration || 200
+      const scrollDuration = settings.scrollAnimationDuration || 400
+      const scrollType = settings.scrollAnimationType || 'none'
+      const scale = settings.cardHoverScale || 1.02
+      const shadow = settings.cardHoverShadow || 'lg'
+      const brightness = settings.cardHoverBrightness || 1.05
+
+      // Base styles
+      const styles: Record<string, string> = {
+        padding: `${settings.cardPaddingPx || 24}px`,
+        'border-radius': `${settings.cardBorderRadiusPx || 16}px`,
+        border: settings.cardBorder !== false ? '1px solid var(--color-border)' : '1px solid transparent',
+        transition: `all ${scrollDuration}ms ease-out, box-shadow ${hoverDuration}ms ease-out, transform ${hoverDuration}ms ease-out, filter ${hoverDuration}ms ease-out`,
+      }
+
+      // Apply scroll animation initial state if not visible
+      if (!isVisible() && scrollType !== 'none') {
+        Object.assign(styles, getInitialScrollStyle(scrollType))
+      } else if (isVisible()) {
+        Object.assign(styles, getVisibleScrollStyle())
+      }
+
+      // Apply hover effects when hovered (override scroll transform)
+      if (isHovered() && effect !== 'none') {
+        if (effect === 'shadow') {
+          styles['box-shadow'] = shadowMap[shadow] || shadowMap.md
+        } else if (effect === 'scale') {
+          styles.transform = `scale(${scale})`
+        } else if (effect === 'lift') {
+          styles.transform = `scale(${scale}) translateY(-4px)`
+          styles['box-shadow'] = shadowMap[shadow] || shadowMap.lg
+        } else if (effect === 'glow') {
+          styles.filter = `brightness(${brightness})`
+          styles['box-shadow'] = '0 0 20px var(--color-primary)'
+        }
+      }
+
+      return styles
+    })
+
     return (
       <article
-        class={`bg-bg-card rounded-xl border overflow-hidden ${settings.cardBorder !== false ? 'border-border' : 'border-transparent'}`}
-        style={`padding: ${settings.cardPaddingPx || 24}px; border-radius: ${settings.cardBorderRadiusPx || 16}px;`}
+        class="bg-bg-card rounded-xl overflow-hidden cursor-pointer"
+        style={cardStyle()}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
       >
         <div class={isVertical() ? 'flex flex-col gap-3' : 'flex gap-4'}>
           <Show when={settings.showThumbnail !== false && thumbnail()}>
@@ -508,9 +534,6 @@ export function FullPreview(props: FullPreviewProps) {
         </Show>
         <Show when={props.elementId === 'navigation'}>
           <NavigationPreview />
-        </Show>
-        <Show when={props.elementId === 'comments'}>
-          <CommentsSection />
         </Show>
       </>
     )
