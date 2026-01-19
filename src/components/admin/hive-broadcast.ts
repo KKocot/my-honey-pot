@@ -1,77 +1,36 @@
 import createBeekeeper from '@hiveio/beekeeper'
 import BeekeeperProvider from '@hiveio/wax-signers-beekeeper'
 import { ReplyOperation } from '@hiveio/wax'
-import { getWax, resetWax } from '../../lib/blog-logic/wax'
+import { DataProvider, getWax } from '../../lib/blog-logic'
 import type { SettingsData } from './types'
 
 // Config post details - hardcoded parent post for all configs
 const CONFIG_PARENT_AUTHOR = 'barddev'
 const CONFIG_PARENT_PERMLINK = 'my-blog-configs'
 
-const MAX_RETRIES = 3
-
 /**
- * Helper to retry API calls with endpoint switching on timeout
- */
-async function withRetry<T>(fn: () => Promise<T>): Promise<T> {
-  let lastError: Error | null = null
-
-  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
-    try {
-      // Reset and get fresh chain for each attempt
-      if (attempt > 0) {
-        resetWax()
-        await new Promise(resolve => setTimeout(resolve, 300))
-      }
-      return await fn()
-    } catch (error) {
-      lastError = error instanceof Error ? error : new Error(String(error))
-      const isTimeout = lastError.message.toLowerCase().includes('timeout')
-
-      if (isTimeout && attempt < MAX_RETRIES - 1) {
-        console.warn(`Config API request timed out (attempt ${attempt + 1}/${MAX_RETRIES}), switching endpoint...`)
-        // Continue to next attempt - resetWax will be called at start of next iteration
-      } else if (!isTimeout) {
-        throw lastError
-      }
-    }
-  }
-
-  throw lastError || new Error('All retry attempts failed')
-}
-
-/**
- * Find existing config comment from a user under the config post
- * Returns the permlink if found, null otherwise
+ * Find existing config comment from a user under the config post using Blog Logic
+ * Returns the permlink and body if found, null otherwise
  */
 async function findExistingConfig(username: string): Promise<{ permlink: string; body: string } | null> {
   try {
-    const discussion = await withRetry(async () => {
-      const chain = await getWax()
-      return chain.api.bridge.get_discussion({
-        author: CONFIG_PARENT_AUTHOR,
-        permlink: CONFIG_PARENT_PERMLINK,
-        observer: ''
-      })
-    })
+    const chain = await getWax()
+    const dataProvider = new DataProvider(chain)
 
-    if (!discussion) {
-      return null
-    }
+    // Use Blog Logic's enumReplies to fetch all replies to the config post
+    // This uses bridge.get_discussion internally with retry logic
+    const repliesIds = await dataProvider.enumReplies(
+      { author: CONFIG_PARENT_AUTHOR, permlink: CONFIG_PARENT_PERMLINK },
+      {},
+      { page: 1, pageSize: 100 }
+    )
 
-    // Search through all comments to find one from this user with config
-    for (const key of Object.keys(discussion)) {
-      const comment = discussion[key]
-
-      // Skip the parent post itself
-      if (comment.author === CONFIG_PARENT_AUTHOR && comment.permlink === CONFIG_PARENT_PERMLINK) {
-        continue
-      }
-
-      // Check if this comment is from our user and is a config comment
-      if (comment.author === username && comment.parent_author === CONFIG_PARENT_AUTHOR && comment.parent_permlink === CONFIG_PARENT_PERMLINK) {
-        // Check if it contains a JSON config block
-        if (comment.body.includes('```json')) {
+    // Find this user's config comment
+    for (const replyId of repliesIds) {
+      if (replyId.author === username) {
+        // Get the cached comment data
+        const comment = dataProvider.getComment(replyId)
+        if (comment?.body.includes('```json')) {
           return {
             permlink: comment.permlink,
             body: comment.body
