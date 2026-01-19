@@ -714,6 +714,7 @@ export const scrollAnimationTypeOptions = [
 // Labels for post card elements
 export const postCardElementLabels: Record<string, string> = {
   thumbnail: 'Thumbnail',
+  avatar: 'Author Avatar',
   title: 'Title',
   summary: 'Summary',
   meta: 'Meta (date, votes, comments, payout)',
