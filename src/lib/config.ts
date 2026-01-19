@@ -6,13 +6,13 @@
 // import.meta.env works in dev and client-side, process.env only works in Node.js SSR
 export const HIVE_API_ENDPOINT = import.meta.env.HIVE_API_ENDPOINT || (typeof process !== 'undefined' ? process.env?.HIVE_API_ENDPOINT : undefined) || 'https://api.openhive.network'
 
-// Fallback API endpoints for retry logic
+// Fallback API endpoints for retry logic (ordered by preference)
 export const HIVE_API_ENDPOINTS = [
+  'https://api.syncad.com',
   'https://api.openhive.network',
   'https://api.hive.blog',
   'https://api.deathwing.me',
   'https://hive-api.arcange.eu',
-  'https://api.syncad.com',
 ]
 
 // Layout Constants
