@@ -3,6 +3,12 @@ import { createStore, produce } from 'solid-js/store'
 import { defaultSettings, migrateCardLayout, themePresets, type SettingsData, type LayoutSection, type ThemeColors } from './types'
 import { loadConfigFromHive } from './hive-broadcast'
 import { setHasUnsavedChanges } from './AdminPanel'
+import { HIVE_API_ENDPOINTS } from '../../lib/config'
+import {
+  formatCompactNumber,
+  formatJoinDate,
+  parseVests,
+} from '../../lib/blog-logic'
 
 // ============================================
 // Apply theme colors to CSS variables
@@ -239,110 +245,265 @@ export interface HivePost {
   pending_payout_value: string
 }
 
-export interface HiveAccount {
+// NAI Asset format from database_api
+interface NaiAsset {
+  amount: string
+  precision: number
+  nai: string
+}
+
+// Profile data from bridge.get_profile
+export interface HiveBridgeProfile {
   name: string
-  reputation: number
-  post_count: number
-  balance: string
-  savings_balance: string
-  hbd_balance: string
-  vesting_shares: string
-  received_vesting_shares: string
-  delegated_vesting_shares: string
-  json_metadata: string
-  posting_json_metadata: string
   created: string
+  post_count: number
+  reputation: number
+  stats: {
+    followers: number
+    following: number
+    rank: number
+  }
+  metadata: {
+    profile?: {
+      name?: string
+      about?: string
+      location?: string
+      website?: string
+      profile_image?: string
+      cover_image?: string
+    }
+  }
 }
 
-export interface HiveProfile {
+// Database account data from database_api.find_accounts
+export interface HiveDatabaseAccount {
   name: string
-  about?: string
-  location?: string
-  website?: string
-  cover_image?: string
-  profile_image?: string
-  post_count?: number
+  balance: NaiAsset
+  hbd_balance: NaiAsset
+  vesting_shares: NaiAsset
+  delegated_vesting_shares: NaiAsset
+  received_vesting_shares: NaiAsset
+  post_count: number
+  curation_rewards: number
+  posting_rewards: number
 }
 
-export interface HiveFollowCount {
-  follower_count: number
-  following_count: number
+// Global properties for VESTS to HP conversion
+export interface HiveGlobalProps {
+  total_vesting_fund_hive: NaiAsset
+  total_vesting_shares: NaiAsset
 }
 
 export interface HiveData {
-  account: HiveAccount | null
-  profile: HiveProfile | null
+  profile: HiveBridgeProfile | null
+  dbAccount: HiveDatabaseAccount | null
+  globalProps: HiveGlobalProps | null
   posts: HivePost[]
-  followCount: HiveFollowCount | null
 }
 
-// Default Hive API endpoint for client-side usage
-const HIVE_API_ENDPOINT = 'https://api.openhive.network'
+// ============================================
+// Hive API Client with Fallback (uses config endpoints)
+// ============================================
+
+let currentEndpointIndex = 0
+let lastCheckedEndpoint: string | null = null
+
+/**
+ * Check if an API endpoint is healthy
+ */
+async function checkEndpointHealth(endpoint: string): Promise<boolean> {
+  try {
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 3000)
+
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        method: 'database_api.get_dynamic_global_properties',
+        params: {},
+        id: 1,
+      }),
+      signal: controller.signal,
+    })
+
+    clearTimeout(timeoutId)
+    if (!response.ok) return false
+
+    const data = await response.json()
+    return !!data.result
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Get a working API endpoint with fallback
+ */
+async function getWorkingEndpoint(): Promise<string> {
+  const currentEndpoint = HIVE_API_ENDPOINTS[currentEndpointIndex]
+
+  if (lastCheckedEndpoint === currentEndpoint) {
+    return currentEndpoint
+  }
+
+  if (await checkEndpointHealth(currentEndpoint)) {
+    lastCheckedEndpoint = currentEndpoint
+    return currentEndpoint
+  }
+
+  for (let i = 0; i < HIVE_API_ENDPOINTS.length; i++) {
+    const endpoint = HIVE_API_ENDPOINTS[i]
+    if (endpoint === currentEndpoint) continue
+
+    if (await checkEndpointHealth(endpoint)) {
+      currentEndpointIndex = i
+      lastCheckedEndpoint = endpoint
+      console.log(`Switched to API endpoint: ${endpoint}`)
+      return endpoint
+    }
+  }
+
+  console.warn('No healthy API endpoints found, using first endpoint')
+  return HIVE_API_ENDPOINTS[0]
+}
+
+/**
+ * Make a fetch request with automatic endpoint fallback and retry
+ */
+async function fetchWithFallback(body: object, retries = 2): Promise<Response> {
+  let lastError: Error | null = null
+
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    const endpoint = await getWorkingEndpoint()
+
+    try {
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 10000)
+
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+        signal: controller.signal,
+      })
+
+      clearTimeout(timeoutId)
+
+      if (response.ok) {
+        return response
+      }
+
+      const isTimeout = false // Response received but not ok
+      console.warn(`API request failed (attempt ${attempt + 1}/${retries + 1}), switching endpoint...`)
+      lastCheckedEndpoint = null
+      currentEndpointIndex = (currentEndpointIndex + 1) % HIVE_API_ENDPOINTS.length
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error))
+      const isTimeout = lastError.message.includes('abort') || lastError.name === 'AbortError'
+
+      if (isTimeout) {
+        console.warn(`API request timed out (attempt ${attempt + 1}/${retries + 1}), switching endpoint...`)
+      }
+
+      lastCheckedEndpoint = null
+      currentEndpointIndex = (currentEndpointIndex + 1) % HIVE_API_ENDPOINTS.length
+    }
+  }
+
+  throw lastError || new Error('All API endpoints failed')
+}
 
 // ============================================
-// Hive Preview Data Fetcher
+// Helper functions for parsing Hive data
+// Uses parseVests from blog-logic where possible
+// ============================================
+
+/**
+ * Parse NAI asset format to number
+ */
+function parseNaiAsset(asset: NaiAsset): number {
+  return parseInt(asset.amount) / Math.pow(10, asset.precision)
+}
+
+/**
+ * Calculate effective Hive Power from vesting shares
+ */
+export function calculateEffectiveHivePower(
+  vestingShares: NaiAsset,
+  delegatedVestingShares: NaiAsset,
+  receivedVestingShares: NaiAsset,
+  globalProps: HiveGlobalProps
+): number {
+  const own = parseNaiAsset(vestingShares)
+  const delegated = parseNaiAsset(delegatedVestingShares)
+  const received = parseNaiAsset(receivedVestingShares)
+  const effectiveVests = own - delegated + received
+
+  const fundHive = parseNaiAsset(globalProps.total_vesting_fund_hive)
+  const totalShares = parseNaiAsset(globalProps.total_vesting_shares)
+  if (totalShares === 0) return 0
+
+  return effectiveVests * (fundHive / totalShares)
+}
+
+// Re-export utilities from blog-logic for convenience
+export { formatCompactNumber, formatJoinDate }
+
+// ============================================
+// Hive Preview Data Fetcher (using bridge.get_profile - no condenser_api)
+// Uses fetchWithFallback for automatic endpoint switching
 // ============================================
 
 async function fetchHivePreviewData(username: string, postsPerPage: number): Promise<HiveData | null> {
   if (!username) return null
 
   try {
-    // Fetch account, posts, and follow count in parallel
-    const [accountRes, postsRes, followRes] = await Promise.all([
-      fetch(HIVE_API_ENDPOINT, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          jsonrpc: '2.0',
-          method: 'condenser_api.get_accounts',
-          params: [[username]],
-          id: 1,
-        }),
+    // Fetch profile, database account, global props, and posts in parallel
+    // Uses bridge.get_profile (includes followers/following in stats)
+    // Uses database_api.find_accounts for financial data
+    // Uses database_api.get_dynamic_global_properties for VESTS to HP conversion
+    const [profileRes, dbAccountRes, globalPropsRes, postsRes] = await Promise.all([
+      fetchWithFallback({
+        jsonrpc: '2.0',
+        method: 'bridge.get_profile',
+        params: { account: username, observer: '' },
+        id: 1,
       }),
-      fetch(HIVE_API_ENDPOINT, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          jsonrpc: '2.0',
-          method: 'bridge.get_account_posts',
-          params: { sort: 'blog', account: username, limit: postsPerPage },
-          id: 2,
-        }),
+      fetchWithFallback({
+        jsonrpc: '2.0',
+        method: 'database_api.find_accounts',
+        params: { accounts: [username] },
+        id: 2,
       }),
-      fetch(HIVE_API_ENDPOINT, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          jsonrpc: '2.0',
-          method: 'condenser_api.get_follow_count',
-          params: [username],
-          id: 3,
-        }),
+      fetchWithFallback({
+        jsonrpc: '2.0',
+        method: 'database_api.get_dynamic_global_properties',
+        params: {},
+        id: 3,
+      }),
+      fetchWithFallback({
+        jsonrpc: '2.0',
+        method: 'bridge.get_account_posts',
+        params: { sort: 'blog', account: username, limit: postsPerPage },
+        id: 4,
       }),
     ])
 
-    const [accountData, postsData, followData] = await Promise.all([
-      accountRes.json(),
+    const [profileData, dbAccountData, globalPropsData, postsData] = await Promise.all([
+      profileRes.json(),
+      dbAccountRes.json(),
+      globalPropsRes.json(),
       postsRes.json(),
-      followRes.json(),
     ])
 
-    const account: HiveAccount | null = accountData.result?.[0] || null
+    const profile: HiveBridgeProfile | null = profileData.result || null
+    const dbAccount: HiveDatabaseAccount | null = dbAccountData.result?.accounts?.[0] || null
+    const globalProps: HiveGlobalProps | null = globalPropsData.result || null
     const posts: HivePost[] = postsData.result || []
-    const followCount: HiveFollowCount | null = followData.result || null
 
-    // Parse profile from account metadata
-    let profile: HiveProfile | null = null
-    if (account) {
-      try {
-        const metadata = JSON.parse(account.posting_json_metadata || account.json_metadata || '{}')
-        profile = metadata.profile || null
-      } catch {
-        // Invalid JSON
-      }
-    }
-
-    return { account, profile, posts, followCount }
+    return { profile, dbAccount, globalProps, posts }
   } catch {
     return null
   }
