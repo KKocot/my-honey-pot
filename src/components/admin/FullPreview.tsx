@@ -2,12 +2,22 @@ import { Show, For, type Accessor } from 'solid-js'
 import { Portal } from 'solid-js/web'
 import { settings } from './store'
 import { pageElementLabels, type PageSlotPosition } from './types'
-import { useHivePreviewQuery, type HivePost } from './queries'
+import {
+  useHivePreviewQuery,
+  formatCompactNumber,
+  calculateEffectiveHivePower,
+  type HivePost,
+} from './queries'
 
 // ============================================
 // Full Preview Dialog Component
 // Shows live preview with real Hive data
 // ============================================
+
+// Helper to parse NAI asset to number (module-level for efficiency)
+function parseNaiAsset(asset: { amount: string; precision: number; nai: string }): number {
+  return parseInt(asset.amount) / Math.pow(10, asset.precision)
+}
 
 interface FullPreviewProps {
   open: Accessor<boolean>
@@ -74,16 +84,6 @@ export function FullPreview(props: FullPreviewProps) {
     return `$${num.toFixed(2)}`
   }
 
-  // Calculate reputation
-  const calculateReputation = (rep: number): number => {
-    if (rep === 0) return 25
-    const neg = rep < 0
-    const repLog = Math.log10(Math.abs(rep))
-    let out = Math.max(repLog - 9, 0)
-    out = (neg ? -1 : 1) * out * 9 + 25
-    return Math.floor(out)
-  }
-
   // Render header element
   const renderHeader = () => (
     <header
@@ -95,55 +95,50 @@ export function FullPreview(props: FullPreviewProps) {
     </header>
   )
 
-  // Format number with K/M suffix
-  const formatNumber = (num: number): string => {
-    if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`
-    if (num >= 1000) return `${(num / 1000).toFixed(1)}K`
-    return num.toString()
-  }
-
   // Render author profile element
   const renderAuthorProfile = (layout: 'horizontal' | 'vertical' = 'horizontal') => {
     const currentData = data()
-    const account = currentData?.account
     const profile = currentData?.profile
-    const followCount = currentData?.followCount
-    if (!account) return null
+    const dbAccount = currentData?.dbAccount
+    const globalProps = currentData?.globalProps
+    if (!profile) return null
+
+    const profileMeta = profile.metadata?.profile
 
     return (
       <div class={`bg-bg-card rounded-xl shadow-sm border border-border overflow-hidden ${layout === 'vertical' ? 'p-4' : 'p-6'}`}>
-        {settings.showAuthorCoverImage && profile?.cover_image && (
+        {settings.showAuthorCoverImage && profileMeta?.cover_image && (
           <div
             class="h-24 bg-cover bg-center -mx-4 -mt-4 mb-4 rounded-t-xl"
-            style={`background-image: url(${profile.cover_image});`}
+            style={`background-image: url(${profileMeta.cover_image});`}
           />
         )}
         <div class={`flex ${layout === 'vertical' ? 'flex-col items-center text-center' : 'items-center'} gap-4`}>
           <img
-            src={`https://images.hive.blog/u/${account.name}/avatar`}
-            alt={account.name}
+            src={`https://images.hive.blog/u/${profile.name}/avatar`}
+            alt={profile.name}
             class="rounded-full border-2 border-border"
             style={`width: ${settings.authorAvatarSizePx || 64}px; height: ${settings.authorAvatarSizePx || 64}px;`}
           />
           <div class={layout === 'vertical' ? '' : 'flex-1'}>
             <div class="flex items-center gap-2 flex-wrap justify-center">
-              <h2 class="font-bold text-text">@{account.name}</h2>
+              <h2 class="font-bold text-text">@{profile.name}</h2>
               {settings.showAuthorReputation !== false && (
                 <span class="px-2 py-0.5 text-xs font-medium bg-primary/10 text-primary rounded-full">
-                  Rep: {calculateReputation(account.reputation)}
+                  Rep: {Math.floor(profile.reputation)}
                 </span>
               )}
             </div>
-            {settings.showAuthorAbout !== false && profile?.about && (
-              <p class="text-text-muted text-sm mt-1 line-clamp-2">{profile.about}</p>
+            {settings.showAuthorAbout !== false && profileMeta?.about && (
+              <p class="text-text-muted text-sm mt-1 line-clamp-2">{profileMeta.about}</p>
             )}
             <div class="flex flex-wrap gap-4 mt-2 text-sm text-text-muted justify-center">
-              {settings.showAuthorLocation !== false && profile?.location && (
-                <span>{profile.location}</span>
+              {settings.showAuthorLocation !== false && profileMeta?.location && (
+                <span>{profileMeta.location}</span>
               )}
-              {settings.showAuthorWebsite !== false && profile?.website && (
-                <a href={profile.website} class="text-primary hover:underline" target="_blank">
-                  {profile.website.replace(/^https?:\/\//, '')}
+              {settings.showAuthorWebsite !== false && profileMeta?.website && (
+                <a href={profileMeta.website} class="text-primary hover:underline" target="_blank" rel="noopener noreferrer">
+                  {profileMeta.website.replace(/^https?:\/\//, '')}
                 </a>
               )}
             </div>
@@ -152,32 +147,45 @@ export function FullPreview(props: FullPreviewProps) {
         <div class="flex flex-wrap gap-4 mt-4 pt-4 border-t border-border justify-center text-center">
           {settings.showPostCount !== false && (
             <div>
-              <p class="font-bold text-text">{formatNumber(account.post_count)}</p>
+              <p class="font-bold text-text">{formatCompactNumber(profile.post_count)}</p>
               <p class="text-xs text-text-muted">Posts</p>
             </div>
           )}
-          {settings.showAuthorFollowers !== false && followCount && (
+          {settings.showAuthorFollowers !== false && (
             <div>
-              <p class="font-bold text-text">{formatNumber(followCount.follower_count)}</p>
+              <p class="font-bold text-text">{formatCompactNumber(profile.stats.followers)}</p>
               <p class="text-xs text-text-muted">Followers</p>
             </div>
           )}
-          {settings.showAuthorFollowing !== false && followCount && (
+          {settings.showAuthorFollowing !== false && (
             <div>
-              <p class="font-bold text-text">{formatNumber(followCount.following_count)}</p>
+              <p class="font-bold text-text">{formatCompactNumber(profile.stats.following)}</p>
               <p class="text-xs text-text-muted">Following</p>
             </div>
           )}
-          {settings.showAuthorHiveBalance !== false && (
+          {settings.showAuthorHiveBalance !== false && dbAccount && (
             <div>
-              <p class="font-bold text-text">{parseFloat(account.balance).toFixed(3)}</p>
+              <p class="font-bold text-text">{parseNaiAsset(dbAccount.balance).toFixed(3)}</p>
               <p class="text-xs text-text-muted">HIVE</p>
             </div>
           )}
-          {settings.showAuthorHbdBalance !== false && (
+          {settings.showAuthorHbdBalance !== false && dbAccount && (
             <div>
-              <p class="font-bold text-text">{parseFloat(account.hbd_balance).toFixed(3)}</p>
+              <p class="font-bold text-text">{parseNaiAsset(dbAccount.hbd_balance).toFixed(3)}</p>
               <p class="text-xs text-text-muted">HBD</p>
+            </div>
+          )}
+          {settings.showAuthorHivePower !== false && dbAccount && globalProps && (
+            <div>
+              <p class="font-bold text-text">
+                {formatCompactNumber(calculateEffectiveHivePower(
+                  dbAccount.vesting_shares,
+                  dbAccount.delegated_vesting_shares,
+                  dbAccount.received_vesting_shares,
+                  globalProps
+                ))}
+              </p>
+              <p class="text-xs text-text-muted">HP</p>
             </div>
           )}
         </div>
