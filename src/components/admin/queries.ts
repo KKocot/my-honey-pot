@@ -101,12 +101,20 @@ export function setLayoutSections(sections: LayoutSection[]) {
 // ============================================
 
 function migrateSettingsLayouts(data: Partial<SettingsData>): Partial<SettingsData> {
-  return {
-    ...data,
-    postCardLayout: data.postCardLayout ? migrateCardLayout(data.postCardLayout) : undefined,
-    commentCardLayout: data.commentCardLayout ? migrateCardLayout(data.commentCardLayout) : undefined,
-    authorProfileLayout2: data.authorProfileLayout2 ? migrateCardLayout(data.authorProfileLayout2) : undefined,
+  const result: Partial<SettingsData> = {}
+
+  // Only migrate layouts that exist in data - return migrated versions
+  if (data.postCardLayout) {
+    result.postCardLayout = migrateCardLayout(data.postCardLayout)
   }
+  if (data.commentCardLayout) {
+    result.commentCardLayout = migrateCardLayout(data.commentCardLayout)
+  }
+  if (data.authorProfileLayout2) {
+    result.authorProfileLayout2 = migrateCardLayout(data.authorProfileLayout2)
+  }
+
+  return result
 }
 
 // ============================================
@@ -147,13 +155,26 @@ async function fetchSettings(): Promise<SettingsData> {
         const migratedData = migrateSettingsLayouts(hiveConfig)
         const pageLayout = hiveConfig.pageLayout !== undefined ? hiveConfig.pageLayout : defaultSettings.pageLayout
 
-        return {
-          ...defaultSettings,
-          ...hiveConfig,
-          ...migratedData,
-          layoutSections: hiveConfig.layoutSections?.length ? hiveConfig.layoutSections : defaultSettings.layoutSections,
-          pageLayout,
-        } as SettingsData
+        // Build final settings - start with defaults, then overlay hiveConfig (excluding undefined values)
+        const finalSettings: SettingsData = { ...defaultSettings }
+
+        // Apply hiveConfig values, but skip undefined/null to keep defaults
+        for (const key of Object.keys(hiveConfig) as (keyof SettingsData)[]) {
+          if (hiveConfig[key] !== undefined && hiveConfig[key] !== null) {
+            (finalSettings as Record<string, unknown>)[key] = hiveConfig[key]
+          }
+        }
+
+        // Apply migrated layouts (these are already validated to exist)
+        Object.assign(finalSettings, migratedData)
+
+        // Ensure layoutSections and pageLayout have proper values
+        if (!finalSettings.layoutSections?.length) {
+          finalSettings.layoutSections = defaultSettings.layoutSections
+        }
+        finalSettings.pageLayout = pageLayout
+
+        return finalSettings
       }
       console.log('No config found on Hive, using defaults')
     } catch (error) {
