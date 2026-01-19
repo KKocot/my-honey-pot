@@ -299,15 +299,11 @@ const isFirstPage = !cursor
         {elementId === 'comments' && hiveUsername && showCommentsTab && (
           <>
             {tabs.length > 1 && activeTab === 'comments' && <ContentTabs tabs={tabs} activeTab={activeTab} />}
-            {hiveComments.length > 0 ? (
+            {hiveComments.length > 0 && (
               <div class="space-y-4">
                 {hiveComments.map(comment => (
                   <CommentCard comment={comment} settings={settings} layout="list" />
                 ))}
-              </div>
-            ) : (
-              <div class="text-center py-8 bg-bg-card rounded-xl border border-border">
-                <p class="text-text-muted">No comments found</p>
               </div>
             )}
           </>
@@ -455,67 +451,51 @@ const isFirstPage = !cursor
                         </div>
                       )}
                     </>
-                  ) : (
+                  ) : hiveComments.length > 0 ? (
                     <>
-                      {hiveComments.length > 0 ? (
-                        <>
-                          {settings.commentsLayout === 'list' ? (
-                            <div class="divide-y divide-border bg-bg-card rounded-xl shadow-sm border border-border overflow-hidden">
-                              {hiveComments.map(comment => (
-                                <CommentCard comment={comment} settings={settings} layout="list" />
-                              ))}
+                      {settings.commentsLayout === 'list' ? (
+                        <div class="divide-y divide-border bg-bg-card rounded-xl shadow-sm border border-border overflow-hidden">
+                          {hiveComments.map(comment => (
+                            <CommentCard comment={comment} settings={settings} layout="list" />
+                          ))}
+                        </div>
+                      ) : settings.commentsLayout === 'masonry' ? (
+                        <div style={`column-count: ${settings.commentsGridColumns || 2}; column-gap: ${settings.commentsGapPx || 16}px;`}>
+                          {hiveComments.map(comment => (
+                            <div class="break-inside-avoid" style={`margin-bottom: ${settings.commentsGapPx || 16}px;`}>
+                              <CommentCard comment={comment} settings={settings} layout="masonry" />
                             </div>
-                          ) : settings.commentsLayout === 'masonry' ? (
-                            <div style={`column-count: ${settings.commentsGridColumns || 2}; column-gap: ${settings.commentsGapPx || 16}px;`}>
-                              {hiveComments.map(comment => (
-                                <div class="break-inside-avoid" style={`margin-bottom: ${settings.commentsGapPx || 16}px;`}>
-                                  <CommentCard comment={comment} settings={settings} layout="masonry" />
-                                </div>
-                              ))}
-                            </div>
-                          ) : (
-                            <div style={`display: grid; grid-template-columns: repeat(${settings.commentsGridColumns || 2}, 1fr); gap: ${settings.commentsGapPx || 16}px;`}>
-                              {hiveComments.map(comment => (
-                                <CommentCard comment={comment} settings={settings} layout="grid" />
-                              ))}
-                            </div>
-                          )}
-                          <div class="flex justify-between items-center mt-6 pt-4 border-t border-border">
-                            {!isFirstPage ? (
-                              <a href="/?tab=comments" class="px-4 py-2 bg-bg-card border border-border rounded-lg text-text hover:bg-primary hover:text-primary-text hover:border-primary transition-colors">
-                                First page
-                              </a>
-                            ) : <span />}
-                            {hasMoreComments && nextCommentsPageUrl ? (
-                              <a href={nextCommentsPageUrl} class="px-4 py-2 bg-primary text-primary-text rounded-lg hover:bg-primary/90 transition-colors">
-                                Load more comments
-                              </a>
-                            ) : <span />}
-                          </div>
-                        </>
+                          ))}
+                        </div>
                       ) : (
-                        <div class="text-center py-12 bg-bg-card rounded-xl shadow-sm border border-border">
-                          <p class="text-text">No comments found for @{hiveUsername}</p>
+                        <div style={`display: grid; grid-template-columns: repeat(${settings.commentsGridColumns || 2}, 1fr); gap: ${settings.commentsGapPx || 16}px;`}>
+                          {hiveComments.map(comment => (
+                            <CommentCard comment={comment} settings={settings} layout="grid" />
+                          ))}
                         </div>
                       )}
+                      <div class="flex justify-between items-center mt-6 pt-4 border-t border-border">
+                        {!isFirstPage ? (
+                          <a href="/?tab=comments" class="px-4 py-2 bg-bg-card border border-border rounded-lg text-text hover:bg-primary hover:text-primary-text hover:border-primary transition-colors">
+                            First page
+                          </a>
+                        ) : <span />}
+                        {hasMoreComments && nextCommentsPageUrl ? (
+                          <a href={nextCommentsPageUrl} class="px-4 py-2 bg-primary text-primary-text rounded-lg hover:bg-primary/90 transition-colors">
+                            Load more comments
+                          </a>
+                        ) : <span />}
+                      </div>
                     </>
-                  )}
+                  ) : null}
                 </>
               )}
-              {elementId === 'comments' && hiveUsername && showCommentsTab && (
-                <>
-                  {hiveComments.length > 0 ? (
-                    <div class="space-y-4">
-                      {hiveComments.map(comment => (
-                        <CommentCard comment={comment} settings={settings} layout="list" />
-                      ))}
-                    </div>
-                  ) : (
-                    <div class="text-center py-8 bg-bg-card rounded-xl border border-border">
-                      <p class="text-text-muted">No comments found</p>
-                    </div>
-                  )}
-                </>
+              {elementId === 'comments' && hiveUsername && showCommentsTab && hiveComments.length > 0 && (
+                <div class="space-y-4">
+                  {hiveComments.map(comment => (
+                    <CommentCard comment={comment} settings={settings} layout="list" />
+                  ))}
+                </div>
               )}
               {elementId === 'navigation' && (
                 <nav class="bg-bg-card rounded-xl p-4 border border-border">
@@ -646,67 +626,51 @@ const isFirstPage = !cursor
                       </div>
                     )}
                   </>
-                ) : (
+                ) : hiveComments.length > 0 && (
                   <>
-                    {hiveComments.length > 0 ? (
-                      <>
-                        {settings.commentsLayout === 'list' ? (
-                          <div class="divide-y divide-border bg-bg-card rounded-xl shadow-sm border border-border overflow-hidden">
-                            {hiveComments.map(comment => (
-                              <CommentCard comment={comment} settings={settings} layout="list" />
-                            ))}
+                    {settings.commentsLayout === 'list' ? (
+                      <div class="divide-y divide-border bg-bg-card rounded-xl shadow-sm border border-border overflow-hidden">
+                        {hiveComments.map(comment => (
+                          <CommentCard comment={comment} settings={settings} layout="list" />
+                        ))}
+                      </div>
+                    ) : settings.commentsLayout === 'masonry' ? (
+                      <div style={`column-count: ${settings.commentsGridColumns || 2}; column-gap: ${settings.commentsGapPx || 16}px;`}>
+                        {hiveComments.map(comment => (
+                          <div class="break-inside-avoid" style={`margin-bottom: ${settings.commentsGapPx || 16}px;`}>
+                            <CommentCard comment={comment} settings={settings} layout="masonry" />
                           </div>
-                        ) : settings.commentsLayout === 'masonry' ? (
-                          <div style={`column-count: ${settings.commentsGridColumns || 2}; column-gap: ${settings.commentsGapPx || 16}px;`}>
-                            {hiveComments.map(comment => (
-                              <div class="break-inside-avoid" style={`margin-bottom: ${settings.commentsGapPx || 16}px;`}>
-                                <CommentCard comment={comment} settings={settings} layout="masonry" />
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <div style={`display: grid; grid-template-columns: repeat(${settings.commentsGridColumns || 2}, 1fr); gap: ${settings.commentsGapPx || 16}px;`}>
-                            {hiveComments.map(comment => (
-                              <CommentCard comment={comment} settings={settings} layout="grid" />
-                            ))}
-                          </div>
-                        )}
-                        <div class="flex justify-between items-center mt-6 pt-4 border-t border-border">
-                          {!isFirstPage ? (
-                            <a href="/?tab=comments" class="px-4 py-2 bg-bg-card border border-border rounded-lg text-text hover:bg-primary hover:text-primary-text hover:border-primary transition-colors">
-                              First page
-                            </a>
-                          ) : <span />}
-                          {hasMoreComments && nextCommentsPageUrl ? (
-                            <a href={nextCommentsPageUrl} class="px-4 py-2 bg-primary text-primary-text rounded-lg hover:bg-primary/90 transition-colors">
-                              Load more comments
-                            </a>
-                          ) : <span />}
-                        </div>
-                      </>
+                        ))}
+                      </div>
                     ) : (
-                      <div class="text-center py-12 bg-bg-card rounded-xl shadow-sm border border-border">
-                        <p class="text-text">No comments found for @{hiveUsername}</p>
+                      <div style={`display: grid; grid-template-columns: repeat(${settings.commentsGridColumns || 2}, 1fr); gap: ${settings.commentsGapPx || 16}px;`}>
+                        {hiveComments.map(comment => (
+                          <CommentCard comment={comment} settings={settings} layout="grid" />
+                        ))}
                       </div>
                     )}
+                    <div class="flex justify-between items-center mt-6 pt-4 border-t border-border">
+                      {!isFirstPage ? (
+                        <a href="/?tab=comments" class="px-4 py-2 bg-bg-card border border-border rounded-lg text-text hover:bg-primary hover:text-primary-text hover:border-primary transition-colors">
+                          First page
+                        </a>
+                      ) : <span />}
+                      {hasMoreComments && nextCommentsPageUrl ? (
+                        <a href={nextCommentsPageUrl} class="px-4 py-2 bg-primary text-primary-text rounded-lg hover:bg-primary/90 transition-colors">
+                          Load more comments
+                        </a>
+                      ) : <span />}
+                    </div>
                   </>
                 )}
               </>
             )}
-            {elementId === 'comments' && hiveUsername && showCommentsTab && (
-              <>
-                {hiveComments.length > 0 ? (
-                  <div class="space-y-4">
-                    {hiveComments.map(comment => (
-                      <CommentCard comment={comment} settings={settings} layout="list" />
-                    ))}
-                  </div>
-                ) : (
-                  <div class="text-center py-8 bg-bg-card rounded-xl border border-border">
-                    <p class="text-text-muted">No comments found</p>
-                  </div>
-                )}
-              </>
+            {elementId === 'comments' && hiveUsername && showCommentsTab && hiveComments.length > 0 && (
+              <div class="space-y-4">
+                {hiveComments.map(comment => (
+                  <CommentCard comment={comment} settings={settings} layout="list" />
+                ))}
+              </div>
             )}
             {elementId === 'navigation' && (
               <nav class="bg-bg-card rounded-xl p-4 border border-border">
@@ -761,15 +725,11 @@ const isFirstPage = !cursor
         )}
         {elementId === 'comments' && hiveUsername && showCommentsTab && (
           <>
-            {hiveComments.length > 0 ? (
+            {hiveComments.length > 0 && (
               <div class="space-y-4">
                 {hiveComments.map(comment => (
                   <CommentCard comment={comment} settings={settings} layout="list" />
                 ))}
-              </div>
-            ) : (
-              <div class="text-center py-8 bg-bg-card rounded-xl border border-border">
-                <p class="text-text-muted">No comments found</p>
               </div>
             )}
           </>
