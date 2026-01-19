@@ -541,20 +541,14 @@ function PageLayoutPreview() {
     switch (elementId) {
       case 'header':
         return <MockHeader compact={isCompact} />
+      case 'navigation':
+        return <MockNavigation compact={isCompact} />
       case 'authorProfile':
         return <MockAuthorProfile compact={isCompact} />
       case 'posts':
         return <MockPosts compact={isCompact} />
       case 'comments':
         return <MockComments compact={isCompact} />
-      case 'navigation':
-        return <MockNavigation compact={isCompact} />
-      case 'search':
-        return <MockSearch compact={isCompact} />
-      case 'tags':
-        return <MockTags compact={isCompact} />
-      case 'recentPosts':
-        return <MockRecentPosts compact={isCompact} />
       case 'footer':
         return <MockFooter compact={isCompact} />
       default:
@@ -750,55 +744,15 @@ function MockComments(props: { compact?: boolean }) {
 }
 
 function MockNavigation(props: { compact?: boolean }) {
+  const navItems = ['Posts', 'Threads', 'Comments', 'Instagram', 'X', 'More']
   return (
     <div class={`bg-bg-card rounded border border-border ${props.compact ? 'p-1' : 'p-1.5'}`}>
-      <div class={`flex gap-2 ${props.compact ? 'text-[7px]' : 'text-[9px]'}`}>
-        <span class="text-primary font-medium">Home</span>
-        <span class="text-text-muted">Blog</span>
-        <span class="text-text-muted">About</span>
-        <span class="text-text-muted">Contact</span>
-      </div>
-    </div>
-  )
-}
-
-function MockSearch(props: { compact?: boolean }) {
-  return (
-    <div class={`bg-bg-card rounded border border-border ${props.compact ? 'p-1' : 'p-1.5'}`}>
-      <div class={`flex items-center gap-1 bg-bg rounded border border-border px-1 ${props.compact ? 'py-0.5' : 'py-1'}`}>
-        <SearchIcon class={`text-text-muted ${props.compact ? 'w-2 h-2' : 'w-3 h-3'}`} />
-        <span class={`text-text-muted ${props.compact ? 'text-[6px]' : 'text-[8px]'}`}>Search posts...</span>
-      </div>
-    </div>
-  )
-}
-
-function MockTags(props: { compact?: boolean }) {
-  const tags = ['hive', 'crypto', 'blog', 'technology', 'life']
-  return (
-    <div class={`bg-bg-card rounded border border-border ${props.compact ? 'p-1' : 'p-1.5'}`}>
-      <div class={`text-text-muted mb-1 ${props.compact ? 'text-[6px]' : 'text-[8px]'}`}>Tags</div>
-      <div class="flex flex-wrap gap-0.5">
-        <For each={tags.slice(0, props.compact ? 3 : 5)}>
-          {(tag) => (
-            <span class={`bg-primary/20 text-primary rounded px-1 ${props.compact ? 'text-[5px]' : 'text-[7px]'}`}>
-              #{tag}
+      <div class={`flex gap-2 ${props.compact ? 'text-[6px]' : 'text-[8px]'}`}>
+        <For each={navItems.slice(0, props.compact ? 3 : 6)}>
+          {(item, i) => (
+            <span class={i() === 0 ? 'text-primary font-medium' : 'text-text-muted'}>
+              {item}
             </span>
-          )}
-        </For>
-      </div>
-    </div>
-  )
-}
-
-function MockRecentPosts(props: { compact?: boolean }) {
-  return (
-    <div class={`bg-bg-card rounded border border-border ${props.compact ? 'p-1' : 'p-1.5'}`}>
-      <div class={`text-text-muted mb-1 ${props.compact ? 'text-[6px]' : 'text-[8px]'}`}>Recent Posts</div>
-      <div class="space-y-0.5">
-        <For each={['First Post Title', 'Second Post', 'Third Post']}>
-          {(title) => (
-            <div class={`text-text truncate ${props.compact ? 'text-[6px]' : 'text-[8px]'}`}>• {title}</div>
           )}
         </For>
       </div>
@@ -880,14 +834,6 @@ function VerticalIcon(props: { class?: string }) {
   return (
     <svg class={props.class} fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16" />
-    </svg>
-  )
-}
-
-function SearchIcon(props: { class?: string }) {
-  return (
-    <svg class={props.class} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
     </svg>
   )
 }

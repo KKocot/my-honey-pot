@@ -293,7 +293,7 @@ export interface PageLayout {
 }
 
 // Page elements that can be placed in slots
-export type PageElementId = 'header' | 'authorProfile' | 'posts' | 'comments' | 'footer' | 'navigation' | 'search' | 'tags' | 'recentPosts'
+export type PageElementId = 'header' | 'navigation' | 'authorProfile' | 'posts' | 'comments' | 'footer'
 
 // Card element that can be reordered
 export interface CardElement {
@@ -755,27 +755,21 @@ export const authorProfileElementLabels: Record<string, string> = {
 // Labels for page elements
 export const pageElementLabels: Record<string, string> = {
   header: 'Header',
+  navigation: 'Navigation Tabs',
   authorProfile: 'Author Profile',
   posts: 'Posts List',
   comments: 'Comments List',
   footer: 'Footer',
-  navigation: 'Navigation',
-  search: 'Search',
-  tags: 'Tags Cloud',
-  recentPosts: 'Recent Posts',
 }
 
 // Colors for page elements - unified color for consistent look
 export const pageElementColors: Record<string, string> = {
   header: 'bg-accent text-white',
+  navigation: 'bg-accent text-white',
   authorProfile: 'bg-accent text-white',
   posts: 'bg-accent text-white',
   comments: 'bg-accent text-white',
   footer: 'bg-accent text-white',
-  navigation: 'bg-accent text-white',
-  search: 'bg-accent text-white',
-  tags: 'bg-accent text-white',
-  recentPosts: 'bg-accent text-white',
 }
 
 // Default fallback color for page elements
@@ -798,14 +792,11 @@ export const slotLabels: Record<string, string> = {
 // All available page element IDs
 export const ALL_PAGE_ELEMENT_IDS = [
   'header',
+  'navigation',
   'authorProfile',
   'posts',
   'comments',
   'footer',
-  'navigation',
-  'search',
-  'tags',
-  'recentPosts',
 ]
 
 // ============================================
