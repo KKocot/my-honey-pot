@@ -1,19 +1,37 @@
-import { For, Show } from 'solid-js'
+import { For, Show, createSignal } from 'solid-js'
 import { settings, updateSettings } from './store'
 import { Input } from '../ui'
-import type { NavigationTab } from './types'
+import type { NavigationTab, SocialPlatform } from './types'
+import { SocialIntegrationConfig, PlatformIcon } from './SocialIntegrationConfig'
+import { platformInfos } from './types'
 
 // ============================================
 // Navigation Tabs Settings Section
 // ============================================
 
+// Social platform IDs that support integration
+const SOCIAL_PLATFORM_IDS: SocialPlatform[] = ['instagram', 'x', 'youtube', 'tiktok', 'threads', 'facebook']
+
+// Check if a tab ID corresponds to a social platform
+const isSocialPlatform = (tabId: string): tabId is SocialPlatform => {
+  return SOCIAL_PLATFORM_IDS.includes(tabId as SocialPlatform)
+}
+
 export function NavigationSettings() {
+  // Track which tab's config is expanded
+  const [expandedTab, setExpandedTab] = createSignal<string | null>(null)
+
   // Update a specific tab
   const updateTab = (tabId: string, updates: Partial<NavigationTab>) => {
     const newTabs = settings.navigationTabs.map((tab) =>
       tab.id === tabId ? { ...tab, ...updates } : tab
     )
     updateSettings({ navigationTabs: newTabs })
+  }
+
+  // Toggle expand/collapse for a tab's config
+  const toggleExpand = (tabId: string) => {
+    setExpandedTab(expandedTab() === tabId ? null : tabId)
   }
 
   // Move tab up in order
@@ -45,16 +63,18 @@ export function NavigationSettings() {
     updateSettings({ navigationTabs: [...settings.navigationTabs, newTab] })
   }
 
+  // Built-in tab IDs that cannot be removed
+  const BUILT_IN_TAB_IDS = ['posts', 'threads', 'comments', 'instagram', 'x', 'youtube', 'tiktok', 'facebook']
+
   // Remove tab (only custom tabs)
   const removeTab = (tabId: string) => {
-    const builtInIds = ['posts', 'threads', 'comments', 'instagram', 'x', 'more']
-    if (builtInIds.includes(tabId)) return // Can't remove built-in tabs
+    if (BUILT_IN_TAB_IDS.includes(tabId)) return // Can't remove built-in tabs
     updateSettings({ navigationTabs: settings.navigationTabs.filter((t) => t.id !== tabId) })
   }
 
   // Check if tab is built-in
   const isBuiltIn = (tabId: string) => {
-    return ['posts', 'threads', 'comments', 'instagram', 'x', 'more'].includes(tabId)
+    return BUILT_IN_TAB_IDS.includes(tabId)
   }
 
   return (
@@ -72,102 +92,155 @@ export function NavigationSettings() {
           <div class="space-y-2">
             <For each={settings.navigationTabs}>
               {(tab, index) => (
-                <div class="flex items-center gap-2 p-3 bg-bg rounded-lg border border-border">
-                  {/* Reorder buttons */}
-                  <div class="flex flex-col gap-0.5">
-                    <button
-                      type="button"
-                      onClick={() => moveTabUp(index())}
-                      disabled={index() === 0}
-                      class="p-0.5 text-text-muted hover:text-text disabled:opacity-30 disabled:cursor-not-allowed"
-                      title="Move up"
-                    >
-                      <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
-                      </svg>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => moveTabDown(index())}
-                      disabled={index() === settings.navigationTabs.length - 1}
-                      class="p-0.5 text-text-muted hover:text-text disabled:opacity-30 disabled:cursor-not-allowed"
-                      title="Move down"
-                    >
-                      <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                      </svg>
-                    </button>
-                  </div>
+                <div class="bg-bg rounded-lg border border-border overflow-hidden">
+                  <div class="flex items-center gap-2 p-3">
+                    {/* Reorder buttons */}
+                    <div class="flex flex-col gap-0.5">
+                      <button
+                        type="button"
+                        onClick={() => moveTabUp(index())}
+                        disabled={index() === 0}
+                        class="p-0.5 text-text-muted hover:text-text disabled:opacity-30 disabled:cursor-not-allowed"
+                        title="Move up"
+                      >
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
+                        </svg>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => moveTabDown(index())}
+                        disabled={index() === settings.navigationTabs.length - 1}
+                        class="p-0.5 text-text-muted hover:text-text disabled:opacity-30 disabled:cursor-not-allowed"
+                        title="Move down"
+                      >
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
+                    </div>
 
-                  {/* Enable toggle */}
-                  <input
-                    type="checkbox"
-                    checked={tab.enabled}
-                    onChange={(e) => updateTab(tab.id, { enabled: e.currentTarget.checked })}
-                    class="w-4 h-4 rounded border-border text-primary focus:ring-primary cursor-pointer"
-                  />
+                    {/* Enable toggle */}
+                    <input
+                      type="checkbox"
+                      checked={tab.enabled}
+                      onChange={(e) => updateTab(tab.id, { enabled: e.currentTarget.checked })}
+                      class="w-4 h-4 rounded border-border text-primary focus:ring-primary cursor-pointer"
+                    />
 
-                  {/* Tab info */}
-                  <div class="flex-1 min-w-0">
-                    <Show
-                      when={!isBuiltIn(tab.id)}
-                      fallback={
-                        <div class="flex items-center gap-2">
-                          <span class={`font-medium ${tab.enabled ? 'text-text' : 'text-text-muted'}`}>
-                            {tab.label}
-                          </span>
-                          <span class="text-[10px] px-1.5 py-0.5 bg-bg-secondary text-text-muted rounded">
-                            Built-in
-                          </span>
-                        </div>
-                      }
-                    >
-                      <Input
-                        value={tab.label}
-                        placeholder="Tab label"
-                        onInput={(e) => updateTab(tab.id, { label: e.currentTarget.value })}
-                      />
+                    {/* Social platform icon */}
+                    <Show when={isSocialPlatform(tab.id)}>
+                      <div
+                        class="p-1.5 rounded"
+                        style={{ background: `${platformInfos[tab.id as SocialPlatform].color}20` }}
+                      >
+                        <PlatformIcon
+                          platform={tab.id as SocialPlatform}
+                          class="w-4 h-4"
+                          style={{ color: platformInfos[tab.id as SocialPlatform].color }}
+                        />
+                      </div>
+                    </Show>
+
+                    {/* Tab info */}
+                    <div class="flex-1 min-w-0">
+                      <Show
+                        when={!isBuiltIn(tab.id)}
+                        fallback={
+                          <div class="flex items-center gap-2">
+                            <span class={`font-medium ${tab.enabled ? 'text-text' : 'text-text-muted'}`}>
+                              {tab.label}
+                            </span>
+                            <Show when={!isSocialPlatform(tab.id)}>
+                              <span class="text-[10px] px-1.5 py-0.5 bg-bg-secondary text-text-muted rounded">
+                                Built-in
+                              </span>
+                            </Show>
+                            <Show when={isSocialPlatform(tab.id) && tab.integration}>
+                              <span class="text-[10px] px-1.5 py-0.5 bg-success/20 text-success rounded">
+                                Configured
+                              </span>
+                            </Show>
+                          </div>
+                        }
+                      >
+                        <Input
+                          value={tab.label}
+                          placeholder="Tab label"
+                          onInput={(e) => updateTab(tab.id, { label: e.currentTarget.value })}
+                        />
+                      </Show>
+                    </div>
+
+                    {/* Show count toggle (for posts/comments) */}
+                    <Show when={tab.id === 'posts' || tab.id === 'comments'}>
+                      <label class="flex items-center gap-1 text-xs text-text-muted whitespace-nowrap cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={tab.showCount}
+                          onChange={(e) => updateTab(tab.id, { showCount: e.currentTarget.checked })}
+                          class="w-3.5 h-3.5 rounded border-border text-primary focus:ring-primary cursor-pointer"
+                        />
+                        Count
+                      </label>
+                    </Show>
+
+                    {/* Configure button for social platforms */}
+                    <Show when={isSocialPlatform(tab.id)}>
+                      <button
+                        type="button"
+                        onClick={() => toggleExpand(tab.id)}
+                        class={`
+                          flex items-center gap-1 px-2 py-1 text-xs rounded transition-colors
+                          ${expandedTab() === tab.id
+                            ? 'bg-primary text-primary-text'
+                            : 'bg-bg-secondary text-text-muted hover:text-text hover:bg-bg-secondary/80'
+                          }
+                        `}
+                        title="Configure integration"
+                      >
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        {expandedTab() === tab.id ? 'Close' : 'Configure'}
+                      </button>
+                    </Show>
+
+                    {/* External link for custom tabs */}
+                    <Show when={!isBuiltIn(tab.id)}>
+                      <label class="flex items-center gap-1 text-xs text-text-muted whitespace-nowrap cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={tab.external || false}
+                          onChange={(e) => updateTab(tab.id, { external: e.currentTarget.checked })}
+                          class="w-3.5 h-3.5 rounded border-border text-primary focus:ring-primary cursor-pointer"
+                        />
+                        External
+                      </label>
+                    </Show>
+
+                    {/* Remove button (custom tabs only) */}
+                    <Show when={!isBuiltIn(tab.id)}>
+                      <button
+                        type="button"
+                        onClick={() => removeTab(tab.id)}
+                        class="p-1 text-error hover:bg-error/10 rounded"
+                        title="Remove tab"
+                      >
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
                     </Show>
                   </div>
 
-                  {/* Show count toggle (for posts/comments) */}
-                  <Show when={tab.id === 'posts' || tab.id === 'comments'}>
-                    <label class="flex items-center gap-1 text-xs text-text-muted whitespace-nowrap cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={tab.showCount}
-                        onChange={(e) => updateTab(tab.id, { showCount: e.currentTarget.checked })}
-                        class="w-3.5 h-3.5 rounded border-border text-primary focus:ring-primary cursor-pointer"
-                      />
-                      Count
-                    </label>
-                  </Show>
-
-                  {/* External link for custom tabs */}
-                  <Show when={!isBuiltIn(tab.id)}>
-                    <label class="flex items-center gap-1 text-xs text-text-muted whitespace-nowrap cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={tab.external || false}
-                        onChange={(e) => updateTab(tab.id, { external: e.currentTarget.checked })}
-                        class="w-3.5 h-3.5 rounded border-border text-primary focus:ring-primary cursor-pointer"
-                      />
-                      External
-                    </label>
-                  </Show>
-
-                  {/* Remove button (custom tabs only) */}
-                  <Show when={!isBuiltIn(tab.id)}>
-                    <button
-                      type="button"
-                      onClick={() => removeTab(tab.id)}
-                      class="p-1 text-error hover:bg-error/10 rounded"
-                      title="Remove tab"
-                    >
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
+                  {/* Expanded integration config */}
+                  <Show when={isSocialPlatform(tab.id) && expandedTab() === tab.id}>
+                    <SocialIntegrationConfig
+                      platform={tab.id as SocialPlatform}
+                      tabId={tab.id}
+                    />
                   </Show>
                 </div>
               )}
@@ -186,16 +259,16 @@ export function NavigationSettings() {
             Add Custom Tab
           </button>
 
-          {/* Info for creators about upcoming integrations */}
+          {/* Info about social integrations */}
           <div class="pt-4 border-t border-border">
             <div class="flex items-start gap-2 p-3 bg-info/10 rounded-lg border border-info/20">
               <svg class="w-5 h-5 text-info flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               <div>
-                <p class="text-sm text-info font-medium">More integrations coming soon!</p>
+                <p class="text-sm text-info font-medium">Social Media Integrations</p>
                 <p class="text-xs text-text-muted mt-1">
-                  We're working on integrating Threads, Instagram, X and more platforms. Stay tuned for updates!
+                  Click <strong>Configure</strong> on Instagram, X, YouTube, TikTok, Threads or Facebook tabs to set up API integration and display your posts from these platforms.
                 </p>
               </div>
             </div>
