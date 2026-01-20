@@ -1,7 +1,7 @@
 import { Show, For, createMemo, createSignal, onMount, type Accessor } from 'solid-js'
 import { Portal } from 'solid-js/web'
 import { settings, updateSettings } from './store'
-import { pageElementLabels, type PageSlotPosition, type PageLayoutSection } from './types'
+import { pageElementLabels, platformInfos, type PageSlotPosition, type PageLayoutSection } from './types'
 import {
   useHivePreviewQuery,
   formatCompactNumber,
@@ -9,6 +9,7 @@ import {
   type HivePost,
 } from './queries'
 import { parseFormattedAsset } from '../../lib/blog-logic'
+import { PlatformIcon } from './SocialLinksSettings'
 
 // ============================================
 // Full Preview Dialog Component
@@ -208,6 +209,33 @@ export function FullPreview(props: FullPreviewProps) {
             </div>
           )}
         </div>
+
+        {/* Social Media Links */}
+        <Show when={(settings.socialLinks || []).filter(l => l.url).length > 0}>
+          <div class="flex flex-wrap gap-2 mt-4 pt-4 border-t border-border justify-center">
+            <For each={(settings.socialLinks || []).filter(l => l.url)}>
+              {(link) => {
+                const info = platformInfos[link.platform]
+                return (
+                  <a
+                    href={link.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="p-2 rounded-lg transition-colors hover:opacity-80"
+                    style={{ background: `${info.color}20` }}
+                    title={info.name}
+                  >
+                    <PlatformIcon
+                      platform={link.platform}
+                      class="w-5 h-5"
+                      style={{ color: info.color }}
+                    />
+                  </a>
+                )
+              }}
+            </For>
+          </div>
+        </Show>
       </div>
     )
   }
@@ -455,12 +483,6 @@ export function FullPreview(props: FullPreviewProps) {
     const postsCount = () => data()?.posts?.length || 0
     const commentsCount = () => 128 // Placeholder
 
-    // Check if tab has social integration configured
-    const hasIntegration = (tabId: string) => {
-      const tab = settings.navigationTabs?.find(t => t.id === tabId)
-      return tab?.integration && (tab.integration.profileUrl || tab.integration.embedUrls?.length > 0)
-    }
-
     // Get count for tab
     const getTabCount = (tab: typeof settings.navigationTabs[0]) => {
       if (!tab.showCount) return undefined
@@ -501,9 +523,6 @@ export function FullPreview(props: FullPreviewProps) {
                       <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                       </svg>
-                    )}
-                    {hasIntegration(tab.id) && (
-                      <span class="w-2 h-2 rounded-full bg-success" title="Configured" />
                     )}
                   </span>
                   {isActive() && (
@@ -566,170 +585,20 @@ export function FullPreview(props: FullPreviewProps) {
     </div>
   )
 
-  // Social media embed section - renders profile and post embeds
-  const SocialEmbedSection = (props: { tabId: string }) => {
-    const tab = createMemo(() => settings.navigationTabs?.find(t => t.id === props.tabId))
-    const integration = createMemo(() => tab()?.integration)
-    const platformInfo = createMemo(() => {
-      const platforms: Record<string, { name: string; color: string; icon: string }> = {
-        instagram: { name: 'Instagram', color: '#E4405F', icon: 'M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z' },
-        x: { name: 'X (Twitter)', color: '#000000', icon: 'M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z' },
-        youtube: { name: 'YouTube', color: '#FF0000', icon: 'M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z' },
-        tiktok: { name: 'TikTok', color: '#000000', icon: 'M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z' },
-        threads: { name: 'Threads', color: '#000000', icon: 'M12.186 24h-.007c-3.581-.024-6.334-1.205-8.184-3.509C2.35 18.44 1.5 15.586 1.472 12.01v-.017c.03-3.579.879-6.43 2.525-8.482C5.845 1.205 8.6.024 12.18 0h.014c2.746.02 5.043.725 6.826 2.098 1.677 1.29 2.858 3.13 3.509 5.467l-2.04.569c-1.104-3.96-3.898-5.984-8.304-6.015-2.91.022-5.11.936-6.54 2.717C4.307 6.504 3.616 8.914 3.589 12c.027 3.086.718 5.496 2.057 7.164 1.43 1.783 3.631 2.698 6.54 2.717 2.623-.02 4.358-.631 5.8-2.045 1.647-1.613 1.618-3.593 1.09-4.798-.31-.71-.873-1.3-1.634-1.75-.192 1.352-.622 2.446-1.284 3.272-.886 1.102-2.14 1.704-3.73 1.79-1.202.065-2.361-.218-3.259-.801-1.063-.689-1.685-1.74-1.752-2.96-.065-1.182.408-2.256 1.332-3.023.858-.712 2.05-1.169 3.453-1.324 1.039-.114 2.107-.1 3.18.042.022-.652-.053-1.26-.223-1.799-.357-1.132-1.136-1.707-2.313-1.707h-.033c-.747.005-1.363.253-1.833.737l-1.455-1.408c.837-.864 1.96-1.328 3.252-1.346h.048c1.906 0 3.34.758 4.134 2.19.466.838.702 1.88.702 3.1v.092c1.37.821 2.327 1.918 2.745 3.266.567 1.833.392 4.282-1.679 6.312-1.838 1.8-4.17 2.619-7.345 2.644z' },
-        facebook: { name: 'Facebook', color: '#1877F2', icon: 'M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z' },
-      }
-      return platforms[props.tabId] || { name: props.tabId, color: '#666666', icon: '' }
-    })
-
-    // Extract username from profile URL
-    const getUsername = (url: string): string => {
-      try {
-        const urlObj = new URL(url)
-        const path = urlObj.pathname.replace(/^\/+|\/+$/g, '')
-        // Remove @ if present
-        return path.replace(/^@/, '').split('/')[0] || url
-      } catch {
-        return url
-      }
-    }
-
-    return (
-      <div class="space-y-6">
-        {/* Profile card */}
-        <Show when={integration()?.profileUrl}>
-          <a
-            href={integration()!.profileUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            class="block bg-bg-card rounded-xl border border-border overflow-hidden hover:border-primary/50 transition-colors"
-          >
-            <div class="p-6">
-              <div class="flex items-center gap-4">
-                <div
-                  class="w-16 h-16 rounded-full flex items-center justify-center flex-shrink-0"
-                  style={{ background: `${platformInfo().color}15` }}
-                >
-                  <svg class="w-8 h-8" style={{ color: platformInfo().color }} viewBox="0 0 24 24" fill="currentColor">
-                    <path d={platformInfo().icon} />
-                  </svg>
-                </div>
-                <div class="flex-1 min-w-0">
-                  <p class="text-lg font-semibold text-text">@{getUsername(integration()!.profileUrl)}</p>
-                  <p class="text-sm text-text-muted">{platformInfo().name}</p>
-                </div>
-                <div class="flex-shrink-0">
-                  <span
-                    class="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium text-white"
-                    style={{ background: platformInfo().color }}
-                  >
-                    Otworz profil
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                    </svg>
-                  </span>
-                </div>
-              </div>
-            </div>
-          </a>
-        </Show>
-
-        {/* Embed cards */}
-        <Show when={integration()?.embedUrls && integration()!.embedUrls.length > 0}>
-          <div>
-            <h3 class="text-sm font-medium text-text-muted mb-3 uppercase tracking-wide">
-              Polecane posty ({integration()!.embedUrls.length})
-            </h3>
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              <For each={integration()!.embedUrls}>
-                {(url, index) => (
-                  <a
-                    href={url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    class="block bg-bg-card rounded-xl border border-border overflow-hidden hover:border-primary/50 hover:shadow-lg transition-all group"
-                  >
-                    {/* Thumbnail placeholder */}
-                    <div
-                      class="aspect-square flex items-center justify-center relative"
-                      style={{ background: `linear-gradient(135deg, ${platformInfo().color}10, ${platformInfo().color}25)` }}
-                    >
-                      <div class="text-center">
-                        <svg
-                          class="w-12 h-12 mx-auto mb-2 opacity-50 group-hover:opacity-80 transition-opacity"
-                          style={{ color: platformInfo().color }}
-                          viewBox="0 0 24 24"
-                          fill="currentColor"
-                        >
-                          <path d={platformInfo().icon} />
-                        </svg>
-                        <p class="text-xs text-text-muted">Post #{index() + 1}</p>
-                      </div>
-                      {/* Play button overlay for video platforms */}
-                      <Show when={['youtube', 'tiktok'].includes(props.tabId)}>
-                        <div class="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <div class="w-14 h-14 rounded-full bg-white/90 flex items-center justify-center">
-                            <svg class="w-6 h-6 text-gray-800 ml-1" fill="currentColor" viewBox="0 0 24 24">
-                              <path d="M8 5v14l11-7z" />
-                            </svg>
-                          </div>
-                        </div>
-                      </Show>
-                    </div>
-                    {/* URL preview */}
-                    <div class="p-3 border-t border-border">
-                      <p class="text-xs text-text-muted truncate group-hover:text-primary transition-colors">
-                        {url.replace(/^https?:\/\//, '').slice(0, 50)}...
-                      </p>
-                    </div>
-                  </a>
-                )}
-              </For>
-            </div>
-          </div>
-        </Show>
-
-        {/* Info about real embeds */}
-        <Show when={integration()?.profileUrl || (integration()?.embedUrls && integration()!.embedUrls.length > 0)}>
-          <div class="flex items-start gap-2 p-3 bg-info/10 rounded-lg border border-info/20">
-            <svg class="w-5 h-5 text-info flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <div class="text-sm">
-              <p class="font-medium text-info">Preview</p>
-              <p class="text-text-muted mt-0.5">
-                Na produkcji posty beda wyswietlane jako pelne embedy z {platformInfo().name}.
-                Kliknij w kafelek aby otworzyc post.
-              </p>
-            </div>
-          </div>
-        </Show>
-
-        {/* No content configured */}
-        <Show when={!integration()?.profileUrl && (!integration()?.embedUrls || integration()!.embedUrls.length === 0)}>
-          <div class="text-center py-12 bg-bg-card rounded-xl border border-border">
-            <div
-              class="w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center"
-              style={{ background: `${platformInfo().color}20` }}
-            >
-              <svg class="w-8 h-8" style={{ color: platformInfo().color }} viewBox="0 0 24 24" fill="currentColor">
-                <path d={platformInfo().icon} />
-              </svg>
-            </div>
-            <p class="text-text font-medium">{platformInfo().name} nie skonfigurowany</p>
-            <p class="text-text-muted text-sm mt-1">
-              Dodaj link do profilu lub posty do embedowania w ustawieniach Navigation Tabs.
-            </p>
-          </div>
-        </Show>
+  // Threads placeholder section (Hive short posts)
+  const ThreadsSection = () => (
+    <div class="space-y-4">
+      <div class="text-center py-12 bg-bg-card rounded-xl border border-border">
+        <p class="text-text font-medium">Hive Threads</p>
+        <p class="text-text-muted text-sm mt-1">
+          Krotkie posty z Hive - wkrotce dostepne.
+        </p>
       </div>
-    )
-  }
+    </div>
+  )
 
   // Main content section that switches based on active tab
   const MainContentSection = () => {
-    const socialPlatforms = ['instagram', 'x', 'youtube', 'tiktok', 'threads', 'facebook']
-
     return (
       <>
         <Show when={activeTab() === 'posts'}>
@@ -738,8 +607,8 @@ export function FullPreview(props: FullPreviewProps) {
         <Show when={activeTab() === 'comments'}>
           <CommentsSection />
         </Show>
-        <Show when={socialPlatforms.includes(activeTab())}>
-          <SocialEmbedSection tabId={activeTab()} />
+        <Show when={activeTab() === 'threads'}>
+          <ThreadsSection />
         </Show>
       </>
     )

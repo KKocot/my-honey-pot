@@ -1,37 +1,19 @@
-import { For, Show, createSignal } from 'solid-js'
+import { For, Show } from 'solid-js'
 import { settings, updateSettings } from './store'
 import { Input } from '../ui'
-import type { NavigationTab, SocialPlatform } from './types'
-import { SocialIntegrationConfig, PlatformIcon } from './SocialIntegrationConfig'
-import { platformInfos } from './types'
+import type { NavigationTab } from './types'
 
 // ============================================
 // Navigation Tabs Settings Section
 // ============================================
 
-// Social platform IDs that support integration
-const SOCIAL_PLATFORM_IDS: SocialPlatform[] = ['instagram', 'x', 'youtube', 'tiktok', 'threads', 'facebook']
-
-// Check if a tab ID corresponds to a social platform
-const isSocialPlatform = (tabId: string): tabId is SocialPlatform => {
-  return SOCIAL_PLATFORM_IDS.includes(tabId as SocialPlatform)
-}
-
 export function NavigationSettings() {
-  // Track which tab's config is expanded
-  const [expandedTab, setExpandedTab] = createSignal<string | null>(null)
-
   // Update a specific tab
   const updateTab = (tabId: string, updates: Partial<NavigationTab>) => {
     const newTabs = settings.navigationTabs.map((tab) =>
       tab.id === tabId ? { ...tab, ...updates } : tab
     )
     updateSettings({ navigationTabs: newTabs })
-  }
-
-  // Toggle expand/collapse for a tab's config
-  const toggleExpand = (tabId: string) => {
-    setExpandedTab(expandedTab() === tabId ? null : tabId)
   }
 
   // Move tab up in order
@@ -64,7 +46,7 @@ export function NavigationSettings() {
   }
 
   // Built-in tab IDs that cannot be removed
-  const BUILT_IN_TAB_IDS = ['posts', 'threads', 'comments', 'instagram', 'x', 'youtube', 'tiktok', 'facebook']
+  const BUILT_IN_TAB_IDS = ['posts', 'threads', 'comments']
 
   // Remove tab (only custom tabs)
   const removeTab = (tabId: string) => {
@@ -128,20 +110,6 @@ export function NavigationSettings() {
                       class="w-4 h-4 rounded border-border text-primary focus:ring-primary cursor-pointer"
                     />
 
-                    {/* Social platform icon */}
-                    <Show when={isSocialPlatform(tab.id)}>
-                      <div
-                        class="p-1.5 rounded"
-                        style={{ background: `${platformInfos[tab.id as SocialPlatform].color}20` }}
-                      >
-                        <PlatformIcon
-                          platform={tab.id as SocialPlatform}
-                          class="w-4 h-4"
-                          style={{ color: platformInfos[tab.id as SocialPlatform].color }}
-                        />
-                      </div>
-                    </Show>
-
                     {/* Tab info */}
                     <div class="flex-1 min-w-0">
                       <Show
@@ -151,16 +119,9 @@ export function NavigationSettings() {
                             <span class={`font-medium ${tab.enabled ? 'text-text' : 'text-text-muted'}`}>
                               {tab.label}
                             </span>
-                            <Show when={!isSocialPlatform(tab.id)}>
-                              <span class="text-[10px] px-1.5 py-0.5 bg-bg-secondary text-text-muted rounded">
-                                Built-in
-                              </span>
-                            </Show>
-                            <Show when={isSocialPlatform(tab.id) && tab.integration}>
-                              <span class="text-[10px] px-1.5 py-0.5 bg-success/20 text-success rounded">
-                                Configured
-                              </span>
-                            </Show>
+                            <span class="text-[10px] px-1.5 py-0.5 bg-bg-secondary text-text-muted rounded">
+                              Built-in
+                            </span>
                           </div>
                         }
                       >
@@ -185,26 +146,14 @@ export function NavigationSettings() {
                       </label>
                     </Show>
 
-                    {/* Configure button for social platforms */}
-                    <Show when={isSocialPlatform(tab.id)}>
-                      <button
-                        type="button"
-                        onClick={() => toggleExpand(tab.id)}
-                        class={`
-                          flex items-center gap-1 px-2 py-1 text-xs rounded transition-colors
-                          ${expandedTab() === tab.id
-                            ? 'bg-primary text-primary-text'
-                            : 'bg-bg-secondary text-text-muted hover:text-text hover:bg-bg-secondary/80'
-                          }
-                        `}
-                        title="Configure integration"
-                      >
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
-                        {expandedTab() === tab.id ? 'Close' : 'Configure'}
-                      </button>
+                    {/* URL input for custom tabs */}
+                    <Show when={!isBuiltIn(tab.id)}>
+                      <Input
+                        value={tab.href || ''}
+                        placeholder="URL"
+                        onInput={(e) => updateTab(tab.id, { href: e.currentTarget.value })}
+                        class="w-32 text-xs"
+                      />
                     </Show>
 
                     {/* External link for custom tabs */}
@@ -234,14 +183,6 @@ export function NavigationSettings() {
                       </button>
                     </Show>
                   </div>
-
-                  {/* Expanded integration config */}
-                  <Show when={isSocialPlatform(tab.id) && expandedTab() === tab.id}>
-                    <SocialIntegrationConfig
-                      platform={tab.id as SocialPlatform}
-                      tabId={tab.id}
-                    />
-                  </Show>
                 </div>
               )}
             </For>
@@ -258,21 +199,6 @@ export function NavigationSettings() {
             </svg>
             Add Custom Tab
           </button>
-
-          {/* Info about social integrations */}
-          <div class="pt-4 border-t border-border">
-            <div class="flex items-start gap-2 p-3 bg-info/10 rounded-lg border border-info/20">
-              <svg class="w-5 h-5 text-info flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <div>
-                <p class="text-sm text-info font-medium">Social Media Integrations</p>
-                <p class="text-xs text-text-muted mt-1">
-                  Click <strong>Configure</strong> on Instagram, X, YouTube, TikTok, Threads or Facebook tabs to set up API integration and display your posts from these platforms.
-                </p>
-              </div>
-            </div>
-          </div>
         </div>
 
         {/* Preview */}

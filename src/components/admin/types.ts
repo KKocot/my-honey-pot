@@ -517,6 +517,8 @@ export interface SettingsData {
   scrollAnimationDelay: number // ms delay between each card
   // Navigation Tabs settings
   navigationTabs: NavigationTab[]
+  // Social media links for author profile
+  socialLinks: SocialLink[]
 }
 
 // ============================================
@@ -530,35 +532,13 @@ export interface SettingsData {
 export type SocialPlatform = 'instagram' | 'x' | 'youtube' | 'tiktok' | 'threads' | 'facebook'
 
 /**
- * Simplified social media integration - just URLs for embedding.
- * Users provide their profile URL and optionally specific post URLs to embed.
- */
-export interface SocialIntegration {
-  platform: SocialPlatform
-  profileUrl: string // Main profile URL (e.g., https://instagram.com/username)
-  embedUrls: string[] // Specific post/video URLs to embed
-}
-
-/**
- * Default empty integration
- */
-export const defaultSocialIntegration = (platform: SocialPlatform): SocialIntegration => ({
-  platform,
-  profileUrl: '',
-  embedUrls: [],
-})
-
-/**
- * Platform metadata for UI display
+ * Platform metadata for UI display (used in social links)
  */
 export interface PlatformInfo {
   id: SocialPlatform
   name: string
   color: string // Brand color
-  description: string
   profilePlaceholder: string // Example profile URL
-  embedPlaceholder: string // Example post/video URL
-  embedSupported: boolean // Whether platform supports oEmbed
 }
 
 export const platformInfos: Record<SocialPlatform, PlatformInfo> = {
@@ -566,59 +546,41 @@ export const platformInfos: Record<SocialPlatform, PlatformInfo> = {
     id: 'instagram',
     name: 'Instagram',
     color: '#E4405F',
-    description: 'Podlinkuj swoj profil Instagram i dodaj posty do embedowania.',
-    profilePlaceholder: 'https://instagram.com/twoj_username',
-    embedPlaceholder: 'https://instagram.com/p/ABC123xyz/',
-    embedSupported: true,
+    profilePlaceholder: 'https://instagram.com/username',
   },
   x: {
     id: 'x',
     name: 'X (Twitter)',
     color: '#000000',
-    description: 'Podlinkuj swoj profil X i dodaj tweety do embedowania.',
-    profilePlaceholder: 'https://x.com/twoj_username',
-    embedPlaceholder: 'https://x.com/username/status/1234567890',
-    embedSupported: true,
+    profilePlaceholder: 'https://x.com/username',
   },
   youtube: {
     id: 'youtube',
     name: 'YouTube',
     color: '#FF0000',
-    description: 'Podlinkuj swoj kanal YouTube i dodaj filmy do embedowania.',
-    profilePlaceholder: 'https://youtube.com/@twoj_kanal',
-    embedPlaceholder: 'https://youtube.com/watch?v=dQw4w9WgXcQ',
-    embedSupported: true,
+    profilePlaceholder: 'https://youtube.com/@channel',
   },
   tiktok: {
     id: 'tiktok',
     name: 'TikTok',
     color: '#000000',
-    description: 'Podlinkuj swoj profil TikTok i dodaj filmy do embedowania.',
-    profilePlaceholder: 'https://tiktok.com/@twoj_username',
-    embedPlaceholder: 'https://tiktok.com/@username/video/1234567890',
-    embedSupported: true,
+    profilePlaceholder: 'https://tiktok.com/@username',
   },
   threads: {
     id: 'threads',
     name: 'Threads',
     color: '#000000',
-    description: 'Podlinkuj swoj profil Threads i dodaj posty do embedowania.',
-    profilePlaceholder: 'https://threads.net/@twoj_username',
-    embedPlaceholder: 'https://threads.net/@username/post/ABC123',
-    embedSupported: true,
+    profilePlaceholder: 'https://threads.net/@username',
   },
   facebook: {
     id: 'facebook',
     name: 'Facebook',
     color: '#1877F2',
-    description: 'Podlinkuj swoja strone Facebook i dodaj posty do embedowania.',
-    profilePlaceholder: 'https://facebook.com/twoja_strona',
-    embedPlaceholder: 'https://facebook.com/page/posts/1234567890',
-    embedSupported: true,
+    profilePlaceholder: 'https://facebook.com/page',
   },
 }
 
-// Navigation Tab configuration
+// Navigation Tab configuration (Posts, Comments, Threads only - internal Hive content)
 export interface NavigationTab {
   id: string
   label: string
@@ -627,9 +589,16 @@ export interface NavigationTab {
   href?: string
   external?: boolean
   tooltip?: string
-  /** Social media integration config - only for social platform tabs */
-  integration?: SocialIntegration
 }
+
+// Social media link for author profile
+export interface SocialLink {
+  platform: SocialPlatform
+  url: string
+}
+
+// Default social platforms for author profile
+export const defaultSocialLinks: SocialLink[] = []
 
 export const defaultSettings: SettingsData = {
   hiveUsername: '',
@@ -750,17 +719,14 @@ export const defaultSettings: SettingsData = {
   scrollAnimationType: 'fade',
   scrollAnimationDuration: 400,
   scrollAnimationDelay: 100,
-  // Navigation Tabs defaults
+  // Navigation Tabs defaults (only Hive content tabs)
   navigationTabs: [
     { id: 'posts', label: 'Posts', enabled: true, showCount: true },
     { id: 'threads', label: 'Threads', enabled: false, showCount: false },
     { id: 'comments', label: 'Comments', enabled: true, showCount: true },
-    { id: 'instagram', label: 'Instagram', enabled: false, showCount: false },
-    { id: 'x', label: 'X', enabled: false, showCount: false },
-    { id: 'youtube', label: 'YouTube', enabled: false, showCount: false },
-    { id: 'tiktok', label: 'TikTok', enabled: false, showCount: false },
-    { id: 'facebook', label: 'Facebook', enabled: false, showCount: false },
   ],
+  // Social media links defaults
+  socialLinks: [],
 }
 
 export const sectionLabels: Record<string, string> = {

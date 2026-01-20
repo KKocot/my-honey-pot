@@ -1,8 +1,9 @@
 import { For, Show, createMemo } from 'solid-js'
 import { settings, updateSettings } from './store'
-import { authorProfileElementLabels, type CardLayout, type CardSection, type CardSectionChild } from './types'
+import { authorProfileElementLabels, platformInfos, type CardLayout, type CardSection, type CardSectionChild } from './types'
 import { Slider } from '../ui'
 import { CardLayoutEditor } from './CardLayoutEditor'
+import { SocialLinksSettings, PlatformIcon } from './SocialLinksSettings'
 import {
   useHivePreviewQuery,
   formatCompactNumber,
@@ -73,6 +74,11 @@ export function AuthorProfileSettings() {
               allElementIds={AUTHOR_PROFILE_ELEMENT_IDS}
               onUpdate={handleLayoutUpdate}
             />
+          </div>
+
+          {/* Social Media Links */}
+          <div class="border-t border-border pt-4">
+            <SocialLinksSettings />
           </div>
         </div>
 
@@ -412,6 +418,35 @@ function AuthorProfilePreview() {
             {(section) => renderSection(section)}
           </For>
         </div>
+
+        {/* Social Links Preview */}
+        <Show when={(settings.socialLinks || []).filter(l => l.url).length > 0}>
+          <div class="mt-4 pt-4 border-t border-border">
+            <div class="flex flex-wrap gap-2">
+              <For each={(settings.socialLinks || []).filter(l => l.url)}>
+                {(link) => {
+                  const info = platformInfos[link.platform]
+                  return (
+                    <a
+                      href={link.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="p-2 rounded-lg transition-colors hover:opacity-80"
+                      style={{ background: `${info.color}20` }}
+                      title={info.name}
+                    >
+                      <PlatformIcon
+                        platform={link.platform}
+                        class="w-4 h-4"
+                        style={{ color: info.color }}
+                      />
+                    </a>
+                  )
+                }}
+              </For>
+            </div>
+          </div>
+        </Show>
       </div>
     </div>
   )
