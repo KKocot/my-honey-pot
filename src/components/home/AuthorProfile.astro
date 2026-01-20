@@ -5,7 +5,7 @@ import type {
   IGlobalProperties,
   IAccountManabars,
 } from '../../lib/blog-logic'
-import { convertVestsToHP, calculateEffectiveHP, parseFormattedAsset } from '../../lib/blog-logic'
+import { calculateEffectiveHP, parseFormattedAsset } from '../../lib/blog-logic'
 
 interface Props {
   username: string
@@ -73,17 +73,13 @@ const joinDate = profile?.created ? new Date(profile.created) : null
 
 // Financial data from IDatabaseAccount
 const postCount = account?.postCount ?? 0
-const postingRewardsVests = account?.postingRewards ?? 0
-const curationRewardsVests = account?.curationRewards ?? 0
-const totalRewardsVests = postingRewardsVests + curationRewardsVests
 
 // Parse balance amounts
 const hiveBalance = account ? parseFormattedAsset(account.balance) : 0
 const hbdBalance = account ? parseFormattedAsset(account.hbdBalance) : 0
 
-// Calculate HP values using global properties
+// Calculate HP values using global properties (same formula as Denser)
 let hivePower = 0
-let hpEarned = 0
 if (globalProperties && account) {
   // Effective HP (own + received - delegated)
   hivePower = calculateEffectiveHP(
@@ -92,10 +88,6 @@ if (globalProperties && account) {
     account.receivedVestingShares,
     globalProperties
   )
-
-  // HP Earned (posting + curation rewards converted from VESTS to HP)
-  // curation_rewards and posting_rewards from database_api are in VESTS (not millionths)
-  hpEarned = convertVestsToHP(totalRewardsVests, globalProperties)
 }
 
 // Use Blog Logic manabar data (WAX-calculated, accurate like Denser)
@@ -231,8 +223,8 @@ const avatarUrl = profileImage || `https://images.hive.blog/u/${username}/avatar
       )}
       {showRewards && (
         <div class={isVertical ? 'text-center' : ''}>
-          <p class="text-lg font-bold text-success">{formatNumber(Math.round(hpEarned))}</p>
-          <p class="text-xs text-text-muted">HP Earned</p>
+          <p class="text-lg font-bold text-success">{formatNumber(Math.round(hivePower))}</p>
+          <p class="text-xs text-text-muted">HP</p>
         </div>
       )}
     </div>

@@ -17,6 +17,7 @@ import type {
   CommentSortOption,
   IPaginationCursor,
   IPaginatedResult,
+  NaiAsset,
 } from "./interfaces";
 import { paginateData } from "./utils";
 import { getWax, resetWax, type WaxExtendedChain } from "./wax";
@@ -298,6 +299,19 @@ export class DataProvider {
     const account = result.accounts[0];
     const formatter = this.chain.formatter;
 
+    // Convert raw curation_rewards/posting_rewards numbers to NaiAsset (VESTS)
+    // The API returns these as raw numbers, we need to construct NaiAsset for Wax conversion
+    const curationRewardsAsset: NaiAsset = {
+      amount: String(account.curation_rewards),
+      precision: 6,
+      nai: "@@000000037", // VESTS NAI
+    };
+    const postingRewardsAsset: NaiAsset = {
+      amount: String(account.posting_rewards),
+      precision: 6,
+      nai: "@@000000037", // VESTS NAI
+    };
+
     return {
       name: account.name,
       balance: formatter.format(account.balance),
@@ -307,8 +321,8 @@ export class DataProvider {
       delegatedVestingShares: account.delegated_vesting_shares,
       receivedVestingShares: account.received_vesting_shares,
       postCount: Number(account.post_count),
-      curationRewards: Number(account.curation_rewards),
-      postingRewards: Number(account.posting_rewards),
+      curationRewards: curationRewardsAsset,
+      postingRewards: postingRewardsAsset,
     };
   }
 
@@ -441,8 +455,8 @@ export class DataProvider {
       // Financial data (formatted for display)
       balance: dbAccount?.balance ?? "0 HIVE",
       hbdBalance: dbAccount?.hbdBalance ?? "0 HBD",
-      curationRewards: dbAccount?.curationRewards ?? 0,
-      postingRewards: dbAccount?.postingRewards ?? 0,
+      curationRewards: dbAccount?.curationRewards ?? { amount: "0", precision: 6, nai: "@@000000037" },
+      postingRewards: dbAccount?.postingRewards ?? { amount: "0", precision: 6, nai: "@@000000037" },
 
       // Calculated HP values (formatted via wax formatter)
       hivePower: formatter.format(hivePowerAsset),

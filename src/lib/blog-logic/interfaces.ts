@@ -125,8 +125,10 @@ export interface IDatabaseAccount {
   /** Raw NaiAsset for HP calculations */
   readonly receivedVestingShares: NaiAsset;
   readonly postCount: number;
-  readonly curationRewards: number;
-  readonly postingRewards: number;
+  /** Raw NaiAsset for HP calculations (VESTS precision: 6) */
+  readonly curationRewards: NaiAsset;
+  /** Raw NaiAsset for HP calculations (VESTS precision: 6) */
+  readonly postingRewards: NaiAsset;
 }
 
 /** Dynamic global properties for VESTS to HP conversion */
@@ -150,8 +152,10 @@ export interface IFullUserData {
   // From database_api.find_accounts - financial data (formatted for display)
   readonly balance: string;
   readonly hbdBalance: string;
-  readonly curationRewards: number;
-  readonly postingRewards: number;
+  /** Raw NaiAsset for HP calculations (VESTS precision: 6) */
+  readonly curationRewards: NaiAsset;
+  /** Raw NaiAsset for HP calculations (VESTS precision: 6) */
+  readonly postingRewards: NaiAsset;
 
   // Calculated HP values (formatted strings e.g. "1234.567 HIVE")
   readonly hivePower: string;

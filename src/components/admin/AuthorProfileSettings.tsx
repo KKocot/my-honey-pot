@@ -12,7 +12,6 @@ import {
 } from './queries'
 import {
   parseFormattedAsset,
-  convertVestsToHP as blogLogicConvertVestsToHP,
 } from '../../lib/blog-logic'
 
 // All available author profile element IDs
@@ -141,9 +140,6 @@ function AuthorProfilePreview() {
       hiveBalance: dbAccount ? parseFormattedAsset(dbAccount.balance) : 0,
       hbdBalance: dbAccount ? parseFormattedAsset(dbAccount.hbdBalance) : 0,
       joinDate: formatJoinDate(profile.created),
-      curationRewards: dbAccount?.curationRewards ?? 0,
-      postingRewards: dbAccount?.postingRewards ?? 0,
-      globalProps: globalProps ?? null,
     }
   })
 
@@ -329,15 +325,13 @@ function AuthorProfilePreview() {
         )
 
       case 'hpEarned':
-        // curation_rewards and posting_rewards are in VESTS (not millionths)
-        const totalRewardsVests = pd.curationRewards + pd.postingRewards
-        const hpEarned = pd.globalProps ? blogLogicConvertVestsToHP(totalRewardsVests, pd.globalProps) : 0
+        // Show Hive Power (same as Denser) - pd.hivePower is already effective HP
         return (
           <div class="text-center">
             <p class="text-xs font-bold text-success">
-              {formatCompactNumber(hpEarned)}
+              {formatCompactNumber(pd.hivePower)}
             </p>
-            <p class="text-xs text-text-muted">HP Earned</p>
+            <p class="text-xs text-text-muted">HP</p>
           </div>
         )
 
