@@ -10,7 +10,7 @@ import {
   calculateEffectiveHivePower,
 } from './queries'
 import {
-  parseBalance,
+  parseFormattedAsset,
   convertVestsToHP as blogLogicConvertVestsToHP,
 } from '../../lib/blog-logic'
 
@@ -132,8 +132,8 @@ function AuthorProfilePreview() {
       following: profile.stats.following,
       postCount: profile.postCount,
       hivePower,
-      hiveBalance: dbAccount ? parseBalance(dbAccount.balance) : 0,
-      hbdBalance: dbAccount ? parseBalance(dbAccount.hbdBalance) : 0,
+      hiveBalance: dbAccount ? parseFormattedAsset(dbAccount.balance) : 0,
+      hbdBalance: dbAccount ? parseFormattedAsset(dbAccount.hbdBalance) : 0,
       joinDate: formatJoinDate(profile.created),
       curationRewards: dbAccount?.curationRewards ?? 0,
       postingRewards: dbAccount?.postingRewards ?? 0,

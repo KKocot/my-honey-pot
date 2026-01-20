@@ -1,4 +1,5 @@
-import type { IPagination, IGlobalProperties } from "./interfaces";
+import type { IWaxBaseInterface, NaiAsset } from "@hiveio/wax";
+import type { IPagination } from "./interfaces";
 
 export const paginateData = <T>(data: T[], pagination: IPagination): T[] => {
   const {page, pageSize} = pagination
@@ -7,101 +8,228 @@ export const paginateData = <T>(data: T[], pagination: IPagination): T[] => {
 }
 
 // ============================================================================
-// VESTS/HP Conversion Utilities
+// Wax-based Asset Utilities (require chain instance)
 // ============================================================================
 
-/** Asset object format from database_api */
-interface AssetObject {
-  amount: string;
-  precision: number;
-  nai: string;
-}
-
-/** Type for asset values that can be string or object format */
-type AssetValue = string | AssetObject;
-
 /**
- * Parse VESTS amount to number
- * Handles both string format "123456.789012 VESTS" and asset object format
+ * Parse a NaiAsset to its numeric value using Wax's getAsset method.
+ *
+ * @param chain - Wax chain instance
+ * @param asset - NaiAsset to parse
+ * @returns Numeric value of the asset
+ *
+ * @example
+ * const value = parseAssetWithChain(chain, account.balance); // 123.456
  */
-export function parseVests(vests: string | AssetObject): number {
-  if (typeof vests === "string") {
-    return parseFloat(vests.replace(" VESTS", ""));
-  }
-  // Asset object format: { amount: "123456789012", precision: 6, nai: "..." }
-  return parseInt(vests.amount) / Math.pow(10, vests.precision);
+export function parseAssetWithChain(chain: IWaxBaseInterface, asset: NaiAsset): number {
+  const { amount } = chain.getAsset(asset);
+  return parseFloat(amount);
 }
 
 /**
- * Parse HIVE amount to number
- * Handles both string format "123.456 HIVE" and asset object format
+ * Format a NaiAsset to a display string using Wax's formatter.
+ *
+ * @param chain - Wax chain instance
+ * @param asset - NaiAsset to format
+ * @returns Formatted string like "123.456 HIVE"
+ *
+ * @example
+ * const str = formatAsset(chain, account.balance); // "123.456 HIVE"
  */
-export function parseHive(hive: string | AssetObject): number {
-  if (typeof hive === "string") {
-    return parseFloat(hive.replace(" HIVE", ""));
-  }
-  // Asset object format: { amount: "123456", precision: 3, nai: "..." }
-  return parseInt(hive.amount) / Math.pow(10, hive.precision);
+export function formatAsset(chain: IWaxBaseInterface, asset: NaiAsset): string {
+  return chain.formatter.format(asset);
 }
 
 /**
- * Parse balance amount (HIVE or HBD)
- * Handles both string format "123.456 HIVE" and asset object format
+ * Get asset amount as string without symbol using Wax's getAsset method.
+ *
+ * @param chain - Wax chain instance
+ * @param asset - NaiAsset to parse
+ * @returns Amount string like "123.456"
+ *
+ * @example
+ * const amount = getAssetAmount(chain, account.balance); // "123.456"
  */
-export function parseBalance(balance: string | AssetObject): number {
-  if (typeof balance === "string") {
-    return parseFloat(balance.replace(/\s*(HIVE|HBD|VESTS)$/i, ""));
-  }
-  return parseInt(balance.amount) / Math.pow(10, balance.precision);
+export function getAssetAmount(chain: IWaxBaseInterface, asset: NaiAsset): string {
+  return chain.getAsset(asset).amount;
 }
 
 /**
- * Format Hive amount string (e.g., "123.456 HIVE" -> "123.456")
+ * Get asset symbol using Wax's getAsset method.
+ *
+ * @param chain - Wax chain instance
+ * @param asset - NaiAsset to parse
+ * @returns Symbol string like "HIVE"
  */
-export function formatHiveAmount(amount: string): string {
+export function getAssetSymbol(chain: IWaxBaseInterface, asset: NaiAsset): string {
+  return chain.getAsset(asset).symbol;
+}
+
+/**
+ * Convert VESTS to HP using Wax's vestsToHp method.
+ * Returns the HP as a NaiAsset.
+ *
+ * @param chain - Wax chain instance
+ * @param vests - VESTS NaiAsset
+ * @param totalVestingFundHive - From global properties
+ * @param totalVestingShares - From global properties
+ * @returns HP as NaiAsset
+ */
+export function vestsToHpAsset(
+  chain: IWaxBaseInterface,
+  vests: NaiAsset,
+  totalVestingFundHive: NaiAsset,
+  totalVestingShares: NaiAsset
+): NaiAsset {
+  return chain.vestsToHp(vests, totalVestingFundHive, totalVestingShares);
+}
+
+/**
+ * Convert VESTS to HP and return as number using Wax's vestsToHp method.
+ *
+ * @param chain - Wax chain instance
+ * @param vests - VESTS NaiAsset
+ * @param totalVestingFundHive - From global properties
+ * @param totalVestingShares - From global properties
+ * @returns HP as number
+ */
+export function vestsToHpNumber(
+  chain: IWaxBaseInterface,
+  vests: NaiAsset,
+  totalVestingFundHive: NaiAsset,
+  totalVestingShares: NaiAsset
+): number {
+  const hpAsset = chain.vestsToHp(vests, totalVestingFundHive, totalVestingShares);
+  return parseFloat(chain.getAsset(hpAsset).amount);
+}
+
+/**
+ * Calculate effective HP (own + received - delegated) using Wax methods.
+ *
+ * @param chain - Wax chain instance
+ * @param vestingShares - User's own vesting shares
+ * @param delegatedVestingShares - Shares delegated to others
+ * @param receivedVestingShares - Shares received from others
+ * @param totalVestingFundHive - From global properties
+ * @param totalVestingShares - From global properties
+ * @returns Effective HP as NaiAsset
+ */
+export function calculateEffectiveHpAsset(
+  chain: IWaxBaseInterface,
+  vestingShares: NaiAsset,
+  delegatedVestingShares: NaiAsset,
+  receivedVestingShares: NaiAsset,
+  totalVestingFundHive: NaiAsset,
+  totalVestingShares: NaiAsset
+): NaiAsset {
+  const ownHp = chain.vestsToHp(vestingShares, totalVestingFundHive, totalVestingShares);
+  const delegatedHp = chain.vestsToHp(delegatedVestingShares, totalVestingFundHive, totalVestingShares);
+  const receivedHp = chain.vestsToHp(receivedVestingShares, totalVestingFundHive, totalVestingShares);
+
+  // own - delegated + received (amounts are in satoshis as strings)
+  const effectiveAmount = BigInt(ownHp.amount) - BigInt(delegatedHp.amount) + BigInt(receivedHp.amount);
+  return { ...ownHp, amount: effectiveAmount.toString() };
+}
+
+/**
+ * Calculate effective HP and return as number.
+ */
+export function calculateEffectiveHpNumber(
+  chain: IWaxBaseInterface,
+  vestingShares: NaiAsset,
+  delegatedVestingShares: NaiAsset,
+  receivedVestingShares: NaiAsset,
+  totalVestingFundHive: NaiAsset,
+  totalVestingShares: NaiAsset
+): number {
+  const hpAsset = calculateEffectiveHpAsset(
+    chain, vestingShares, delegatedVestingShares, receivedVestingShares,
+    totalVestingFundHive, totalVestingShares
+  );
+  return parseFloat(chain.getAsset(hpAsset).amount);
+}
+
+// ============================================================================
+// Standalone Asset Utilities (no chain required)
+// ============================================================================
+
+/**
+ * Parse a NaiAsset to its numeric value.
+ * Use this when you don't have access to a chain instance.
+ *
+ * @param asset - NaiAsset object
+ * @returns Numeric value of the asset
+ */
+export function parseNaiAsset(asset: NaiAsset): number {
+  return parseInt(asset.amount) / Math.pow(10, asset.precision);
+}
+
+/**
+ * Parse a formatted asset string to number.
+ * Use this for strings already formatted by Wax (e.g., "123.456 HIVE").
+ *
+ * @param formattedAsset - Formatted string like "123.456 HIVE"
+ * @returns Numeric value
+ */
+export function parseFormattedAsset(formattedAsset: string): number {
+  return parseFloat(formattedAsset.replace(/\s*(HIVE|HBD|VESTS)$/i, ""));
+}
+
+/**
+ * Strip currency suffix from a formatted asset string.
+ *
+ * @example
+ * stripAssetSuffix("123.456 HIVE") // returns "123.456"
+ */
+export function stripAssetSuffix(amount: string): string {
   return amount.replace(/\s*(HIVE|HBD|VESTS)$/i, "");
 }
 
 /**
- * Convert VESTS to HP (Hive Power) using dynamic global properties
+ * Convert VESTS to HP (Hive Power) using dynamic global properties.
+ * Standalone version that works without a chain instance.
+ *
  * Formula: HP = VESTS * (total_vesting_fund_hive / total_vesting_shares)
  *
- * @param vests - VESTS amount (as string, number, or asset object)
+ * @param vests - VESTS amount (as NaiAsset or number)
  * @param globalProps - Global properties with totalVestingFundHive and totalVestingShares
  */
 export function convertVestsToHP(
-  vests: AssetValue | number,
-  globalProps: IGlobalProperties
+  vests: NaiAsset | number,
+  globalProps: { totalVestingFundHive: NaiAsset; totalVestingShares: NaiAsset }
 ): number {
-  const vestsNum = typeof vests === "number" ? vests : parseVests(vests);
-  const fundHive = parseHive(globalProps.totalVestingFundHive);
-  const totalShares = parseVests(globalProps.totalVestingShares);
+  const vestsNum = typeof vests === "number" ? vests : parseNaiAsset(vests);
+  const fundHive = parseNaiAsset(globalProps.totalVestingFundHive);
+  const totalShares = parseNaiAsset(globalProps.totalVestingShares);
 
   if (totalShares === 0) return 0;
-
   return vestsNum * (fundHive / totalShares);
 }
 
 /**
- * Calculate effective HP for a user (own HP + received - delegated)
+ * Calculate effective HP for a user (own HP + received - delegated).
+ * Standalone version that works without a chain instance.
+ *
+ * @param vestingShares - User's own vesting shares
+ * @param delegatedVestingShares - Shares delegated to others
+ * @param receivedVestingShares - Shares received from others
+ * @param globalProps - Global properties for conversion
  */
 export function calculateEffectiveHP(
-  vestingShares: AssetValue,
-  delegatedVestingShares: AssetValue,
-  receivedVestingShares: AssetValue,
-  globalProps: IGlobalProperties
+  vestingShares: NaiAsset,
+  delegatedVestingShares: NaiAsset,
+  receivedVestingShares: NaiAsset,
+  globalProps: { totalVestingFundHive: NaiAsset; totalVestingShares: NaiAsset }
 ): number {
-  const own = parseVests(vestingShares);
-  const delegated = parseVests(delegatedVestingShares);
-  const received = parseVests(receivedVestingShares);
-
+  const own = parseNaiAsset(vestingShares);
+  const delegated = parseNaiAsset(delegatedVestingShares);
+  const received = parseNaiAsset(receivedVestingShares);
   const effectiveVests = own - delegated + received;
-
   return convertVestsToHP(effectiveVests, globalProps);
 }
 
 // ============================================================================
-// Formatting Utilities for Display
+// Display Formatting Utilities
 // ============================================================================
 
 /**
@@ -139,21 +267,9 @@ export function formatJoinDate(dateStr: string): string {
 }
 
 /**
- * Calculate voting power percentage from manabar
- * Voting power regenerates 20% per day (full in 5 days)
- */
-export function calculateVotingPower(current: bigint, max: bigint): number {
-  if (max === 0n) return 100;
-  return Number((current * 10000n) / max) / 100;
-}
-
-/**
  * Format reputation score
- * Hive reputation is stored as a large number, need to convert to readable format
- * Formula: log10(rep - 10^12) * 9 - 56 (approximately)
  * For bridge.get_profile, reputation is already formatted as float
  */
 export function formatReputation(rep: number): number {
-  // bridge.get_profile already returns formatted reputation (e.g., 78.5)
   return Math.floor(rep);
 }

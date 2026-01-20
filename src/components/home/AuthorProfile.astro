@@ -5,7 +5,7 @@ import type {
   IGlobalProperties,
   IAccountManabars,
 } from '../../lib/blog-logic'
-import { convertVestsToHP, calculateEffectiveHP, parseBalance } from '../../lib/blog-logic'
+import { convertVestsToHP, calculateEffectiveHP, parseFormattedAsset } from '../../lib/blog-logic'
 
 interface Props {
   username: string
@@ -78,8 +78,8 @@ const curationRewardsVests = account?.curationRewards ?? 0
 const totalRewardsVests = postingRewardsVests + curationRewardsVests
 
 // Parse balance amounts
-const hiveBalance = account ? parseBalance(account.balance) : 0
-const hbdBalance = account ? parseBalance(account.hbdBalance) : 0
+const hiveBalance = account ? parseFormattedAsset(account.balance) : 0
+const hbdBalance = account ? parseFormattedAsset(account.hbdBalance) : 0
 
 // Calculate HP values using global properties
 let hivePower = 0

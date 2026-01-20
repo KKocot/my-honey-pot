@@ -8,7 +8,7 @@ import {
   calculateEffectiveHivePower,
   type HivePost,
 } from './queries'
-import { parseBalance } from '../../lib/blog-logic'
+import { parseFormattedAsset } from '../../lib/blog-logic'
 
 // ============================================
 // Full Preview Dialog Component
@@ -181,13 +181,13 @@ export function FullPreview(props: FullPreviewProps) {
           )}
           {settings.showAuthorHiveBalance !== false && dbAccount && (
             <div>
-              <p class="font-bold text-text">{parseBalance(dbAccount.balance).toFixed(3)}</p>
+              <p class="font-bold text-text">{parseFormattedAsset(dbAccount.balance).toFixed(3)}</p>
               <p class="text-xs text-text-muted">HIVE</p>
             </div>
           )}
           {settings.showAuthorHbdBalance !== false && dbAccount && (
             <div>
-              <p class="font-bold text-text">{parseBalance(dbAccount.hbdBalance).toFixed(3)}</p>
+              <p class="font-bold text-text">{parseFormattedAsset(dbAccount.hbdBalance).toFixed(3)}</p>
               <p class="text-xs text-text-muted">HBD</p>
             </div>
           )}

@@ -60,17 +60,25 @@ export type {
 // Re-export utilities
 export {
   paginateData,
-  formatHiveAmount,
+  // Wax-based asset utilities (require chain instance)
+  parseAssetWithChain,
+  formatAsset,
+  getAssetAmount,
+  getAssetSymbol,
+  vestsToHpAsset,
+  vestsToHpNumber,
+  calculateEffectiveHpAsset,
+  calculateEffectiveHpNumber,
+  // Standalone asset utilities (no chain required)
+  parseNaiAsset,
+  parseFormattedAsset,
+  stripAssetSuffix,
   convertVestsToHP,
   calculateEffectiveHP,
-  parseBalance,
-  parseVests,
-  parseHive,
   // Display formatting utilities
   formatCompactNumber,
   formatNumber,
   formatJoinDate,
-  calculateVotingPower,
   formatReputation,
 } from "./utils";
 export { WorkerBeeError } from "./errors";
