@@ -586,8 +586,7 @@ export interface NavigationTab {
   label: string
   enabled: boolean
   showCount: boolean
-  href?: string
-  external?: boolean
+  href?: string // For custom tabs - external URLs auto-detected (http:// or https://)
   tooltip?: string
 }
 

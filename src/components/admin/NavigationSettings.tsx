@@ -40,7 +40,6 @@ export function NavigationSettings() {
       enabled: true,
       showCount: false,
       href: '',
-      external: false,
     }
     updateSettings({ navigationTabs: [...settings.navigationTabs, newTab] })
   }
@@ -57,6 +56,12 @@ export function NavigationSettings() {
   // Check if tab is built-in
   const isBuiltIn = (tabId: string) => {
     return BUILT_IN_TAB_IDS.includes(tabId)
+  }
+
+  // Check if URL is external (starts with http:// or https://)
+  const isExternalUrl = (url: string | undefined) => {
+    if (!url) return false
+    return url.startsWith('http://') || url.startsWith('https://')
   }
 
   return (
@@ -148,25 +153,19 @@ export function NavigationSettings() {
 
                     {/* URL input for custom tabs */}
                     <Show when={!isBuiltIn(tab.id)}>
-                      <Input
-                        value={tab.href || ''}
-                        placeholder="URL"
-                        onInput={(e) => updateTab(tab.id, { href: e.currentTarget.value })}
-                        class="w-32 text-xs"
-                      />
-                    </Show>
-
-                    {/* External link for custom tabs */}
-                    <Show when={!isBuiltIn(tab.id)}>
-                      <label class="flex items-center gap-1 text-xs text-text-muted whitespace-nowrap cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={tab.external || false}
-                          onChange={(e) => updateTab(tab.id, { external: e.currentTarget.checked })}
-                          class="w-3.5 h-3.5 rounded border-border text-primary focus:ring-primary cursor-pointer"
+                      <div class="flex items-center gap-1">
+                        <Input
+                          value={tab.href || ''}
+                          placeholder="URL"
+                          onInput={(e) => updateTab(tab.id, { href: e.currentTarget.value })}
+                          class="w-32 text-xs"
                         />
-                        External
-                      </label>
+                        <Show when={isExternalUrl(tab.href)}>
+                          <svg class="w-3.5 h-3.5 text-text-muted flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" title="External link">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                          </svg>
+                        </Show>
+                      </div>
                     </Show>
 
                     {/* Remove button (custom tabs only) */}
@@ -230,7 +229,7 @@ export function NavigationSettings() {
                               {tab.id === 'posts' ? '42' : '128'}
                             </span>
                           </Show>
-                          <Show when={tab.external}>
+                          <Show when={isExternalUrl(tab.href)}>
                             <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                             </svg>
