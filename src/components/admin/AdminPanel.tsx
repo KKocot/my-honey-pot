@@ -22,6 +22,7 @@ import {
   setCurrentUsername,
   getLastFetchError,
   settings,
+  updateSettings,
 } from './queries'
 
 // Track if user has made changes since last save
@@ -62,7 +63,15 @@ function AdminPanelContent(props: AdminPanelContentProps) {
   onMount(() => {
     if (props.initialSettings) {
       console.log('Admin: Applying initial settings from SSR')
-      syncSettingsToStore(props.initialSettings, true)
+      // Ensure hiveUsername is set from ownerUsername if not in config
+      const settingsWithUsername = {
+        ...props.initialSettings,
+        hiveUsername: props.initialSettings.hiveUsername || props.ownerUsername || '',
+      }
+      syncSettingsToStore(settingsWithUsername, true)
+    } else if (props.ownerUsername) {
+      // Even without initial settings, set the username for preview
+      updateSettings({ hiveUsername: props.ownerUsername })
     }
 
     // Warn user about unsaved changes when leaving page
