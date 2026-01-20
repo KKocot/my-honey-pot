@@ -829,7 +829,7 @@ export const authorProfileElementLabels: Record<string, string> = {
   following: 'Following',
   postCount: 'Post Count',
   hivePower: 'Hive Power',
-  hpEarned: 'HP Earned',
+  hpEarned: 'HP',
   votingPower: 'Voting Power',
   hiveBalance: 'HIVE Balance',
   hbdBalance: 'HBD Balance',

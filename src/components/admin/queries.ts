@@ -300,12 +300,15 @@ async function fetchHivePreviewData(username: string, postsPerPage: number): Pro
   if (!username) return null
 
   try {
+    console.log('[Preview] Fetching data for:', username)
+
     // Initialize Blog Logic DataProvider
     const chain = await getWax()
     const dataProvider = new DataProvider(chain)
 
     // Fetch account object first (needed for profile)
     const account = await dataProvider.bloggingPlatform.getAccount(username)
+    console.log('[Preview] Got account object')
 
     // Fetch profile, database account, global props, and posts in parallel
     const [profile, dbAccount, globalProps, posts] = await Promise.all([
@@ -317,6 +320,7 @@ async function fetchHivePreviewData(username: string, postsPerPage: number): Pro
         { page: 1, pageSize: postsPerPage }
       ),
     ])
+    console.log('[Preview] Got all data:', { profile: !!profile, dbAccount: !!dbAccount, globalProps: !!globalProps })
 
     // Convert posts iterator to array of BridgePost
     const postsArray: BridgePost[] = []
@@ -326,6 +330,7 @@ async function fetchHivePreviewData(username: string, postsPerPage: number): Pro
         postsArray.push(postData)
       }
     }
+    console.log('[Preview] Got posts:', postsArray.length)
 
     return {
       profile,
@@ -334,7 +339,7 @@ async function fetchHivePreviewData(username: string, postsPerPage: number): Pro
       posts: postsArray,
     }
   } catch (error) {
-    console.error('Failed to fetch Hive preview data:', error)
+    console.error('[Preview] Failed to fetch Hive preview data:', error)
     return null
   }
 }

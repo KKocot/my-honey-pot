@@ -690,6 +690,16 @@ export function FullPreview(props: FullPreviewProps) {
             </div>
           </Show>
 
+          {/* Error/No data state */}
+          <Show when={settings.hiveUsername && !data() && !loading()}>
+            <div class="flex items-center justify-center min-h-screen">
+              <div class="text-center">
+                <p class="text-text text-lg">Failed to load data for @{settings.hiveUsername}</p>
+                <p class="text-text-muted mt-1">Check if the username exists or try again later</p>
+              </div>
+            </div>
+          </Show>
+
           {/* Main content */}
           <Show when={data() && !loading()}>
             <div class="max-w-7xl mx-auto px-4 py-16">
