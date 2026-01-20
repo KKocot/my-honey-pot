@@ -272,6 +272,7 @@ export interface HiveData {
   dbAccount: IDatabaseAccount | null
   globalProps: IGlobalProperties | null
   posts: BridgePost[]
+  comments: BridgePost[]
 }
 
 // Re-export utilities from blog-logic for convenience
@@ -311,14 +312,19 @@ async function fetchHivePreviewData(username: string, postsPerPage: number): Pro
     const account = await dataProvider.bloggingPlatform.getAccount(username)
     console.log('[Preview] Got account object')
 
-    // Fetch profile, database account, global props, and posts in parallel
-    const [profile, dbAccount, globalProps, posts] = await Promise.all([
+    // Fetch profile, database account, global props, posts, and comments in parallel
+    const [profile, dbAccount, globalProps, posts, comments] = await Promise.all([
       account.getProfile(),
       dataProvider.getDatabaseAccount(username),
       dataProvider.getGlobalProperties(),
       dataProvider.bloggingPlatform.enumAccountPosts(
         { sort: 'blog', account: username },
         { page: 1, pageSize: postsPerPage }
+      ),
+      // Fetch user's comments using sort='comments'
+      dataProvider.bloggingPlatform.enumAccountPosts(
+        { sort: 'comments', account: username },
+        { page: 1, pageSize: 20 }
       ),
     ])
     console.log('[Preview] Got all data:', { profile: !!profile, dbAccount: !!dbAccount, globalProps: !!globalProps })
@@ -333,11 +339,22 @@ async function fetchHivePreviewData(username: string, postsPerPage: number): Pro
     }
     console.log('[Preview] Got posts:', postsArray.length)
 
+    // Convert comments iterator to array of BridgePost
+    const commentsArray: BridgePost[] = []
+    for (const comment of comments) {
+      const commentData = dataProvider.getComment({ author: comment.author, permlink: comment.permlink })
+      if (commentData) {
+        commentsArray.push(commentData)
+      }
+    }
+    console.log('[Preview] Got comments:', commentsArray.length)
+
     return {
       profile,
       dbAccount,
       globalProps,
       posts: postsArray,
+      comments: commentsArray,
     }
   } catch (error) {
     console.error('[Preview] Failed to fetch Hive preview data:', error)

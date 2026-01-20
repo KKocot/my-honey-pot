@@ -562,34 +562,95 @@ export function FullPreview(props: FullPreviewProps) {
     )
   }
 
-  // Comments placeholder section
-  const CommentsSection = () => (
-    <div class="space-y-4">
-      <For each={[1, 2, 3, 4, 5]}>
-        {(i) => (
-          <div class="bg-bg-card rounded-xl p-4 border border-border">
-            <div class="flex items-start gap-3">
-              <div class="w-10 h-10 rounded-full bg-bg-secondary flex-shrink-0" />
-              <div class="flex-1">
-                <div class="flex items-center gap-2 mb-1">
-                  <span class="font-medium text-text">@user{i}</span>
-                  <span class="text-xs text-text-muted">2 hours ago</span>
-                </div>
-                <p class="text-sm text-text-muted">
-                  This is a sample comment #{i}. In the real app, this would show actual comments from Hive blockchain.
-                </p>
-                <div class="flex gap-4 mt-2 text-xs text-text-muted">
-                  <span>5 replies</span>
-                  <span>12 votes</span>
-                  <span class="text-success">$0.24</span>
-                </div>
-              </div>
-            </div>
+  // Comments section - displays user's comments from Hive
+  const CommentsSection = () => {
+    const comments = () => data()?.comments || []
+
+    // Format time ago
+    const formatTimeAgo = (dateString: string): string => {
+      const date = new Date(dateString)
+      const now = new Date()
+      const diffMs = now.getTime() - date.getTime()
+      const diffMins = Math.floor(diffMs / 60000)
+      const diffHours = Math.floor(diffMs / 3600000)
+      const diffDays = Math.floor(diffMs / 86400000)
+
+      if (diffMins < 60) return `${diffMins}m ago`
+      if (diffHours < 24) return `${diffHours}h ago`
+      if (diffDays < 30) return `${diffDays}d ago`
+      return date.toLocaleDateString()
+    }
+
+    // Get parent post title from root_title or construct from permlink
+    const getParentInfo = (comment: HivePost) => {
+      return {
+        title: comment.root_title || comment.permlink.replace(/-/g, ' '),
+        author: comment.parent_author || '',
+        permlink: comment.parent_permlink || ''
+      }
+    }
+
+    return (
+      <div class="space-y-4">
+        <Show when={comments().length > 0} fallback={
+          <div class="text-center py-8 bg-bg-card rounded-xl border border-border">
+            <p class="text-text-muted">No comments found</p>
           </div>
-        )}
-      </For>
-    </div>
-  )
+        }>
+          <For each={comments()}>
+            {(comment) => {
+              const parent = getParentInfo(comment)
+              return (
+                <div class="bg-bg-card rounded-xl p-4 border border-border">
+                  {/* Reply context - shows which post this is a reply to */}
+                  <Show when={parent.title}>
+                    <div class="text-xs text-text-muted mb-2 pb-2 border-b border-border/50">
+                      <span>Reply to: </span>
+                      <span class="text-primary font-medium">{parent.title}</span>
+                      <Show when={parent.author}>
+                        <span> by @{parent.author}</span>
+                      </Show>
+                    </div>
+                  </Show>
+
+                  <div class="flex items-start gap-3">
+                    {/* Avatar */}
+                    <img
+                      src={`https://images.hive.blog/u/${comment.author}/avatar/small`}
+                      alt={comment.author}
+                      class="w-10 h-10 rounded-full flex-shrink-0"
+                    />
+                    <div class="flex-1 min-w-0">
+                      {/* Author and time */}
+                      <div class="flex items-center gap-2 mb-1 flex-wrap">
+                        <span class="font-medium text-text">@{comment.author}</span>
+                        <span class="text-xs text-text-muted">{formatTimeAgo(comment.created)}</span>
+                      </div>
+
+                      {/* Comment body - show plain text, strip markdown */}
+                      <p class="text-sm text-text-muted line-clamp-3">
+                        {comment.body.replace(/[#*`>\[\]()!]/g, '').slice(0, 300)}
+                        {comment.body.length > 300 ? '...' : ''}
+                      </p>
+
+                      {/* Stats */}
+                      <div class="flex gap-4 mt-2 text-xs text-text-muted">
+                        <span>{comment.children} replies</span>
+                        <span>{comment.active_votes?.length || 0} votes</span>
+                        <Show when={comment.pending_payout_value}>
+                          <span class="text-success">{formatPayout(comment.pending_payout_value!)}</span>
+                        </Show>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )
+            }}
+          </For>
+        </Show>
+      </div>
+    )
+  }
 
   // Threads placeholder section (Hive short posts)
   const ThreadsSection = () => (
