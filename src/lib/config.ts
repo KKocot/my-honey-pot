@@ -8,11 +8,11 @@ export const HIVE_API_ENDPOINT = import.meta.env.HIVE_API_ENDPOINT || (typeof pr
 
 // Fallback API endpoints for retry logic (ordered by preference)
 export const HIVE_API_ENDPOINTS = [
-  'https://api.syncad.com',
   'https://api.openhive.network',
   'https://api.hive.blog',
   'https://api.deathwing.me',
   'https://hive-api.arcange.eu',
+  'https://api.syncad.com',
 ]
 
 // Layout Constants
