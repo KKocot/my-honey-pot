@@ -1,5 +1,6 @@
 import { QueryClient, createQuery, createMutation, useQueryClient } from '@tanstack/solid-query'
 import { createStore, produce } from 'solid-js/store'
+import { createSignal, createEffect } from 'solid-js'
 import { defaultSettings, migrateCardLayout, themePresets, type SettingsData, type LayoutSection, type ThemeColors } from './types'
 import { loadConfigFromHive } from './hive-broadcast'
 import { setHasUnsavedChanges } from './AdminPanel'
@@ -353,10 +354,23 @@ export function useHivePreviewQuery(
   postsPerPage: () => number,
   enabled: () => boolean
 ) {
+  // Debounce username changes to avoid fetching on every keystroke
+  const [debouncedUsername, setDebouncedUsername] = createSignal(username())
+  let debounceTimer: ReturnType<typeof setTimeout> | null = null
+
+  // Watch for username changes and debounce
+  createEffect(() => {
+    const newUsername = username()
+    if (debounceTimer) clearTimeout(debounceTimer)
+    debounceTimer = setTimeout(() => {
+      setDebouncedUsername(newUsername)
+    }, 500) // 500ms debounce
+  })
+
   return createQuery(() => ({
-    queryKey: ['hive-preview', username(), postsPerPage()] as const,
-    queryFn: () => fetchHivePreviewData(username() || '', postsPerPage()),
-    enabled: enabled() && !!username(),
+    queryKey: ['hive-preview', debouncedUsername(), postsPerPage()] as const,
+    queryFn: () => fetchHivePreviewData(debouncedUsername() || '', postsPerPage()),
+    enabled: enabled() && !!debouncedUsername(),
     staleTime: 1000 * 60 * 2, // 2 minutes
     retry: 1,
   }))
