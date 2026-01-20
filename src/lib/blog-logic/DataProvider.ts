@@ -155,7 +155,7 @@ export class DataProvider {
         observer: this.bloggingPlatform.viewerContext.name,
       });
     });
-    if (!replies) throw WorkerBeeError;
+    if (!replies) throw new WorkerBeeError("Replies not found");
     const filteredReplies = Object.values(replies).filter((rawReply) => !!rawReply.parent_author);
     const repliesIds: IPostCommentIdentity[] = [];
     filteredReplies.forEach((reply) => {
