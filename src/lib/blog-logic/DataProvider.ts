@@ -32,13 +32,32 @@ async function withRetry<T>(fn: () => Promise<T>): Promise<T> {
       return await fn();
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error));
-      const isTimeout = lastError.message.toLowerCase().includes('timeout');
+      const errorMsg = lastError.message.toLowerCase();
 
-      if (isTimeout && attempt < MAX_RETRIES - 1) {
-        console.warn(`API request timed out (attempt ${attempt + 1}/${MAX_RETRIES}), switching endpoint...`);
+      // Check if this is a retryable network error
+      const isTimeout = errorMsg.includes('timeout');
+      const isNetworkError = errorMsg.includes('fetch') ||
+                             errorMsg.includes('network') ||
+                             errorMsg.includes('econnrefused') ||
+                             errorMsg.includes('enotfound') ||
+                             errorMsg.includes('failed to fetch') ||
+                             errorMsg.includes('502') ||
+                             errorMsg.includes('503') ||
+                             errorMsg.includes('504');
+      const isAborted = errorMsg.includes('aborted');
+
+      // Don't retry if request was aborted by user (e.g., navigation, new request)
+      if (isAborted) {
+        throw lastError;
+      }
+
+      // Retry on timeout or network errors
+      if ((isTimeout || isNetworkError) && attempt < MAX_RETRIES - 1) {
+        console.warn(`API request failed (attempt ${attempt + 1}/${MAX_RETRIES}): ${lastError.message}, switching endpoint...`);
         resetWax();
-        await new Promise(resolve => setTimeout(resolve, 300));
-      } else if (!isTimeout) {
+        await new Promise(resolve => setTimeout(resolve, 300 * (attempt + 1))); // Exponential backoff
+      } else if (!isTimeout && !isNetworkError) {
+        // Non-retryable error (e.g., "Account not found") - throw immediately
         throw lastError;
       }
     }
