@@ -21,17 +21,14 @@ async function createChainWithFallback(): Promise<WaxExtendedChain> {
     const endpoint = endpoints[endpointIndex];
 
     try {
-      console.log(`Connecting to Hive API: ${endpoint}`)
       const hiveChain = await createHiveChain({ apiEndpoint: endpoint });
       const extendedChain = hiveChain.extend(WaxExtendedData).extendRest(HafbeExtendedData);
 
       // Update current endpoint index for next time (prefer working endpoint)
       currentEndpointIndex = endpointIndex;
-      console.log(`Connected to Hive API: ${endpoint}`)
 
       return extendedChain;
     } catch (error) {
-      console.warn(`Failed to connect to ${endpoint}:`, error instanceof Error ? error.message : error);
       lastError = error instanceof Error ? error : new Error(String(error));
     }
   }
@@ -69,7 +66,6 @@ export async function withRetry<T>(
       const isTimeout = lastError.message.includes('timeout') || lastError.message.includes('Timeout');
 
       if (isTimeout && attempt < maxRetries - 1) {
-        console.warn(`API request timed out (attempt ${attempt + 1}/${maxRetries}), switching endpoint...`);
         resetWax();
         // Wait a bit before retry
         await new Promise(resolve => setTimeout(resolve, 500));
