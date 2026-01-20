@@ -721,7 +721,7 @@ export const defaultSettings: SettingsData = {
   // Navigation Tabs defaults (only Hive content tabs)
   navigationTabs: [
     { id: 'posts', label: 'Posts', enabled: true, showCount: true },
-    { id: 'threads', label: 'Threads', enabled: false, showCount: false },
+    { id: 'threads', label: 'Hive Threads', enabled: false, showCount: false },
     { id: 'comments', label: 'Comments', enabled: true, showCount: true },
   ],
   // Social media links defaults
