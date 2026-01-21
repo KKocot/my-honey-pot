@@ -71,7 +71,14 @@ const [settings, setSettings] = createStore<SettingsData>(defaultSettings)
 
 export { settings }
 
+// Export a plain object copy of settings for serialization
+// SolidJS store proxies may not serialize correctly with JSON.stringify
+export function getSettingsSnapshot(): SettingsData {
+  return JSON.parse(JSON.stringify(settings)) as SettingsData
+}
+
 export function updateSettings(partial: Partial<SettingsData>) {
+  console.log('updateSettings called with:', Object.keys(partial), partial)
   setSettings(produce((s) => {
     Object.assign(s, partial)
   }))
@@ -172,7 +179,15 @@ async function fetchSettings(): Promise<SettingsData> {
       console.log(`Loading config from Hive for @${currentUsername}...`)
       const hiveConfig = await loadConfigFromHive(currentUsername)
       if (hiveConfig) {
-        console.log('Loaded config from Hive!')
+        console.log('Loaded config from Hive!', {
+          loadedKeys: Object.keys(hiveConfig),
+          pageLayout: hiveConfig.pageLayout,
+          authorProfileLayout2: hiveConfig.authorProfileLayout2,
+          navigationTabs: hiveConfig.navigationTabs,
+          authorCoverHeightPx: hiveConfig.authorCoverHeightPx,
+          authorUsernameSizePx: hiveConfig.authorUsernameSizePx,
+          authorDisplayNameSizePx: hiveConfig.authorDisplayNameSizePx,
+        })
         const migratedData = migrateSettingsLayouts(hiveConfig)
         // Migrate pageLayout to filter out obsolete elements like 'comments'
         const pageLayout = migratePageLayout(hiveConfig.pageLayout)
@@ -257,6 +272,13 @@ export function useSaveSettingsMutation() {
 let settingsLoadedFromServer = false
 
 export function syncSettingsToStore(data: SettingsData, fromServer: boolean = false) {
+  console.log('syncSettingsToStore called:', {
+    fromServer,
+    dataKeys: Object.keys(data),
+    pageLayout: data.pageLayout,
+    authorProfileLayout2: data.authorProfileLayout2,
+    navigationTabs: data.navigationTabs,
+  })
   setSettings(produce((s) => {
     Object.assign(s, data)
   }))
