@@ -4,6 +4,27 @@ import type { BridgePost, IDatabaseAccount, AccountPostsSortOption, CommentSortO
 // Types for homepage components
 // ============================================
 
+// Card Layout types (from admin/types.ts)
+export type CardSectionChild =
+  | { type: 'element'; id: string }
+  | { type: 'section'; section: CardSection }
+
+export interface CardSection {
+  id: string
+  orientation: 'horizontal' | 'vertical'
+  children: CardSectionChild[]
+}
+
+export interface CardLayout {
+  sections: CardSection[]
+}
+
+// Social link type
+export interface SocialLink {
+  platform: 'instagram' | 'x' | 'youtube' | 'tiktok' | 'threads' | 'facebook'
+  url: string
+}
+
 // Old layout section format (legacy)
 export interface LayoutSection {
   id: string
@@ -79,6 +100,7 @@ export interface SiteSettings {
   headerMaxWidthPx?: number
   // Author Profile extended settings
   authorProfileLayout?: 'horizontal' | 'vertical'
+  authorProfileLayout2?: CardLayout
   showAuthorAbout?: boolean
   showAuthorLocation?: boolean
   showAuthorWebsite?: boolean
@@ -90,6 +112,15 @@ export interface SiteSettings {
   showAuthorHiveBalance?: boolean
   showAuthorHbdBalance?: boolean
   showAuthorCoverImage?: boolean
+  // Author Profile size settings
+  authorCoverHeightPx?: number
+  authorUsernameSizePx?: number
+  authorDisplayNameSizePx?: number
+  authorAboutSizePx?: number
+  authorStatsSizePx?: number
+  authorMetaSizePx?: number
+  // Social Links
+  socialLinks?: SocialLink[]
   // Comments Tab settings
   showCommentsTab?: boolean
   commentsLayout?: 'list' | 'grid' | 'masonry'
