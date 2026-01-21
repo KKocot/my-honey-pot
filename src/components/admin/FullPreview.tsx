@@ -82,7 +82,7 @@ export function FullPreview(props: FullPreviewProps) {
         : post.json_metadata
       const image = metadata?.image?.[0]
       if (image && image.startsWith('http')) {
-        return `https://images.hive.blog/256x512/${image}`
+        return `https://images.hive.blog/${(settings.thumbnailSizePx || 256) * 2}x0/${image}`
       }
     } catch {}
     return null
@@ -285,7 +285,7 @@ export function FullPreview(props: FullPreviewProps) {
           const hivePowerSize = settings.authorStatsSizePx ?? 14
           return (
             <div class="text-center">
-              <p class="font-bold text-text" style={{ 'font-size': `${hivePowerSize}px` }}>{formatCompactNumber(profileData.hivePower)}</p>
+              <p class="font-bold text-text" style={{ 'font-size': `${hivePowerSize}px` }}>{profileData.hivePower.toFixed(3)}</p>
               <p class="text-xs text-text-muted">HP</p>
             </div>
           )
@@ -816,7 +816,6 @@ export function FullPreview(props: FullPreviewProps) {
           {renderAuthorProfile(props.inSidebar ? 'vertical' : (settings.authorProfileLayout || 'horizontal'))}
         </Show>
         <Show when={props.elementId === 'posts'}>
-          <NavigationPreview />
           <MainContentSection />
         </Show>
         <Show when={props.elementId === 'footer'}>

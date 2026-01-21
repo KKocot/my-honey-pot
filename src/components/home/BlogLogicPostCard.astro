@@ -78,7 +78,7 @@ function getSummary(): string {
 function getThumbnailUrl(imageUrl: string | undefined): string | null {
   if (!imageUrl || imageUrl.length === 0) return null
   if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
-    return `https://images.hive.blog/256x512/${imageUrl}`
+    return `https://images.hive.blog/${thumbnailSizePx * 2}x0/${imageUrl}`
   }
   return null
 }
