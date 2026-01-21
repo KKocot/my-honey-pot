@@ -85,6 +85,30 @@ export function AuthorProfileSettings() {
               value={settings.authorDisplayNameSizePx ?? 18}
               onInput={(e) => updateSettings({ authorDisplayNameSizePx: parseInt(e.currentTarget.value) })}
             />
+            <Slider
+              label="About text size:"
+              unit="px"
+              min={10}
+              max={18}
+              value={settings.authorAboutSizePx ?? 14}
+              onInput={(e) => updateSettings({ authorAboutSizePx: parseInt(e.currentTarget.value) })}
+            />
+            <Slider
+              label="Stats size:"
+              unit="px"
+              min={10}
+              max={20}
+              value={settings.authorStatsSizePx ?? 14}
+              onInput={(e) => updateSettings({ authorStatsSizePx: parseInt(e.currentTarget.value) })}
+            />
+            <Slider
+              label="Meta text size:"
+              unit="px"
+              min={10}
+              max={16}
+              value={settings.authorMetaSizePx ?? 12}
+              onInput={(e) => updateSettings({ authorMetaSizePx: parseInt(e.currentTarget.value) })}
+            />
           </div>
 
           {/* Card Layout Editor */}
@@ -257,16 +281,18 @@ function AuthorProfilePreview() {
         )
 
       case 'about':
+        const aboutSize = settings.authorAboutSizePx ?? 14
         return (
           <Show when={pd.about}>
-            <p class="text-text-muted text-xs line-clamp-2">{pd.about}</p>
+            <p class="text-text-muted line-clamp-2" style={{ 'font-size': `${aboutSize}px` }}>{pd.about}</p>
           </Show>
         )
 
       case 'location':
+        const locationSize = settings.authorMetaSizePx ?? 12
         return (
           <Show when={pd.location}>
-            <span class="flex items-center gap-1 text-xs text-text-muted">
+            <span class="flex items-center gap-1 text-text-muted" style={{ 'font-size': `${locationSize}px` }}>
               <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   stroke-linecap="round"
@@ -287,13 +313,15 @@ function AuthorProfilePreview() {
         )
 
       case 'website':
+        const websiteSize = settings.authorMetaSizePx ?? 12
         return (
           <Show when={pd.website}>
             <a
               href={pd.website}
               target="_blank"
               rel="noopener noreferrer"
-              class="flex items-center gap-1 text-xs text-primary hover:underline"
+              class="flex items-center gap-1 text-primary hover:underline"
+              style={{ 'font-size': `${websiteSize}px` }}
             >
               <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
@@ -309,8 +337,9 @@ function AuthorProfilePreview() {
         )
 
       case 'joinDate':
+        const joinDateSize = settings.authorMetaSizePx ?? 12
         return (
-          <span class="flex items-center gap-1 text-xs text-text-muted">
+          <span class="flex items-center gap-1 text-text-muted" style={{ 'font-size': `${joinDateSize}px` }}>
             <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 stroke-linecap="round"
@@ -324,42 +353,47 @@ function AuthorProfilePreview() {
         )
 
       case 'followers':
+        const followersSize = settings.authorStatsSizePx ?? 14
         return (
           <div class="text-center">
-            <p class="text-xs font-bold text-text">{formatCompactNumber(pd.followers)}</p>
+            <p class="font-bold text-text" style={{ 'font-size': `${followersSize}px` }}>{formatCompactNumber(pd.followers)}</p>
             <p class="text-xs text-text-muted">Followers</p>
           </div>
         )
 
       case 'following':
+        const followingSize = settings.authorStatsSizePx ?? 14
         return (
           <div class="text-center">
-            <p class="text-xs font-bold text-text">{formatCompactNumber(pd.following)}</p>
+            <p class="font-bold text-text" style={{ 'font-size': `${followingSize}px` }}>{formatCompactNumber(pd.following)}</p>
             <p class="text-xs text-text-muted">Following</p>
           </div>
         )
 
       case 'postCount':
+        const postCountSize = settings.authorStatsSizePx ?? 14
         return (
           <div class="text-center">
-            <p class="text-xs font-bold text-text">{formatCompactNumber(pd.postCount)}</p>
+            <p class="font-bold text-text" style={{ 'font-size': `${postCountSize}px` }}>{formatCompactNumber(pd.postCount)}</p>
             <p class="text-xs text-text-muted">Posts</p>
           </div>
         )
 
       case 'hivePower':
+        const hivePowerSize = settings.authorStatsSizePx ?? 14
         return (
           <div class="text-center">
-            <p class="text-xs font-bold text-text">{formatCompactNumber(pd.hivePower)}</p>
+            <p class="font-bold text-text" style={{ 'font-size': `${hivePowerSize}px` }}>{formatCompactNumber(pd.hivePower)}</p>
             <p class="text-xs text-text-muted">Hive Power</p>
           </div>
         )
 
       case 'hpEarned':
         // Show Hive Power (same as Denser) - pd.hivePower is already effective HP
+        const hpEarnedSize = settings.authorStatsSizePx ?? 14
         return (
           <div class="text-center">
-            <p class="text-xs font-bold text-success">
+            <p class="font-bold text-success" style={{ 'font-size': `${hpEarnedSize}px` }}>
               {formatCompactNumber(pd.hivePower)}
             </p>
             <p class="text-xs text-text-muted">HP</p>
@@ -369,25 +403,28 @@ function AuthorProfilePreview() {
       case 'votingPower':
         // Voting power requires manabar calculation which needs additional API call
         // For now showing placeholder - full implementation would use Account.getManabars()
+        const votingPowerSize = settings.authorStatsSizePx ?? 14
         return (
           <div class="text-center">
-            <p class="text-xs font-semibold text-text">--</p>
+            <p class="font-semibold text-text" style={{ 'font-size': `${votingPowerSize}px` }}>--</p>
             <p class="text-xs text-text-muted">Voting Power</p>
           </div>
         )
 
       case 'hiveBalance':
+        const hiveBalanceSize = settings.authorStatsSizePx ?? 14
         return (
           <div class="text-center">
-            <p class="text-xs font-semibold text-text">{pd.hiveBalance.toFixed(3)}</p>
+            <p class="font-semibold text-text" style={{ 'font-size': `${hiveBalanceSize}px` }}>{pd.hiveBalance.toFixed(3)}</p>
             <p class="text-xs text-text-muted">HIVE</p>
           </div>
         )
 
       case 'hbdBalance':
+        const hbdBalanceSize = settings.authorStatsSizePx ?? 14
         return (
           <div class="text-center">
-            <p class="text-xs font-semibold text-text">{pd.hbdBalance.toFixed(3)}</p>
+            <p class="font-semibold text-text" style={{ 'font-size': `${hbdBalanceSize}px` }}>{pd.hbdBalance.toFixed(3)}</p>
             <p class="text-xs text-text-muted">HBD</p>
           </div>
         )
@@ -457,13 +494,13 @@ function AuthorProfilePreview() {
                       target="_blank"
                       rel="noopener noreferrer"
                       class="p-2 rounded-lg transition-colors hover:opacity-80"
-                      style={{ background: 'var(--color-bg-secondary)' }}
+                      style={{ background: info.color }}
                       title={info.name}
                     >
                       <PlatformIcon
                         platform={link.platform}
                         class="w-4 h-4"
-                        style={{ color: info.color }}
+                        style={{ color: '#ffffff' }}
                       />
                     </a>
                   )
