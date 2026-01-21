@@ -1,6 +1,6 @@
 import { Show, For, createMemo, createSignal, onMount, type Accessor } from 'solid-js'
 import { Portal } from 'solid-js/web'
-import { settings, updateSettings } from './store'
+import { settings } from './store'
 import { pageElementLabels, platformInfos, type PageSlotPosition, type PageLayoutSection } from './types'
 import {
   useHivePreviewQuery,
@@ -129,8 +129,8 @@ export function FullPreview(props: FullPreviewProps) {
       <div class={`bg-bg-card rounded-xl shadow-sm border border-border overflow-hidden ${layout === 'vertical' ? 'p-4' : 'p-6'}`}>
         {settings.showAuthorCoverImage && profileMeta?.coverImage && (
           <div
-            class="h-24 bg-cover bg-center -mx-4 -mt-4 mb-4 rounded-t-xl"
-            style={`background-image: url(${profileMeta.coverImage});`}
+            class="bg-cover bg-center -mx-4 -mt-4 mb-4 rounded-t-xl"
+            style={`height: ${settings.authorCoverHeightPx || 64}px; background-image: url(${profileMeta.coverImage});`}
           />
         )}
         <div class={`flex ${layout === 'vertical' ? 'flex-col items-center text-center' : 'items-center'} gap-4`}>
@@ -142,7 +142,10 @@ export function FullPreview(props: FullPreviewProps) {
           />
           <div class={layout === 'vertical' ? '' : 'flex-1'}>
             <div class="flex items-center gap-2 flex-wrap justify-center">
-              <h2 class="font-bold text-text">@{profile.name}</h2>
+              {profileMeta?.name && (
+                <h2 class="font-bold text-text" style={`font-size: ${settings.authorDisplayNameSizePx || 18}px;`}>{profileMeta.name}</h2>
+              )}
+              <p class="font-bold text-text-muted" style={`font-size: ${settings.authorUsernameSizePx || 14}px;`}>@{profile.name}</p>
               {settings.showAuthorReputation !== false && (
                 <span class="px-2 py-0.5 text-xs font-medium bg-primary/10 text-primary rounded-full">
                   Rep: {Math.floor(profile.reputation)}
@@ -221,8 +224,7 @@ export function FullPreview(props: FullPreviewProps) {
                     href={link.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    class="p-2 rounded-lg transition-colors hover:opacity-80"
-                    style={{ background: `${info.color}20` }}
+                    class="p-2 rounded-lg transition-colors hover:opacity-80 bg-bg-secondary"
                     title={info.name}
                   >
                     <PlatformIcon
@@ -240,45 +242,12 @@ export function FullPreview(props: FullPreviewProps) {
     )
   }
 
-  // Sorting bar component for posts
-  const PostsSortBar = () => {
-    const sortOptions = [
-      { value: 'blog', label: 'Blog (with reblogs)' },
-      { value: 'posts', label: 'Posts only' },
-      { value: 'payout', label: 'By payout' },
-    ] as const
-
-    return (
-      <div class="flex items-center justify-between bg-bg-card rounded-lg px-4 py-2 mb-4 border border-border">
-        <span class="text-sm text-text-muted">Sort posts:</span>
-        <div class="flex gap-1">
-          <For each={sortOptions}>
-            {(option) => (
-              <button
-                type="button"
-                onClick={() => updateSettings({ postsSortOrder: option.value })}
-                class={`px-3 py-1 text-sm rounded-md transition-colors ${
-                  settings.postsSortOrder === option.value
-                    ? 'bg-primary text-primary-text'
-                    : 'bg-bg hover:bg-bg-secondary text-text-muted hover:text-text'
-                }`}
-              >
-                {option.label}
-              </button>
-            )}
-          </For>
-        </div>
-      </div>
-    )
-  }
-
   // Posts component - reactive
   const PostsSection = () => {
     const posts = () => data()?.posts || []
 
     return (
       <div>
-        <PostsSortBar />
         <Show when={posts().length > 0} fallback={
           <div class="text-center py-8 bg-bg-card rounded-xl border border-border">
             <p class="text-text-muted">No posts found</p>
