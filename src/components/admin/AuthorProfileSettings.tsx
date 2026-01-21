@@ -35,7 +35,9 @@ const AUTHOR_PROFILE_ELEMENT_IDS = [
 ]
 
 // Helper to check if element is in layout (recursive)
-function isElementInLayout(layout: CardLayout, elementId: string): boolean {
+function isElementInLayout(layout: CardLayout | undefined | null, elementId: string): boolean {
+  if (!layout?.sections) return true // If no layout, assume element is present (don't disable)
+
   const checkChildren = (children: CardSectionChild[]): boolean => {
     for (const child of children) {
       if (child.type === 'element' && child.id === elementId) {
@@ -59,7 +61,8 @@ function isElementInLayout(layout: CardLayout, elementId: string): boolean {
 }
 
 // Check if any of the given elements are in layout
-function areAnyElementsInLayout(layout: CardLayout, elementIds: string[]): boolean {
+function areAnyElementsInLayout(layout: CardLayout | undefined | null, elementIds: string[]): boolean {
+  if (!layout?.sections) return true // If no layout, assume elements are present
   return elementIds.some(id => isElementInLayout(layout, id))
 }
 
