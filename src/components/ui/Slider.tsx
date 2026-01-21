@@ -35,9 +35,16 @@ export function Slider(props: SliderProps) {
     const newValue = parseInt(e.currentTarget.value)
     setLocalValue(newValue)
 
-    // Also call onInput if provided (for backwards compatibility)
-    if (typeof local.onInput === 'function') {
-      ;(local.onInput as (e: InputEvent & { currentTarget: HTMLInputElement; target: Element }) => void)(e)
+    // Call onInput if provided - handle both function and tuple forms (SolidJS event delegation)
+    const onInputProp = local.onInput
+    if (onInputProp) {
+      if (typeof onInputProp === 'function') {
+        ;(onInputProp as (e: InputEvent & { currentTarget: HTMLInputElement; target: Element }) => void)(e)
+      } else if (Array.isArray(onInputProp)) {
+        // Tuple form: [handler, data]
+        const [handler, data] = onInputProp as [Function, unknown]
+        handler(data, e)
+      }
     }
   }
 
