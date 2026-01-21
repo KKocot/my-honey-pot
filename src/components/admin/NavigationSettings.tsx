@@ -124,9 +124,11 @@ export function NavigationSettings() {
                             <span class={`font-medium ${tab.enabled ? 'text-text' : 'text-text-muted'}`}>
                               {tab.label}
                             </span>
-                            <span class="text-[10px] px-1.5 py-0.5 bg-bg-secondary text-text-muted rounded">
-                              Built-in
-                            </span>
+                            <Show when={tab.id === 'threads'}>
+                              <span class="text-[10px] px-1.5 py-0.5 bg-warning/20 text-warning rounded">
+                                Work in Progress
+                              </span>
+                            </Show>
                           </div>
                         }
                       >

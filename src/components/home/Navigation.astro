@@ -1,11 +1,21 @@
 ---
+interface NavigationTab {
+  id: string
+  label: string
+  enabled: boolean
+  showCount: boolean
+  href?: string
+  tooltip?: string
+}
+
 interface Props {
   activeTab?: string
   postsCount?: number
   commentsCount?: number
+  navigationTabs?: NavigationTab[]
 }
 
-const { activeTab = 'posts', postsCount, commentsCount } = Astro.props
+const { activeTab = 'posts', postsCount, commentsCount, navigationTabs } = Astro.props
 
 interface NavItem {
   id: string
@@ -17,14 +27,40 @@ interface NavItem {
   tooltip?: string
 }
 
-const navItems: NavItem[] = [
-  { id: 'posts', label: 'Posts', count: postsCount },
-  { id: 'threads', label: 'My Threads', disabled: true, tooltip: 'Coming soon' },
-  { id: 'comments', label: 'Comments', count: commentsCount },
-  { id: 'instagram', label: 'Instagram', disabled: true, tooltip: 'Coming soon' },
-  { id: 'x', label: 'X', disabled: true, tooltip: 'Coming soon' },
-  { id: 'more', label: 'More', disabled: true, tooltip: 'More integrations coming soon' },
-]
+// Build nav items from settings or use defaults
+function buildNavItems(): NavItem[] {
+  if (navigationTabs && navigationTabs.length > 0) {
+    return navigationTabs
+      .filter(tab => tab.enabled)
+      .map(tab => {
+        const isExternal = tab.href && (tab.href.startsWith('http://') || tab.href.startsWith('https://'))
+        const count = tab.showCount
+          ? (tab.id === 'posts' ? postsCount : tab.id === 'comments' ? commentsCount : undefined)
+          : undefined
+
+        // Threads are work in progress
+        const isDisabled = tab.id === 'threads'
+
+        return {
+          id: tab.id,
+          label: tab.label,
+          count,
+          href: tab.href,
+          external: isExternal,
+          disabled: isDisabled,
+          tooltip: isDisabled ? 'Work in Progress' : tab.tooltip,
+        }
+      })
+  }
+
+  // Fallback to defaults
+  return [
+    { id: 'posts', label: 'Posts', count: postsCount },
+    { id: 'comments', label: 'Comments', count: commentsCount },
+  ]
+}
+
+const navItems = buildNavItems()
 
 function buildHref(item: NavItem): string {
   if (item.external && item.href) {
@@ -108,10 +144,5 @@ function buildHref(item: NavItem): string {
         </a>
       )
     })}
-  </div>
-
-  {/* Notice about upcoming integrations */}
-  <div class="px-4 py-2 text-xs text-text-muted bg-bg-secondary/30 border-t border-border/50">
-    We're working on integrating more platforms. Stay tuned!
   </div>
 </nav>
