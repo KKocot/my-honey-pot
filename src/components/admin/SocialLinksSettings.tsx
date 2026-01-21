@@ -207,13 +207,13 @@ export function SocialLinksSettings() {
                     target="_blank"
                     rel="noopener noreferrer"
                     class="p-2 rounded-lg transition-colors hover:opacity-80"
-                    style={{ background: `${info.color}20` }}
+                    style={{ background: info.color }}
                     title={info.name}
                   >
                     <PlatformIcon
                       platform={link.platform}
                       class="w-5 h-5"
-                      style={{ color: info.color }}
+                      style={{ color: '#ffffff' }}
                     />
                   </a>
                 )
