@@ -81,9 +81,9 @@ export function PostsLayoutSettings() {
               type="number"
               label="Posts per page"
               min={5}
-              max={30}
-              value={settings.postsPerPage ?? 20}
-              onInput={(e) => updateSettings({ postsPerPage: parseInt(e.currentTarget.value) })}
+              max={20}
+              value={Math.min(settings.postsPerPage ?? 20, 20)}
+              onInput={(e) => updateSettings({ postsPerPage: Math.min(parseInt(e.currentTarget.value) || 20, 20) })}
             />
           </div>
         </div>
