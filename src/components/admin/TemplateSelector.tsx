@@ -194,7 +194,7 @@ export function TemplateSelector() {
         sections: [
           { id: 'page-sec-1', slot: 'top' as const, orientation: 'horizontal' as const, elements: ['header'], active: true },
           { id: 'page-sec-2', slot: 'sidebar-left' as const, orientation: 'vertical' as const, elements: ['authorProfile'], active: true },
-          { id: 'page-sec-3', slot: 'main' as const, orientation: 'vertical' as const, elements: ['posts', 'comments'], active: true },
+          { id: 'page-sec-3', slot: 'main' as const, orientation: 'vertical' as const, elements: ['navigation', 'posts'], active: true },
           { id: 'page-sec-4', slot: 'bottom' as const, orientation: 'horizontal' as const, elements: ['footer'], active: true },
         ]
       },
@@ -203,7 +203,7 @@ export function TemplateSelector() {
         sections: [
           { id: 'page-sec-1', slot: 'top' as const, orientation: 'horizontal' as const, elements: ['header'], active: true },
           { id: 'page-sec-2', slot: 'sidebar-right' as const, orientation: 'vertical' as const, elements: ['authorProfile'], active: true },
-          { id: 'page-sec-3', slot: 'main' as const, orientation: 'vertical' as const, elements: ['posts', 'comments'], active: true },
+          { id: 'page-sec-3', slot: 'main' as const, orientation: 'vertical' as const, elements: ['navigation', 'posts'], active: true },
           { id: 'page-sec-4', slot: 'bottom' as const, orientation: 'horizontal' as const, elements: ['footer'], active: true },
         ]
       },
@@ -211,7 +211,7 @@ export function TemplateSelector() {
       {
         sections: [
           { id: 'page-sec-1', slot: 'top' as const, orientation: 'horizontal' as const, elements: ['header', 'authorProfile'], active: true },
-          { id: 'page-sec-2', slot: 'main' as const, orientation: 'vertical' as const, elements: ['posts', 'comments'], active: true },
+          { id: 'page-sec-2', slot: 'main' as const, orientation: 'vertical' as const, elements: ['navigation', 'posts'], active: true },
           { id: 'page-sec-3', slot: 'bottom' as const, orientation: 'horizontal' as const, elements: ['footer'], active: true },
         ]
       },
@@ -220,17 +220,16 @@ export function TemplateSelector() {
         sections: [
           { id: 'page-sec-1', slot: 'top' as const, orientation: 'horizontal' as const, elements: ['header'], active: true },
           { id: 'page-sec-2', slot: 'sidebar-left' as const, orientation: 'vertical' as const, elements: ['authorProfile'], active: true },
-          { id: 'page-sec-3', slot: 'main' as const, orientation: 'vertical' as const, elements: ['posts'], active: true },
-          { id: 'page-sec-4', slot: 'sidebar-right' as const, orientation: 'vertical' as const, elements: ['comments'], active: true },
-          { id: 'page-sec-5', slot: 'bottom' as const, orientation: 'horizontal' as const, elements: ['footer'], active: true },
+          { id: 'page-sec-3', slot: 'main' as const, orientation: 'vertical' as const, elements: ['navigation', 'posts'], active: true },
+          { id: 'page-sec-4', slot: 'bottom' as const, orientation: 'horizontal' as const, elements: ['footer'], active: true },
         ]
       },
     ]
 
-    // Element IDs for card layouts
-    const postCardElements = ['thumbnail', 'avatar', 'title', 'summary', 'date', 'votes', 'comments', 'payout', 'tags']
+    // Element IDs for card layouts (avatar removed from post cards, votingPower removed from author profile)
+    const postCardElements = ['thumbnail', 'title', 'summary', 'date', 'votes', 'comments', 'payout', 'tags']
     const commentCardElements = ['replyContext', 'avatar', 'author', 'timestamp', 'body', 'replies', 'votes', 'payout', 'viewLink']
-    const authorProfileElements = ['coverImage', 'avatar', 'username', 'displayName', 'reputation', 'about', 'location', 'website', 'joinDate', 'followers', 'following', 'postCount', 'hivePower', 'hpEarned', 'votingPower', 'hiveBalance', 'hbdBalance']
+    const authorProfileElements = ['coverImage', 'avatar', 'username', 'displayName', 'reputation', 'about', 'location', 'website', 'joinDate', 'followers', 'following', 'postCount', 'hivePower', 'hpEarned', 'hiveBalance', 'hbdBalance']
 
     // Generate random settings
     const randomSettings: Partial<SettingsData> = {

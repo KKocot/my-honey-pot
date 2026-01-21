@@ -1,7 +1,7 @@
 import { QueryClient, createQuery, createMutation, useQueryClient } from '@tanstack/solid-query'
 import { createStore, produce } from 'solid-js/store'
 import { createSignal, createEffect } from 'solid-js'
-import { defaultSettings, migrateCardLayout, themePresets, type SettingsData, type LayoutSection, type ThemeColors } from './types'
+import { defaultSettings, migrateCardLayout, themePresets, ALL_PAGE_ELEMENT_IDS, type SettingsData, type LayoutSection, type ThemeColors, type PageLayout } from './types'
 import { loadConfigFromHive } from './hive-broadcast'
 import { setHasUnsavedChanges } from './AdminPanel'
 import {
@@ -124,6 +124,20 @@ function migrateSettingsLayouts(data: Partial<SettingsData>): Partial<SettingsDa
   return result
 }
 
+// Filter out obsolete page elements from loaded pageLayout
+function migratePageLayout(pageLayout: PageLayout | undefined): PageLayout {
+  if (!pageLayout) return defaultSettings.pageLayout
+
+  const validElementIds = new Set(ALL_PAGE_ELEMENT_IDS)
+
+  return {
+    sections: pageLayout.sections.map(section => ({
+      ...section,
+      elements: section.elements.filter(el => validElementIds.has(el))
+    }))
+  }
+}
+
 // ============================================
 // Current user for Hive config loading
 // ============================================
@@ -160,7 +174,8 @@ async function fetchSettings(): Promise<SettingsData> {
       if (hiveConfig) {
         console.log('Loaded config from Hive!')
         const migratedData = migrateSettingsLayouts(hiveConfig)
-        const pageLayout = hiveConfig.pageLayout !== undefined ? hiveConfig.pageLayout : defaultSettings.pageLayout
+        // Migrate pageLayout to filter out obsolete elements like 'comments'
+        const pageLayout = migratePageLayout(hiveConfig.pageLayout)
 
         // Build final settings - start with defaults, then overlay hiveConfig (excluding undefined values)
         const finalSettings: SettingsData = { ...defaultSettings }
@@ -179,6 +194,7 @@ async function fetchSettings(): Promise<SettingsData> {
         if (!finalSettings.layoutSections?.length) {
           finalSettings.layoutSections = defaultSettings.layoutSections
         }
+        // Use migrated pageLayout (obsolete elements filtered out)
         finalSettings.pageLayout = pageLayout
 
         return finalSettings
