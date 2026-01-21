@@ -15,7 +15,7 @@ import type {
 } from "./interfaces";
 import { Post } from "./Post";
 
-export class BloggingPlaform implements IBloggingPlatform {
+export class BloggingPlatform implements IBloggingPlatform {
   private dataProvider: DataProvider;
   public viewerContext: IAccountIdentity;
 

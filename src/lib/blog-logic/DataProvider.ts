@@ -1,7 +1,7 @@
 import type { HafbeTypesAccount } from "@hiveio/wax-api-hafbe"
 import type { Community as CommunityData, PostBridgeApi, ActiveVotesDatabaseApi } from "@hiveio/wax-api-jsonrpc";
 import { WorkerBeeError } from "./errors";
-import { BloggingPlaform } from "./BloggingPlatform";
+import { BloggingPlatform } from "./BloggingPlatform";
 import type {
   IAccountPostsFilters,
   ICommonFilters,
@@ -72,7 +72,7 @@ async function withRetry<T>(fn: () => Promise<T>): Promise<T> {
  */
 export class DataProvider {
   private _chain: WaxExtendedChain;
-  public bloggingPlatform: BloggingPlaform;
+  public bloggingPlatform: BloggingPlatform;
 
   private comments: Map<string, PostBridgeApi> = new Map();
   private repliesByPostId: Map<string, IPostCommentIdentity[]> = new Map();
@@ -83,7 +83,7 @@ export class DataProvider {
 
   public constructor(chain: WaxExtendedChain) {
     this._chain = chain;
-    this.bloggingPlatform = new BloggingPlaform(this);
+    this.bloggingPlatform = new BloggingPlatform(this);
   }
 
   // Getter that always returns fresh chain (allows endpoint switching on retry)

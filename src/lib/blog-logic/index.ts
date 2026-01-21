@@ -2,7 +2,7 @@
 // See readme.md for usage instructions
 
 export { DataProvider } from "./DataProvider";
-export { BloggingPlaform } from "./BloggingPlatform";
+export { BloggingPlatform } from "./BloggingPlatform";
 export { Post } from "./Post";
 export { Comment } from "./Comment";
 export { Reply } from "./Reply";
@@ -55,6 +55,10 @@ export type {
   IPaginatedResult,
   // NaiAsset type from wax
   NaiAsset,
+  // Observer pattern types
+  Observer,
+  Unsubscribable,
+  Subscribable,
 } from "./interfaces";
 
 // Re-export utilities

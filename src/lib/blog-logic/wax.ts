@@ -50,31 +50,3 @@ export const resetWax = () => {
   currentEndpointIndex = (currentEndpointIndex + 1) % HIVE_API_ENDPOINTS.length;
 };
 
-// Helper to execute API calls with automatic retry on timeout
-export async function withRetry<T>(
-  fn: (chain: WaxExtendedChain) => Promise<T>,
-  maxRetries = 3
-): Promise<T> {
-  let lastError: Error | null = null;
-
-  for (let attempt = 0; attempt < maxRetries; attempt++) {
-    try {
-      const waxChain = await getWax();
-      return await fn(waxChain);
-    } catch (error) {
-      lastError = error instanceof Error ? error : new Error(String(error));
-      const isTimeout = lastError.message.includes('timeout') || lastError.message.includes('Timeout');
-
-      if (isTimeout && attempt < maxRetries - 1) {
-        resetWax();
-        // Wait a bit before retry
-        await new Promise(resolve => setTimeout(resolve, 500));
-      } else if (!isTimeout) {
-        // Non-timeout error, don't retry
-        throw lastError;
-      }
-    }
-  }
-
-  throw lastError || new Error('All retry attempts failed');
-}
