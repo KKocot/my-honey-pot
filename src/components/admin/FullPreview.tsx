@@ -1,7 +1,8 @@
 import { Show, For, createMemo, createSignal, onMount, type Accessor } from 'solid-js'
 import { Portal } from 'solid-js/web'
 import { settings } from './store'
-import { pageElementLabels, platformInfos, type PageSlotPosition, type PageLayoutSection } from './types'
+import { pageElementLabels, platformInfos, type PageSlotPosition, type PageLayoutSection, type CardSection, type CardSectionChild } from './types'
+import { formatJoinDate } from './queries'
 import {
   useHivePreviewQuery,
   formatCompactNumber,
@@ -115,8 +116,8 @@ export function FullPreview(props: FullPreviewProps) {
     </header>
   )
 
-  // Render author profile element
-  const renderAuthorProfile = (layout: 'horizontal' | 'vertical' = 'horizontal') => {
+  // Render author profile element using authorProfileLayout2
+  const renderAuthorProfile = (_layout: 'horizontal' | 'vertical' = 'horizontal') => {
     const currentData = data()
     const profile = currentData?.profile
     const dbAccount = currentData?.dbAccount
@@ -124,93 +125,247 @@ export function FullPreview(props: FullPreviewProps) {
     if (!profile) return null
 
     const profileMeta = profile.metadata
+    const username = profile.name
 
-    return (
-      <div class={`bg-bg-card rounded-xl shadow-sm border border-border overflow-hidden ${layout === 'vertical' ? 'p-4' : 'p-6'}`}>
-        {settings.showAuthorCoverImage && profileMeta?.coverImage && (
-          <div
-            class="bg-cover bg-center -mx-4 -mt-4 mb-4 rounded-t-xl"
-            style={`height: ${settings.authorCoverHeightPx || 64}px; background-image: url(${profileMeta.coverImage});`}
-          />
-        )}
-        <div class={`flex ${layout === 'vertical' ? 'flex-col items-center text-center' : 'items-center'} gap-4`}>
-          <img
-            src={`https://images.hive.blog/u/${profile.name}/avatar`}
-            alt={profile.name}
-            class="rounded-full border-2 border-border"
-            style={`width: ${settings.authorAvatarSizePx || 64}px; height: ${settings.authorAvatarSizePx || 64}px;`}
-          />
-          <div class={layout === 'vertical' ? '' : 'flex-1'}>
-            <div class="flex items-center gap-2 flex-wrap justify-center">
-              {profileMeta?.name && (
-                <h2 class="font-bold text-text" style={`font-size: ${settings.authorDisplayNameSizePx || 18}px;`}>{profileMeta.name}</h2>
-              )}
-              <p class="font-bold text-text-muted" style={`font-size: ${settings.authorUsernameSizePx || 14}px;`}>@{profile.name}</p>
-              {settings.showAuthorReputation !== false && (
-                <span class="px-2 py-0.5 text-xs font-medium bg-primary/10 text-primary rounded-full">
-                  Rep: {Math.floor(profile.reputation)}
-                </span>
-              )}
-            </div>
-            {settings.showAuthorAbout !== false && profileMeta?.about && (
-              <p class="text-text-muted text-sm mt-1 line-clamp-2">{profileMeta.about}</p>
-            )}
-            <div class="flex flex-wrap gap-4 mt-2 text-sm text-text-muted justify-center">
-              {settings.showAuthorLocation !== false && profileMeta?.location && (
-                <span>{profileMeta.location}</span>
-              )}
-              {settings.showAuthorWebsite !== false && profileMeta?.website && (
-                <a href={profileMeta.website} class="text-primary hover:underline" target="_blank" rel="noopener noreferrer">
-                  {profileMeta.website.replace(/^https?:\/\//, '')}
-                </a>
-              )}
-            </div>
-          </div>
-        </div>
-        <div class="flex flex-wrap gap-4 mt-4 pt-4 border-t border-border justify-center text-center">
-          {settings.showPostCount !== false && (
-            <div>
-              <p class="font-bold text-text">{formatCompactNumber(profile.postCount)}</p>
-              <p class="text-xs text-text-muted">Posts</p>
-            </div>
-          )}
-          {settings.showAuthorFollowers !== false && (
-            <div>
-              <p class="font-bold text-text">{formatCompactNumber(profile.stats.followers)}</p>
+    // Calculate profile data
+    const hivePower = dbAccount && globalProps
+      ? calculateEffectiveHivePower(
+          dbAccount.vestingShares,
+          dbAccount.delegatedVestingShares,
+          dbAccount.receivedVestingShares,
+          globalProps
+        )
+      : 0
+
+    const profileData = {
+      displayName: profileMeta?.name || profile.name,
+      about: profileMeta?.about || '',
+      location: profileMeta?.location || '',
+      website: profileMeta?.website || '',
+      coverImage: profileMeta?.coverImage || '',
+      reputation: Math.floor(profile.reputation),
+      followers: profile.stats.followers,
+      following: profile.stats.following,
+      postCount: profile.postCount,
+      hivePower,
+      hiveBalance: dbAccount ? parseFormattedAsset(dbAccount.balance) : 0,
+      hbdBalance: dbAccount ? parseFormattedAsset(dbAccount.hbdBalance) : 0,
+      joinDate: formatJoinDate(profile.created),
+    }
+
+    // Render element by ID
+    const renderProfileElement = (id: string) => {
+      switch (id) {
+        case 'coverImage':
+          const coverHeight = settings.authorCoverHeightPx ?? 64
+          return (
+            <Show when={profileData.coverImage} fallback={
+              <div class="bg-gradient-to-r from-primary/30 to-accent/30 rounded-lg w-full" style={{ height: `${coverHeight}px` }} />
+            }>
+              <div
+                class="bg-cover bg-center rounded-lg w-full"
+                style={`height: ${coverHeight}px; background-image: url('https://images.hive.blog/640x0/${profileData.coverImage}');`}
+              />
+            </Show>
+          )
+
+        case 'avatar':
+          return (
+            <img
+              src={`https://images.hive.blog/u/${username}/avatar`}
+              alt={username}
+              style={{
+                width: `${settings.authorAvatarSizePx}px`,
+                height: `${settings.authorAvatarSizePx}px`,
+              }}
+              class="rounded-full border-2 border-bg-card ring-2 ring-border flex-shrink-0"
+            />
+          )
+
+        case 'username':
+          const usernameSize = settings.authorUsernameSizePx ?? 14
+          return (
+            <p class="font-bold text-text" style={{ 'font-size': `${usernameSize}px` }}>@{username}</p>
+          )
+
+        case 'displayName':
+          const displayNameSize = settings.authorDisplayNameSizePx ?? 18
+          return (
+            <h2 class="font-bold text-text" style={{ 'font-size': `${displayNameSize}px` }}>{profileData.displayName}</h2>
+          )
+
+        case 'reputation':
+          return (
+            <span class="inline-block px-2 py-0.5 text-xs font-medium bg-primary/10 text-primary rounded-full">
+              Rep: {profileData.reputation}
+            </span>
+          )
+
+        case 'about':
+          const aboutSize = settings.authorAboutSizePx ?? 14
+          return (
+            <Show when={profileData.about}>
+              <p class="text-text-muted line-clamp-2" style={{ 'font-size': `${aboutSize}px` }}>{profileData.about}</p>
+            </Show>
+          )
+
+        case 'location':
+          const locationSize = settings.authorMetaSizePx ?? 12
+          return (
+            <Show when={profileData.location}>
+              <span class="flex items-center gap-1 text-text-muted" style={{ 'font-size': `${locationSize}px` }}>
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                {profileData.location}
+              </span>
+            </Show>
+          )
+
+        case 'website':
+          const websiteSize = settings.authorMetaSizePx ?? 12
+          return (
+            <Show when={profileData.website}>
+              <a
+                href={profileData.website}
+                target="_blank"
+                rel="noopener noreferrer"
+                class="flex items-center gap-1 text-primary hover:underline"
+                style={{ 'font-size': `${websiteSize}px` }}
+              >
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                </svg>
+                {profileData.website.replace(/^https?:\/\//, '')}
+              </a>
+            </Show>
+          )
+
+        case 'joinDate':
+          const joinDateSize = settings.authorMetaSizePx ?? 12
+          return (
+            <span class="flex items-center gap-1 text-text-muted" style={{ 'font-size': `${joinDateSize}px` }}>
+              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              {profileData.joinDate}
+            </span>
+          )
+
+        case 'followers':
+          const followersSize = settings.authorStatsSizePx ?? 14
+          return (
+            <div class="text-center">
+              <p class="font-bold text-text" style={{ 'font-size': `${followersSize}px` }}>{formatCompactNumber(profileData.followers)}</p>
               <p class="text-xs text-text-muted">Followers</p>
             </div>
-          )}
-          {settings.showAuthorFollowing !== false && (
-            <div>
-              <p class="font-bold text-text">{formatCompactNumber(profile.stats.following)}</p>
+          )
+
+        case 'following':
+          const followingSize = settings.authorStatsSizePx ?? 14
+          return (
+            <div class="text-center">
+              <p class="font-bold text-text" style={{ 'font-size': `${followingSize}px` }}>{formatCompactNumber(profileData.following)}</p>
               <p class="text-xs text-text-muted">Following</p>
             </div>
-          )}
-          {settings.showAuthorHiveBalance !== false && dbAccount && (
-            <div>
-              <p class="font-bold text-text">{parseFormattedAsset(dbAccount.balance).toFixed(3)}</p>
-              <p class="text-xs text-text-muted">HIVE</p>
+          )
+
+        case 'postCount':
+          const postCountSize = settings.authorStatsSizePx ?? 14
+          return (
+            <div class="text-center">
+              <p class="font-bold text-text" style={{ 'font-size': `${postCountSize}px` }}>{formatCompactNumber(profileData.postCount)}</p>
+              <p class="text-xs text-text-muted">Posts</p>
             </div>
-          )}
-          {settings.showAuthorHbdBalance !== false && dbAccount && (
-            <div>
-              <p class="font-bold text-text">{parseFormattedAsset(dbAccount.hbdBalance).toFixed(3)}</p>
-              <p class="text-xs text-text-muted">HBD</p>
-            </div>
-          )}
-          {settings.showAuthorVotingPower !== false && dbAccount && globalProps && (
-            <div>
-              <p class="font-bold text-text">
-                {formatCompactNumber(calculateEffectiveHivePower(
-                  dbAccount.vestingShares,
-                  dbAccount.delegatedVestingShares,
-                  dbAccount.receivedVestingShares,
-                  globalProps
-                ))}
-              </p>
+          )
+
+        case 'hivePower':
+        case 'hpEarned':
+          const hivePowerSize = settings.authorStatsSizePx ?? 14
+          return (
+            <div class="text-center">
+              <p class="font-bold text-text" style={{ 'font-size': `${hivePowerSize}px` }}>{formatCompactNumber(profileData.hivePower)}</p>
               <p class="text-xs text-text-muted">HP</p>
             </div>
-          )}
+          )
+
+        case 'votingPower':
+          const votingPowerSize = settings.authorStatsSizePx ?? 14
+          return (
+            <div class="text-center">
+              <p class="font-semibold text-text" style={{ 'font-size': `${votingPowerSize}px` }}>--</p>
+              <p class="text-xs text-text-muted">Voting Power</p>
+            </div>
+          )
+
+        case 'hiveBalance':
+          const hiveBalanceSize = settings.authorStatsSizePx ?? 14
+          return (
+            <div class="text-center">
+              <p class="font-semibold text-text" style={{ 'font-size': `${hiveBalanceSize}px` }}>{profileData.hiveBalance.toFixed(3)}</p>
+              <p class="text-xs text-text-muted">HIVE</p>
+            </div>
+          )
+
+        case 'hbdBalance':
+          const hbdBalanceSize = settings.authorStatsSizePx ?? 14
+          return (
+            <div class="text-center">
+              <p class="font-semibold text-text" style={{ 'font-size': `${hbdBalanceSize}px` }}>{profileData.hbdBalance.toFixed(3)}</p>
+              <p class="text-xs text-text-muted">HBD</p>
+            </div>
+          )
+
+        default:
+          return null
+      }
+    }
+
+    // Render a child (element or nested section)
+    const renderProfileChild = (child: CardSectionChild): ReturnType<typeof renderProfileElement> => {
+      if (child.type === 'element') {
+        return renderProfileElement(child.id)
+      } else {
+        return renderProfileSection(child.section)
+      }
+    }
+
+    // Check if section contains a full-width element
+    const hasFullWidthElement = (section: CardSection): boolean => {
+      return section.children?.some(child =>
+        child.type === 'element' && child.id === 'coverImage'
+      ) ?? false
+    }
+
+    // Render a section with its orientation
+    const renderProfileSection = (section: CardSection): ReturnType<typeof renderProfileElement> => {
+      if (!section.children || section.children.length === 0) return null
+
+      const isFullWidth = hasFullWidthElement(section)
+
+      return (
+        <div
+          class={`
+            ${isFullWidth
+              ? 'w-full'
+              : section.orientation === 'horizontal'
+                ? 'flex flex-wrap items-center gap-2'
+                : 'flex flex-col gap-1'
+            }
+          `}
+        >
+          <For each={section.children}>{(child) => renderProfileChild(child)}</For>
+        </div>
+      )
+    }
+
+    return (
+      <div class="bg-bg-card rounded-xl shadow-sm border border-border overflow-hidden p-4">
+        <div class="space-y-2">
+          <For each={settings.authorProfileLayout2.sections}>
+            {(section) => renderProfileSection(section)}
+          </For>
         </div>
 
         {/* Social Media Links */}

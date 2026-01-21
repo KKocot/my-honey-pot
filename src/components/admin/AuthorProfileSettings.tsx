@@ -34,6 +34,35 @@ const AUTHOR_PROFILE_ELEMENT_IDS = [
   'hbdBalance',
 ]
 
+// Helper to check if element is in layout (recursive)
+function isElementInLayout(layout: CardLayout, elementId: string): boolean {
+  const checkChildren = (children: CardSectionChild[]): boolean => {
+    for (const child of children) {
+      if (child.type === 'element' && child.id === elementId) {
+        return true
+      }
+      if (child.type === 'section' && child.section.children) {
+        if (checkChildren(child.section.children)) {
+          return true
+        }
+      }
+    }
+    return false
+  }
+
+  for (const section of layout.sections) {
+    if (section.children && checkChildren(section.children)) {
+      return true
+    }
+  }
+  return false
+}
+
+// Check if any of the given elements are in layout
+function areAnyElementsInLayout(layout: CardLayout, elementIds: string[]): boolean {
+  return elementIds.some(id => isElementInLayout(layout, id))
+}
+
 // ============================================
 // Author Profile Settings Section
 // ============================================
@@ -42,6 +71,15 @@ export function AuthorProfileSettings() {
   const handleLayoutUpdate = (layout: CardLayout) => {
     updateSettings({ authorProfileLayout2: layout })
   }
+
+  // Memoized checks for which elements are in the layout
+  const hasAvatar = createMemo(() => isElementInLayout(settings.authorProfileLayout2, 'avatar'))
+  const hasCover = createMemo(() => isElementInLayout(settings.authorProfileLayout2, 'coverImage'))
+  const hasUsername = createMemo(() => isElementInLayout(settings.authorProfileLayout2, 'username'))
+  const hasDisplayName = createMemo(() => isElementInLayout(settings.authorProfileLayout2, 'displayName'))
+  const hasAbout = createMemo(() => isElementInLayout(settings.authorProfileLayout2, 'about'))
+  const hasStats = createMemo(() => areAnyElementsInLayout(settings.authorProfileLayout2, ['followers', 'following', 'postCount', 'hivePower', 'hpEarned', 'hiveBalance', 'hbdBalance']))
+  const hasMeta = createMemo(() => areAnyElementsInLayout(settings.authorProfileLayout2, ['location', 'website', 'joinDate']))
 
   return (
     <div class="bg-bg-card rounded-xl p-6 mb-6 border border-border">
@@ -52,6 +90,9 @@ export function AuthorProfileSettings() {
           <h3 class="text-sm font-medium text-text-muted uppercase tracking-wide mb-3">
             Size Settings
           </h3>
+          <p class="text-xs text-text-muted mb-2">
+            Sliders are disabled when the element is not in the layout.
+          </p>
           <div class="grid grid-cols-2 gap-4">
             <Slider
               label="Avatar size:"
@@ -60,6 +101,7 @@ export function AuthorProfileSettings() {
               max={128}
               value={settings.authorAvatarSizePx}
               onInput={(e) => updateSettings({ authorAvatarSizePx: parseInt(e.currentTarget.value) })}
+              disabled={!hasAvatar()}
             />
             <Slider
               label="Cover height:"
@@ -68,6 +110,7 @@ export function AuthorProfileSettings() {
               max={200}
               value={settings.authorCoverHeightPx ?? 64}
               onInput={(e) => updateSettings({ authorCoverHeightPx: parseInt(e.currentTarget.value) })}
+              disabled={!hasCover()}
             />
             <Slider
               label="Username size:"
@@ -76,6 +119,7 @@ export function AuthorProfileSettings() {
               max={24}
               value={settings.authorUsernameSizePx ?? 14}
               onInput={(e) => updateSettings({ authorUsernameSizePx: parseInt(e.currentTarget.value) })}
+              disabled={!hasUsername()}
             />
             <Slider
               label="Display name size:"
@@ -84,6 +128,7 @@ export function AuthorProfileSettings() {
               max={32}
               value={settings.authorDisplayNameSizePx ?? 18}
               onInput={(e) => updateSettings({ authorDisplayNameSizePx: parseInt(e.currentTarget.value) })}
+              disabled={!hasDisplayName()}
             />
             <Slider
               label="About text size:"
@@ -92,6 +137,7 @@ export function AuthorProfileSettings() {
               max={18}
               value={settings.authorAboutSizePx ?? 14}
               onInput={(e) => updateSettings({ authorAboutSizePx: parseInt(e.currentTarget.value) })}
+              disabled={!hasAbout()}
             />
             <Slider
               label="Stats size:"
@@ -100,6 +146,7 @@ export function AuthorProfileSettings() {
               max={20}
               value={settings.authorStatsSizePx ?? 14}
               onInput={(e) => updateSettings({ authorStatsSizePx: parseInt(e.currentTarget.value) })}
+              disabled={!hasStats()}
             />
             <Slider
               label="Meta text size:"
@@ -108,6 +155,7 @@ export function AuthorProfileSettings() {
               max={16}
               value={settings.authorMetaSizePx ?? 12}
               onInput={(e) => updateSettings({ authorMetaSizePx: parseInt(e.currentTarget.value) })}
+              disabled={!hasMeta()}
             />
           </div>
 
@@ -141,103 +189,99 @@ export function AuthorProfileSettings() {
 }
 
 // ============================================
+// Mock data for preview when no real data available
+// ============================================
+
+const MOCK_PROFILE_DATA = {
+  displayName: 'Sample User',
+  about: 'This is a sample bio for preview purposes. Your real bio will appear here.',
+  location: 'Earth',
+  website: 'https://hive.blog',
+  coverImage: '',
+  reputation: 72,
+  followers: 1234,
+  following: 567,
+  postCount: 89,
+  hivePower: 5432.10,
+  hiveBalance: 123.456,
+  hbdBalance: 78.901,
+  joinDate: 'Jan 2020',
+}
+
+// ============================================
 // Author Profile Preview Component
-// Uses real Hive data via useHivePreviewQuery
+// Uses real Hive data or mock data for preview
 // ============================================
 
 function AuthorProfilePreview() {
-  const username = () => settings.hiveUsername || ''
+  const username = () => settings.hiveUsername || 'sample_user'
 
-  // Fetch real Hive data
+  // Fetch real Hive data (only if username is set)
   const hiveQuery = useHivePreviewQuery(
     () => settings.hiveUsername,
-    () => 1, // Only need 1 post for preview
-    () => true // Always enabled when component is mounted
+    () => 1,
+    () => !!settings.hiveUsername
   )
 
-  const data = () => hiveQuery.data ?? null
-  const isLoading = () => hiveQuery.isLoading
+  const isLoading = () => hiveQuery.isLoading && !!settings.hiveUsername
 
-  // Memoized profile data from API
+  // Profile data - use real data if available, otherwise mock data
   const profileData = createMemo(() => {
-    const d = data()
-    if (!d?.profile) return null
+    const d = hiveQuery.data
+    if (d?.profile) {
+      const profile = d.profile
+      const dbAccount = d.dbAccount
+      const globalProps = d.globalProps
+      const profileMeta = profile.metadata
 
-    const profile = d.profile
-    const dbAccount = d.dbAccount
-    const globalProps = d.globalProps
-    const profileMeta = profile.metadata
-
-    // Calculate HP if we have all data
-    const hivePower = dbAccount && globalProps
-      ? calculateEffectiveHivePower(
-          dbAccount.vestingShares,
-          dbAccount.delegatedVestingShares,
-          dbAccount.receivedVestingShares,
-          globalProps
-        )
-      : 0
-
-    return {
-      displayName: profileMeta?.name || profile.name,
-      about: profileMeta?.about || '',
-      location: profileMeta?.location || '',
-      website: profileMeta?.website || '',
-      coverImage: profileMeta?.coverImage || '',
-      reputation: Math.floor(profile.reputation),
-      followers: profile.stats.followers,
-      following: profile.stats.following,
-      postCount: profile.postCount,
-      hivePower,
-      hiveBalance: dbAccount ? parseFormattedAsset(dbAccount.balance) : 0,
-      hbdBalance: dbAccount ? parseFormattedAsset(dbAccount.hbdBalance) : 0,
-      joinDate: formatJoinDate(profile.created),
-    }
-  })
-
-  // Render element by ID
-  const renderElement = (id: string) => {
-    const pd = profileData()
-
-    // Show placeholder if no data or loading
-    if (!pd) {
-      switch (id) {
-        case 'coverImage':
-          return (
-            <div class="h-16 bg-gradient-to-r from-primary/30 to-accent/30 rounded-t-lg -mx-4 -mt-4 mb-2 animate-pulse" />
+      const hivePower = dbAccount && globalProps
+        ? calculateEffectiveHivePower(
+            dbAccount.vestingShares,
+            dbAccount.delegatedVestingShares,
+            dbAccount.receivedVestingShares,
+            globalProps
           )
-        case 'avatar':
-          return (
-            <div
-              class="rounded-full bg-bg-secondary animate-pulse flex-shrink-0"
-              style={{
-                width: `${settings.authorAvatarSizePx}px`,
-                height: `${settings.authorAvatarSizePx}px`,
-              }}
-            />
-          )
-        case 'username':
-          return <div class="h-4 w-24 bg-bg-secondary rounded animate-pulse" />
-        case 'displayName':
-          return <div class="h-5 w-32 bg-bg-secondary rounded animate-pulse" />
-        case 'reputation':
-          return <div class="h-5 w-16 bg-bg-secondary rounded-full animate-pulse" />
-        case 'about':
-          return <div class="h-8 w-full bg-bg-secondary rounded animate-pulse" />
-        default:
-          return <div class="h-4 w-16 bg-bg-secondary rounded animate-pulse" />
+        : 0
+
+      return {
+        displayName: profileMeta?.name || profile.name,
+        about: profileMeta?.about || '',
+        location: profileMeta?.location || '',
+        website: profileMeta?.website || '',
+        coverImage: profileMeta?.coverImage || '',
+        reputation: Math.floor(profile.reputation),
+        followers: profile.stats.followers,
+        following: profile.stats.following,
+        postCount: profile.postCount,
+        hivePower,
+        hiveBalance: dbAccount ? parseFormattedAsset(dbAccount.balance) : 0,
+        hbdBalance: dbAccount ? parseFormattedAsset(dbAccount.hbdBalance) : 0,
+        joinDate: formatJoinDate(profile.created),
       }
     }
+    // Return mock data when no real data
+    return MOCK_PROFILE_DATA
+  })
+
+  // Render element by ID - always has data (real or mock)
+  const renderElement = (id: string) => {
+    const pd = profileData()
+    const coverHeight = settings.authorCoverHeightPx ?? 64
+    const avatarSize = settings.authorAvatarSizePx ?? 64
+    const usernameSize = settings.authorUsernameSizePx ?? 14
+    const displayNameSize = settings.authorDisplayNameSizePx ?? 18
+    const aboutSize = settings.authorAboutSizePx ?? 14
+    const statsSize = settings.authorStatsSizePx ?? 14
+    const metaSize = settings.authorMetaSizePx ?? 12
 
     switch (id) {
       case 'coverImage':
-        const coverHeight = settings.authorCoverHeightPx ?? 64
         return (
           <Show when={pd.coverImage} fallback={
-            <div class="bg-gradient-to-r from-primary/30 to-accent/30 rounded-t-lg -mx-4 -mt-4 mb-2" style={{ height: `${coverHeight}px` }} />
+            <div class="bg-gradient-to-r from-primary/30 to-accent/30 rounded-lg w-full" style={{ height: `${coverHeight}px` }} />
           }>
             <div
-              class="bg-cover bg-center rounded-t-lg -mx-4 -mt-4 mb-2"
+              class="bg-cover bg-center rounded-lg w-full"
               style={`height: ${coverHeight}px; background-image: url('https://images.hive.blog/640x0/${pd.coverImage}');`}
             />
           </Show>
@@ -246,29 +290,20 @@ function AuthorProfilePreview() {
       case 'avatar':
         return (
           <img
-            src={`https://images.hive.blog/u/${username()}/avatar`}
+            src={settings.hiveUsername ? `https://images.hive.blog/u/${settings.hiveUsername}/avatar` : '/hive-logo.png'}
             alt={username()}
-            style={{
-              width: `${settings.authorAvatarSizePx}px`,
-              height: `${settings.authorAvatarSizePx}px`,
-            }}
+            style={{ width: `${avatarSize}px`, height: `${avatarSize}px` }}
             class="rounded-full border-2 border-bg-card ring-2 ring-border flex-shrink-0"
-            onError={(e) => {
-              e.currentTarget.src = '/hive-logo.png'
-            }}
+            onError={(e) => { e.currentTarget.src = '/hive-logo.png' }}
           />
         )
 
       case 'username':
-        const usernameSize = settings.authorUsernameSizePx ?? 14
         return (
-          <div>
-            <p class="font-bold text-text" style={{ 'font-size': `${usernameSize}px` }}>@{username()}</p>
-          </div>
+          <p class="font-bold text-text" style={{ 'font-size': `${usernameSize}px` }}>@{username()}</p>
         )
 
       case 'displayName':
-        const displayNameSize = settings.authorDisplayNameSizePx ?? 18
         return (
           <h2 class="font-bold text-text" style={{ 'font-size': `${displayNameSize}px` }}>{pd.displayName}</h2>
         )
@@ -281,7 +316,6 @@ function AuthorProfilePreview() {
         )
 
       case 'about':
-        const aboutSize = settings.authorAboutSizePx ?? 14
         return (
           <Show when={pd.about}>
             <p class="text-text-muted line-clamp-2" style={{ 'font-size': `${aboutSize}px` }}>{pd.about}</p>
@@ -444,19 +478,50 @@ function AuthorProfilePreview() {
     }
   }
 
+  // Check if section contains a full-width element (like coverImage)
+  const hasFullWidthElement = (section: CardSection): boolean => {
+    return section.children?.some(child =>
+      child.type === 'element' && child.id === 'coverImage'
+    ) ?? false
+  }
+
   // Render a section with its orientation (recursive)
   const renderSection = (section: CardSection): ReturnType<typeof renderElement> => {
     if (!section.children || section.children.length === 0) return null
 
+    // Full-width sections (like coverImage) need special treatment
+    const isFullWidth = hasFullWidthElement(section)
+
     return (
       <div
         class={`
-          ${section.orientation === 'horizontal' ? 'flex flex-wrap items-center gap-2' : 'flex flex-col gap-1'}
+          ${isFullWidth
+            ? 'w-full'
+            : section.orientation === 'horizontal'
+              ? 'flex flex-wrap items-center gap-2'
+              : 'flex flex-col gap-1'
+          }
         `}
       >
         <For each={section.children}>{(child) => renderChild(child)}</For>
       </div>
     )
+  }
+
+  // Get sections - use defaults if not available
+  const getSections = () => {
+    const sections = settings.authorProfileLayout2?.sections
+    if (sections && sections.length > 0) {
+      return sections
+    }
+    // Fallback to default layout sections
+    return [
+      { id: 'sec-1', orientation: 'horizontal' as const, children: [{ type: 'element' as const, id: 'coverImage' }] },
+      { id: 'sec-2', orientation: 'horizontal' as const, children: [{ type: 'element' as const, id: 'avatar' }, { type: 'element' as const, id: 'displayName' }, { type: 'element' as const, id: 'username' }, { type: 'element' as const, id: 'reputation' }] },
+      { id: 'sec-3', orientation: 'vertical' as const, children: [{ type: 'element' as const, id: 'about' }] },
+      { id: 'sec-4', orientation: 'horizontal' as const, children: [{ type: 'element' as const, id: 'location' }, { type: 'element' as const, id: 'website' }, { type: 'element' as const, id: 'joinDate' }] },
+      { id: 'sec-5', orientation: 'horizontal' as const, children: [{ type: 'element' as const, id: 'followers' }, { type: 'element' as const, id: 'following' }, { type: 'element' as const, id: 'postCount' }, { type: 'element' as const, id: 'hivePower' }] },
+    ]
   }
 
   return (
@@ -469,14 +534,15 @@ function AuthorProfilePreview() {
             Loading...
           </div>
         </Show>
-        <Show when={!username()}>
+        <Show when={!settings.hiveUsername}>
           <span class="text-xs text-warning">No username set</span>
         </Show>
       </div>
 
       <div class="bg-bg-card rounded-xl border border-border overflow-hidden p-4">
+        {/* Always render sections - getSections() provides fallback */}
         <div class="space-y-2">
-          <For each={settings.authorProfileLayout2.sections}>
+          <For each={getSections()}>
             {(section) => renderSection(section)}
           </For>
         </div>

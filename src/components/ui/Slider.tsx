@@ -9,7 +9,7 @@ export interface SliderProps extends Omit<JSX.InputHTMLAttributes<HTMLInputEleme
 }
 
 export function Slider(props: SliderProps) {
-  const [local, rest] = splitProps(props, ['label', 'unit', 'showValue', 'class', 'id', 'value', 'onInput', 'onChange'])
+  const [local, rest] = splitProps(props, ['label', 'unit', 'showValue', 'class', 'id', 'value', 'onInput', 'onChange', 'disabled'])
 
   const inputId = local.id || `slider-${Math.random().toString(36).slice(2)}`
 
@@ -69,8 +69,8 @@ export function Slider(props: SliderProps) {
   }
 
   return (
-    <div>
-      <label for={inputId} class="block text-sm font-medium text-text mb-1">
+    <div class={local.disabled ? 'opacity-50' : ''}>
+      <label for={inputId} class={`block text-sm font-medium mb-1 ${local.disabled ? 'text-text-muted' : 'text-text'}`}>
         {local.label}
       </label>
       <div class="flex items-center gap-3">
@@ -81,7 +81,8 @@ export function Slider(props: SliderProps) {
           value={localValue()}
           onInput={handleRangeInput}
           onChange={handleRangeChange}
-          class={`flex-1 ${local.class || ''}`}
+          disabled={local.disabled}
+          class={`flex-1 ${local.disabled ? 'cursor-not-allowed' : ''} ${local.class || ''}`}
         />
         <div class="flex items-center gap-1">
           <input
@@ -92,7 +93,8 @@ export function Slider(props: SliderProps) {
             step={rest.step}
             onInput={handleNumberInput}
             onBlur={handleNumberBlur}
-            class="w-16 px-2 py-1 text-sm bg-bg border border-border rounded text-text text-center focus:outline-none focus:ring-1 focus:ring-primary"
+            disabled={local.disabled}
+            class={`w-16 px-2 py-1 text-sm bg-bg border border-border rounded text-text text-center focus:outline-none focus:ring-1 focus:ring-primary ${local.disabled ? 'cursor-not-allowed' : ''}`}
           />
           {local.unit && (
             <span class="text-xs text-text-muted">{local.unit}</span>

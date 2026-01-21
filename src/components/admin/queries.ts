@@ -116,15 +116,20 @@ export function setLayoutSections(sections: LayoutSection[]) {
 function migrateSettingsLayouts(data: Partial<SettingsData>): Partial<SettingsData> {
   const result: Partial<SettingsData> = {}
 
-  // Only migrate layouts that exist in data - return migrated versions
-  if (data.postCardLayout) {
-    result.postCardLayout = migrateCardLayout(data.postCardLayout)
+  // Only migrate layouts that exist and are valid - migrateCardLayout returns null for invalid
+  const migratedPost = migrateCardLayout(data.postCardLayout)
+  if (migratedPost) {
+    result.postCardLayout = migratedPost
   }
-  if (data.commentCardLayout) {
-    result.commentCardLayout = migrateCardLayout(data.commentCardLayout)
+
+  const migratedComment = migrateCardLayout(data.commentCardLayout)
+  if (migratedComment) {
+    result.commentCardLayout = migratedComment
   }
-  if (data.authorProfileLayout2) {
-    result.authorProfileLayout2 = migrateCardLayout(data.authorProfileLayout2)
+
+  const migratedAuthorProfile = migrateCardLayout(data.authorProfileLayout2)
+  if (migratedAuthorProfile) {
+    result.authorProfileLayout2 = migratedAuthorProfile
   }
 
   return result
@@ -200,6 +205,21 @@ async function fetchSettings(): Promise<SettingsData> {
         }
         // Use migrated pageLayout (obsolete elements filtered out)
         finalSettings.pageLayout = pageLayout
+
+        // Ensure authorProfileLayout2 has sections
+        if (!finalSettings.authorProfileLayout2?.sections?.length) {
+          finalSettings.authorProfileLayout2 = defaultSettings.authorProfileLayout2
+        }
+
+        // Ensure postCardLayout has sections
+        if (!finalSettings.postCardLayout?.sections?.length) {
+          finalSettings.postCardLayout = defaultSettings.postCardLayout
+        }
+
+        // Ensure commentCardLayout has sections
+        if (!finalSettings.commentCardLayout?.sections?.length) {
+          finalSettings.commentCardLayout = defaultSettings.commentCardLayout
+        }
 
         return finalSettings
       }

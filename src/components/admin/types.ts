@@ -357,7 +357,11 @@ export function migrateCardSection(section: CardSection | LegacyCardSection): Ca
 }
 
 // Migrate entire layout
-export function migrateCardLayout(layout: CardLayout): CardLayout {
+export function migrateCardLayout(layout: CardLayout | undefined | null): CardLayout | null {
+  // Return null if layout is invalid - caller should use defaults
+  if (!layout || !layout.sections || !Array.isArray(layout.sections)) {
+    return null
+  }
   return {
     sections: layout.sections.map(migrateCardSection),
   }
