@@ -481,6 +481,9 @@ export interface SettingsData {
   authorCoverHeightPx: number
   authorUsernameSizePx: number
   authorDisplayNameSizePx: number
+  authorAboutSizePx: number
+  authorStatsSizePx: number
+  authorMetaSizePx: number
   // Comments Tab settings
   showCommentsTab: boolean
   commentsLayout: 'list' | 'grid' | 'masonry'
@@ -657,6 +660,9 @@ export const defaultSettings: SettingsData = {
   authorCoverHeightPx: 64,
   authorUsernameSizePx: 14,
   authorDisplayNameSizePx: 18,
+  authorAboutSizePx: 14,
+  authorStatsSizePx: 14,
+  authorMetaSizePx: 12,
   // Comments Tab defaults
   showCommentsTab: true,
   commentsLayout: 'list',
@@ -727,7 +733,7 @@ export const defaultSettings: SettingsData = {
   // Navigation Tabs defaults (only Hive content tabs)
   navigationTabs: [
     { id: 'posts', label: 'Posts', enabled: true, showCount: true },
-    { id: 'threads', label: 'Hive Threads', enabled: false, showCount: false },
+    { id: 'threads', label: 'Hive Threads', enabled: true, showCount: false },
     { id: 'comments', label: 'Comments', enabled: true, showCount: true },
   ],
   // Social media links defaults
