@@ -39,22 +39,6 @@ export function CommentSettings() {
     <div class="bg-bg-card rounded-xl p-6 mb-6 border border-border">
       <h2 class="text-xl font-semibold text-primary mb-6">Comments Tab Settings</h2>
 
-      {/* Tab Visibility */}
-      <div class="mb-6 pb-4 border-b border-border">
-        <label class="flex items-center gap-2 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={settings.showCommentsTab}
-            onChange={(e) => updateSettings({ showCommentsTab: e.currentTarget.checked })}
-            class="w-4 h-4 rounded border-border text-primary focus:ring-primary"
-          />
-          <span class="text-sm font-medium text-text">Show Comments Tab on Homepage</span>
-        </label>
-        <p class="text-xs text-text-muted mt-1 ml-6">
-          When disabled, only the Posts tab will be shown on the homepage
-        </p>
-      </div>
-
       {/* Layout Settings */}
       <div class="mb-6 pb-6 border-b border-border">
         <h3 class="text-sm font-medium text-text mb-4">Comments Layout</h3>
