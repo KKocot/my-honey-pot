@@ -174,10 +174,10 @@ function renderElement(id: string): string | null {
       return `<div class="text-center"><p class="font-bold text-text" style="font-size: ${statsSize}px;">${formatNumber(postCount)}</p><p class="text-xs text-text-muted">Posts</p></div>`
 
     case 'hivePower':
-      return `<div class="text-center"><p class="font-bold text-text" style="font-size: ${statsSize}px;">${formatNumber(Math.round(hivePower))}</p><p class="text-xs text-text-muted">Hive Power</p></div>`
+      return `<div class="text-center"><p class="font-bold text-text" style="font-size: ${statsSize}px;">${hivePower.toFixed(3)}</p><p class="text-xs text-text-muted">Hive Power</p></div>`
 
     case 'hpEarned':
-      return `<div class="text-center"><p class="font-bold text-success" style="font-size: ${statsSize}px;">${formatNumber(Math.round(hivePower))}</p><p class="text-xs text-text-muted">HP</p></div>`
+      return `<div class="text-center"><p class="font-bold text-success" style="font-size: ${statsSize}px;">${hivePower.toFixed(3)}</p><p class="text-xs text-text-muted">HP</p></div>`
 
     case 'votingPower':
       return `<div class="text-center"><p class="font-semibold text-text" style="font-size: ${statsSize}px;">${votingPower.toFixed(1)}%</p><p class="text-xs text-text-muted">Voting Power</p></div>`

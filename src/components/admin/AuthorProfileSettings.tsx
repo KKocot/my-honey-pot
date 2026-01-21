@@ -395,7 +395,7 @@ function AuthorProfilePreview() {
 
         <Show when={props.id === 'hivePower'}>
           <div class="text-center">
-            <p class="font-bold text-text" style={{ 'font-size': `${statsSize()}px` }}>{formatCompactNumber(profileData().hivePower)}</p>
+            <p class="font-bold text-text" style={{ 'font-size': `${statsSize()}px` }}>{profileData().hivePower.toFixed(3)}</p>
             <p class="text-xs text-text-muted">Hive Power</p>
           </div>
         </Show>
@@ -403,7 +403,7 @@ function AuthorProfilePreview() {
         <Show when={props.id === 'hpEarned'}>
           <div class="text-center">
             <p class="font-bold text-success" style={{ 'font-size': `${statsSize()}px` }}>
-              {formatCompactNumber(profileData().hivePower)}
+              {profileData().hivePower.toFixed(3)}
             </p>
             <p class="text-xs text-text-muted">HP</p>
           </div>
