@@ -73,7 +73,6 @@ function AdminPanelContent(props: AdminPanelContentProps) {
   // Apply initial settings from SSR on mount (before query runs)
   onMount(() => {
     if (props.initialSettings) {
-      console.log('Admin: Applying initial settings from SSR')
       // Ensure hiveUsername is set from ownerUsername if not in config
       const settingsWithUsername = {
         ...props.initialSettings,
@@ -147,7 +146,6 @@ function AdminPanelContent(props: AdminPanelContentProps) {
     try {
       // Use snapshot to ensure we get a plain object for JSON serialization
       const settingsToSave = getSettingsSnapshot()
-      console.log('Saving settings snapshot:', settingsToSave)
       const result = await broadcastConfigToHive(settingsToSave, user.username, user.privateKey)
       if (result.success && result.permlink) {
         const action = result.isUpdate ? 'Updated' : 'Published'

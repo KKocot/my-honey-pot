@@ -93,18 +93,6 @@ export async function broadcastConfigToHive(
     const configBody = JSON.stringify(settings, null, 2)
     const timestamp = new Date().toISOString()
 
-    // Debug: Log what we're saving
-    console.log('Broadcasting config to Hive:', {
-      settingsKeys: Object.keys(settings),
-      pageLayout: settings.pageLayout,
-      authorProfileLayout2: settings.authorProfileLayout2,
-      navigationTabs: settings.navigationTabs,
-      authorCoverHeightPx: settings.authorCoverHeightPx,
-      authorUsernameSizePx: settings.authorUsernameSizePx,
-      authorDisplayNameSizePx: settings.authorDisplayNameSizePx,
-      configBodyLength: configBody.length,
-    })
-
     // Add reply operation - same operation for create and update
     // In Hive, posting a comment with the same author+permlink updates it
     tx.pushOperation(new ReplyOperation({

@@ -78,7 +78,6 @@ export function getSettingsSnapshot(): SettingsData {
 }
 
 export function updateSettings(partial: Partial<SettingsData>) {
-  console.log('updateSettings called with:', Object.keys(partial), partial)
   setSettings(produce((s) => {
     Object.assign(s, partial)
   }))
@@ -176,18 +175,8 @@ async function fetchSettings(): Promise<SettingsData> {
   // Load from Hive if user is logged in
   if (currentUsername) {
     try {
-      console.log(`Loading config from Hive for @${currentUsername}...`)
       const hiveConfig = await loadConfigFromHive(currentUsername)
       if (hiveConfig) {
-        console.log('Loaded config from Hive!', {
-          loadedKeys: Object.keys(hiveConfig),
-          pageLayout: hiveConfig.pageLayout,
-          authorProfileLayout2: hiveConfig.authorProfileLayout2,
-          navigationTabs: hiveConfig.navigationTabs,
-          authorCoverHeightPx: hiveConfig.authorCoverHeightPx,
-          authorUsernameSizePx: hiveConfig.authorUsernameSizePx,
-          authorDisplayNameSizePx: hiveConfig.authorDisplayNameSizePx,
-        })
         const migratedData = migrateSettingsLayouts(hiveConfig)
         // Migrate pageLayout to filter out obsolete elements like 'comments'
         const pageLayout = migratePageLayout(hiveConfig.pageLayout)
@@ -214,9 +203,7 @@ async function fetchSettings(): Promise<SettingsData> {
 
         return finalSettings
       }
-      console.log('No config found on Hive, using defaults')
     } catch (error) {
-      console.error('Failed to load from Hive:', error)
       lastFetchError = error instanceof Error ? error.message : 'Failed to connect to Hive API'
       throw new Error(`Hive API error: ${lastFetchError}. Please refresh the page.`)
     }
@@ -272,13 +259,6 @@ export function useSaveSettingsMutation() {
 let settingsLoadedFromServer = false
 
 export function syncSettingsToStore(data: SettingsData, fromServer: boolean = false) {
-  console.log('syncSettingsToStore called:', {
-    fromServer,
-    dataKeys: Object.keys(data),
-    pageLayout: data.pageLayout,
-    authorProfileLayout2: data.authorProfileLayout2,
-    navigationTabs: data.navigationTabs,
-  })
   setSettings(produce((s) => {
     Object.assign(s, data)
   }))
