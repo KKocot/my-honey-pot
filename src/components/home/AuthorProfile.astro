@@ -14,6 +14,9 @@ interface Props {
   globalProperties: IGlobalProperties | null
   accountManabars: IAccountManabars | null
   avatarSize: number
+  coverHeight?: number
+  usernameSize?: number
+  displayNameSize?: number
   showPostCount: boolean
   showRewards: boolean
   showAbout?: boolean
@@ -38,6 +41,9 @@ const {
   globalProperties,
   accountManabars,
   avatarSize,
+  coverHeight = 64,
+  usernameSize = 14,
+  displayNameSize = 18,
   showPostCount,
   showRewards,
   showAbout = true,
@@ -116,8 +122,8 @@ const avatarUrl = profileImage || `https://images.hive.blog/u/${username}/avatar
   {/* Cover Image */}
   {showCoverImage && coverImage && (
     <div
-      class="h-24 md:h-32 bg-cover bg-center"
-      style={`background-image: url('${coverImage}');`}
+      class="bg-cover bg-center"
+      style={`height: ${coverHeight}px; background-image: url('${coverImage}');`}
     />
   )}
 
@@ -136,11 +142,11 @@ const avatarUrl = profileImage || `https://images.hive.blog/u/${username}/avatar
         {/* Display Name & Username */}
         <div class={isVertical ? 'mb-2' : ''}>
           {displayName && (
-            <h2 class={`font-bold text-text ${isVertical ? 'text-lg' : 'text-xl'}`}>
+            <h2 class="font-bold text-text" style={`font-size: ${displayNameSize}px;`}>
               {displayName}
             </h2>
           )}
-          <p class={`text-text-muted ${displayName ? 'text-sm' : 'text-lg font-semibold'}`}>
+          <p class="text-text-muted font-bold" style={`font-size: ${usernameSize}px;`}>
             @{username}
           </p>
         </div>

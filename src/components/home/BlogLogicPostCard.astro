@@ -114,63 +114,58 @@ const summary = getSummary()
 const borderStyle = cardBorder ? 'border: 1px solid var(--color-border);' : ''
 const cardStyle = `padding: ${cardPaddingPx}px; border-radius: ${cardBorderRadiusPx}px; ${borderStyle} ${masonryStyle}`
 
-const flexDirection = cardLayout === 'vertical'
+const isVertical = cardLayout === 'vertical'
+const flexDirection = isVertical
   ? 'flex-col'
   : thumbnailPosition === 'right' ? 'flex-row-reverse' : 'flex-row'
+const gapClass = isVertical ? 'gap-3' : 'gap-4'
 
 const showMeta = showDate || showVotes || showComments || showPayout
 ---
 
 <article
-  class="bg-bg-card shadow-sm hover:shadow-md transition-shadow"
+  class="bg-bg-card rounded-xl overflow-hidden cursor-pointer shadow-sm hover:shadow-md transition-shadow"
   style={cardStyle}
 >
-  <div class={`flex ${flexDirection} gap-4`}>
+  <div class={`flex ${flexDirection} ${gapClass}`}>
     {showThumbnail && thumbnail && (
-      <img
-        src={thumbnail}
-        alt=""
-        style={`width: ${thumbnailSizePx}px; height: ${thumbnailSizePx}px; object-fit: cover; border-radius: 8px; flex-shrink: 0;`}
-        onerror="this.style.display='none'"
-      />
+      isVertical ? (
+        <div class="rounded-lg overflow-hidden flex-shrink-0 bg-cover bg-center w-full h-40">
+          <img src={thumbnail} alt="" class="w-full h-full object-cover" onerror="this.style.display='none'" />
+        </div>
+      ) : (
+        <img
+          src={thumbnail}
+          alt=""
+          style={`width: ${thumbnailSizePx}px; height: ${thumbnailSizePx}px; object-fit: cover; border-radius: 8px; flex-shrink: 0;`}
+          onerror="this.style.display='none'"
+        />
+      )
     )}
     <div class="flex-1 min-w-0">
-      <h2 class="font-semibold mb-2" style={`font-size: ${titleSizePx}px;`}>
-        <a
-          href={`/${post.permlink}`}
-          class="text-text hover:text-primary transition-colors"
-        >
+      <h2 class="font-semibold text-text line-clamp-2 hover:text-primary transition-colors" style={`font-size: ${titleSizePx}px;`}>
+        <a href={`/${post.permlink}`}>
           {post.title}
         </a>
       </h2>
 
       {showSummary && (
-        <p class="text-text-muted text-sm mb-3 line-clamp-3">{summary}</p>
+        <p class="text-text-muted text-sm mt-1 line-clamp-2">{summary}</p>
       )}
 
       {showMeta && (
-        <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-text-muted mb-3">
+        <div class="flex flex-wrap items-center gap-3 mt-2 text-xs text-text-muted">
           {showDate && (
             <span>{post.publishedAt.toLocaleDateString('pl-PL')}</span>
           )}
           {showVotes && (
-            <span class="flex items-center gap-1">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" />
-              </svg>
-              {votesCount}
-            </span>
+            <span>{votesCount} votes</span>
           )}
           {showComments && (
-            <span class="flex items-center gap-1">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-              </svg>
-              {commentsCount}
-            </span>
+            <span>{commentsCount} comments</span>
           )}
           {showPayout && (
-            <span class="text-success font-medium">
+            <span class="text-success">
               ${formatPayout(post.pendingPayoutValue)}
             </span>
           )}
@@ -178,7 +173,7 @@ const showMeta = showDate || showVotes || showComments || showPayout
       )}
 
       {showTags && post.tags.length > 0 && (
-        <div class="flex flex-wrap gap-2">
+        <div class="flex flex-wrap gap-1 mt-2">
           {post.tags.slice(0, maxTags).map((tag: string) => (
             <span class="px-2 py-0.5 text-xs bg-bg-secondary text-text-muted rounded">
               #{tag}

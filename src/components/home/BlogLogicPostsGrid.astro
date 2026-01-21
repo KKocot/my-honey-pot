@@ -14,7 +14,8 @@ const { posts, settings } = Astro.props
 const postsLayout = settings.postsLayout || 'list'
 const gridColumns = settings.gridColumns || 2
 const cardGapPx = settings.cardGapPx ?? 24
-const cardLayout = settings.cardLayout || 'horizontal'
+// Force vertical layout for grid/masonry (matching FullPreview behavior)
+const cardLayout = postsLayout !== 'list' ? 'vertical' : (settings.cardLayout || 'horizontal')
 const thumbnailPosition = settings.thumbnailPosition || 'left'
 const thumbnailSizePx = settings.thumbnailSizePx ?? 96
 const cardPaddingPx = settings.cardPaddingPx ?? 24
