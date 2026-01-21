@@ -22,7 +22,6 @@ import Navigation from '../components/home/Navigation.astro'
 import AuthorProfile from '../components/home/AuthorProfile.astro'
 import BlogLogicPostsGrid from '../components/home/BlogLogicPostsGrid.astro'
 import Footer from '../components/home/Footer.astro'
-import ContentTabs from '../components/home/ContentTabs.astro'
 import CommentCard from '../components/home/CommentCard.astro'
 import { type SiteSettings, type PageLayout, type PageSlotPosition, defaultPageLayout } from '../components/home/types'
 
@@ -77,21 +76,6 @@ const showCommentsTab = commentsTabConfig?.enabled !== false
 const requestedTab = url.searchParams.get('tab') || 'posts'
 // If comments tab is disabled but user requested it, fall back to posts
 const activeTab = (requestedTab === 'comments' && !showCommentsTab) ? 'posts' : requestedTab
-
-// Tab configuration - built from navigationTabs
-type TabConfig = { id: string; label: string; count?: number }
-const postCount: number | undefined = hiveProfile?.postCount
-
-// Build tabs from navigationTabs settings
-const tabs: TabConfig[] = (settings.navigationTabs || [])
-  .filter(tab => tab.enabled && (tab.id === 'posts' || tab.id === 'comments'))
-  .map(tab => ({
-    id: tab.id,
-    label: tab.label,
-    count: tab.showCount
-      ? (tab.id === 'posts' ? postCount : undefined)
-      : undefined
-  }))
 
 // ============================================
 // Pagination cursor from URL
@@ -249,6 +233,9 @@ const showAuthorCoverImage = settings.showAuthorCoverImage !== false
 const authorCoverHeight = settings.authorCoverHeightPx ?? 64
 const authorUsernameSize = settings.authorUsernameSizePx ?? 14
 const authorDisplayNameSize = settings.authorDisplayNameSizePx ?? 18
+const authorAboutSize = settings.authorAboutSizePx ?? 14
+const authorStatsSize = settings.authorStatsSizePx ?? 14
+const authorMetaSize = settings.authorMetaSizePx ?? 12
 
 // Shared props for AuthorProfile to reduce duplication
 const authorProfileBaseProps = {
@@ -257,23 +244,18 @@ const authorProfileBaseProps = {
   profile: hiveProfile,
   globalProperties: globalProperties,
   accountManabars: accountManabars,
+  // Layout from settings (uses CardLayout format)
+  profileLayout: settings.authorProfileLayout2,
+  // Size settings
   avatarSize: authorAvatarSizePx,
   coverHeight: authorCoverHeight,
   usernameSize: authorUsernameSize,
   displayNameSize: authorDisplayNameSize,
-  showPostCount: showPostCount,
-  showRewards: showAuthorRewards,
-  showAbout: showAuthorAbout,
-  showLocation: showAuthorLocation,
-  showWebsite: showAuthorWebsite,
-  showJoinDate: showAuthorJoinDate,
-  showReputation: showAuthorReputation,
-  showFollowers: showAuthorFollowers,
-  showFollowing: showAuthorFollowing,
-  showVotingPower: showAuthorVotingPower,
-  showHiveBalance: showAuthorHiveBalance,
-  showHbdBalance: showAuthorHbdBalance,
-  showCoverImage: showAuthorCoverImage,
+  aboutSize: authorAboutSize,
+  statsSize: authorStatsSize,
+  metaSize: authorMetaSize,
+  // Social links
+  socialLinks: settings.socialLinks || [],
 }
 
 // ============================================
@@ -307,11 +289,10 @@ const isFirstPage = !cursor
           <Navigation activeTab={activeTab} postsCount={blogLogicPosts.length} commentsCount={hiveComments.length} navigationTabs={settings.navigationTabs} />
         )}
         {elementId === 'authorProfile' && showAuthorProfile && hiveUsername && hiveAccount && (
-          <AuthorProfile {...authorProfileBaseProps} layout={authorProfileLayout} />
+          <AuthorProfile {...authorProfileBaseProps} />
         )}
         {elementId === 'posts' && hiveUsername && (
           <>
-            {tabs.length > 1 && activeTab === 'posts' && <ContentTabs tabs={tabs} activeTab={activeTab} />}
             {blogLogicPosts.length > 0 ? (
               <BlogLogicPostsGrid posts={blogLogicPosts} settings={settings} />
             ) : (
@@ -323,7 +304,6 @@ const isFirstPage = !cursor
         )}
         {elementId === 'comments' && hiveUsername && showCommentsTab && (
           <>
-            {tabs.length > 1 && activeTab === 'comments' && <ContentTabs tabs={tabs} activeTab={activeTab} />}
             {hiveComments.length > 0 && (
               <div class="space-y-4">
                 {hiveComments.map(comment => (
@@ -370,7 +350,7 @@ const isFirstPage = !cursor
                     <Navigation activeTab={activeTab} postsCount={blogLogicPosts.length} commentsCount={hiveComments.length} navigationTabs={settings.navigationTabs} />
                   )}
                   {elementId === 'authorProfile' && showAuthorProfile && hiveUsername && hiveAccount && (
-                    <AuthorProfile {...authorProfileBaseProps} layout="vertical" />
+                    <AuthorProfile {...authorProfileBaseProps} />
                   )}
                   {elementId === 'posts' && hiveUsername && (
                     <div class="bg-bg-card rounded-lg p-3 border border-border">
@@ -413,11 +393,10 @@ const isFirstPage = !cursor
                 <Navigation activeTab={activeTab} postsCount={blogLogicPosts.length} commentsCount={hiveComments.length} navigationTabs={settings.navigationTabs} />
               )}
               {elementId === 'authorProfile' && showAuthorProfile && hiveUsername && hiveAccount && (
-                <AuthorProfile {...authorProfileBaseProps} layout={authorProfileLayout} />
+                <AuthorProfile {...authorProfileBaseProps} />
               )}
               {elementId === 'posts' && hiveUsername && (
                 <>
-                  {tabs.length > 1 && <ContentTabs tabs={tabs} activeTab={activeTab} />}
                   {activeTab === 'posts' ? (
                     <>
                       {blogLogicPosts.length > 0 ? (
@@ -511,7 +490,7 @@ const isFirstPage = !cursor
                     <Navigation activeTab={activeTab} postsCount={blogLogicPosts.length} commentsCount={hiveComments.length} navigationTabs={settings.navigationTabs} />
                   )}
                   {elementId === 'authorProfile' && showAuthorProfile && hiveUsername && hiveAccount && (
-                    <AuthorProfile {...authorProfileBaseProps} layout="vertical" />
+                    <AuthorProfile {...authorProfileBaseProps} />
                   )}
                   {elementId === 'posts' && hiveUsername && (
                     <div class="bg-bg-card rounded-lg p-3 border border-border">
@@ -555,11 +534,10 @@ const isFirstPage = !cursor
               <Navigation activeTab={activeTab} postsCount={blogLogicPosts.length} commentsCount={hiveComments.length} navigationTabs={settings.navigationTabs} />
             )}
             {elementId === 'authorProfile' && showAuthorProfile && hiveUsername && hiveAccount && (
-              <AuthorProfile {...authorProfileBaseProps} layout={authorProfileLayout} />
+              <AuthorProfile {...authorProfileBaseProps} />
             )}
             {elementId === 'posts' && hiveUsername && (
               <>
-                {tabs.length > 1 && <ContentTabs tabs={tabs} activeTab={activeTab} />}
                 {activeTab === 'posts' ? (
                   <>
                     {blogLogicPosts.length > 0 ? (
@@ -652,7 +630,7 @@ const isFirstPage = !cursor
           <Navigation activeTab={activeTab} postsCount={blogLogicPosts.length} commentsCount={hiveComments.length} navigationTabs={settings.navigationTabs} />
         )}
         {elementId === 'authorProfile' && showAuthorProfile && hiveUsername && hiveAccount && (
-          <AuthorProfile {...authorProfileBaseProps} layout={authorProfileLayout} />
+          <AuthorProfile {...authorProfileBaseProps} />
         )}
         {elementId === 'posts' && hiveUsername && (
           <>
