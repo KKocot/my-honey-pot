@@ -14,7 +14,7 @@ import {
   parseFormattedAsset,
 } from '../../lib/blog-logic'
 
-// All available author profile element IDs
+// All available author profile element IDs (votingPower removed)
 const AUTHOR_PROFILE_ELEMENT_IDS = [
   'coverImage',
   'avatar',
@@ -30,7 +30,6 @@ const AUTHOR_PROFILE_ELEMENT_IDS = [
   'postCount',
   'hivePower',
   'hpEarned',
-  'votingPower',
   'hiveBalance',
   'hbdBalance',
 ]
@@ -50,14 +49,43 @@ export function AuthorProfileSettings() {
 
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div class="space-y-4">
-          <Slider
-            label="Avatar size:"
-            unit="px"
-            min={32}
-            max={128}
-            value={settings.authorAvatarSizePx}
-            onInput={(e) => updateSettings({ authorAvatarSizePx: parseInt(e.currentTarget.value) })}
-          />
+          <h3 class="text-sm font-medium text-text-muted uppercase tracking-wide mb-3">
+            Size Settings
+          </h3>
+          <div class="grid grid-cols-2 gap-4">
+            <Slider
+              label="Avatar size:"
+              unit="px"
+              min={32}
+              max={128}
+              value={settings.authorAvatarSizePx}
+              onInput={(e) => updateSettings({ authorAvatarSizePx: parseInt(e.currentTarget.value) })}
+            />
+            <Slider
+              label="Cover height:"
+              unit="px"
+              min={48}
+              max={200}
+              value={settings.authorCoverHeightPx ?? 64}
+              onInput={(e) => updateSettings({ authorCoverHeightPx: parseInt(e.currentTarget.value) })}
+            />
+            <Slider
+              label="Username size:"
+              unit="px"
+              min={12}
+              max={24}
+              value={settings.authorUsernameSizePx ?? 14}
+              onInput={(e) => updateSettings({ authorUsernameSizePx: parseInt(e.currentTarget.value) })}
+            />
+            <Slider
+              label="Display name size:"
+              unit="px"
+              min={14}
+              max={32}
+              value={settings.authorDisplayNameSizePx ?? 18}
+              onInput={(e) => updateSettings({ authorDisplayNameSizePx: parseInt(e.currentTarget.value) })}
+            />
+          </div>
 
           {/* Card Layout Editor */}
           <div class="border-t border-border pt-4">
@@ -179,13 +207,14 @@ function AuthorProfilePreview() {
 
     switch (id) {
       case 'coverImage':
+        const coverHeight = settings.authorCoverHeightPx ?? 64
         return (
           <Show when={pd.coverImage} fallback={
-            <div class="h-16 bg-gradient-to-r from-primary/30 to-accent/30 rounded-t-lg -mx-4 -mt-4 mb-2" />
+            <div class="bg-gradient-to-r from-primary/30 to-accent/30 rounded-t-lg -mx-4 -mt-4 mb-2" style={{ height: `${coverHeight}px` }} />
           }>
             <div
-              class="h-16 bg-cover bg-center rounded-t-lg -mx-4 -mt-4 mb-2"
-              style={`background-image: url('https://images.hive.blog/640x0/${pd.coverImage}');`}
+              class="bg-cover bg-center rounded-t-lg -mx-4 -mt-4 mb-2"
+              style={`height: ${coverHeight}px; background-image: url('https://images.hive.blog/640x0/${pd.coverImage}');`}
             />
           </Show>
         )
@@ -207,15 +236,17 @@ function AuthorProfilePreview() {
         )
 
       case 'username':
+        const usernameSize = settings.authorUsernameSizePx ?? 14
         return (
           <div>
-            <p class="font-bold text-text text-sm">@{username()}</p>
+            <p class="font-bold text-text" style={{ 'font-size': `${usernameSize}px` }}>@{username()}</p>
           </div>
         )
 
       case 'displayName':
+        const displayNameSize = settings.authorDisplayNameSizePx ?? 18
         return (
-          <h2 class="font-bold text-text text-base">{pd.displayName}</h2>
+          <h2 class="font-bold text-text" style={{ 'font-size': `${displayNameSize}px` }}>{pd.displayName}</h2>
         )
 
       case 'reputation':
@@ -426,7 +457,7 @@ function AuthorProfilePreview() {
                       target="_blank"
                       rel="noopener noreferrer"
                       class="p-2 rounded-lg transition-colors hover:opacity-80"
-                      style={{ background: `${info.color}20` }}
+                      style={{ background: 'var(--color-bg-secondary)' }}
                       title={info.name}
                     >
                       <PlatformIcon

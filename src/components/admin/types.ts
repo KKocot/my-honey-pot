@@ -478,6 +478,9 @@ export interface SettingsData {
   showAuthorHiveBalance: boolean
   showAuthorHbdBalance: boolean
   showAuthorCoverImage: boolean
+  authorCoverHeightPx: number
+  authorUsernameSizePx: number
+  authorDisplayNameSizePx: number
   // Comments Tab settings
   showCommentsTab: boolean
   commentsLayout: 'list' | 'grid' | 'masonry'
@@ -651,6 +654,9 @@ export const defaultSettings: SettingsData = {
   showAuthorHiveBalance: false,
   showAuthorHbdBalance: false,
   showAuthorCoverImage: true,
+  authorCoverHeightPx: 64,
+  authorUsernameSizePx: 14,
+  authorDisplayNameSizePx: 18,
   // Comments Tab defaults
   showCommentsTab: true,
   commentsLayout: 'list',
