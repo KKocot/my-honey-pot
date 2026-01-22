@@ -2,15 +2,36 @@ import { Show, For, createMemo, createSignal, onMount, type Accessor } from 'sol
 import { Portal } from 'solid-js/web'
 import { settings } from './store'
 import { pageElementLabels, platformInfos, type PageSlotPosition, type PageLayoutSection, type CardSection, type CardSectionChild } from './types'
-import { formatJoinDate } from './queries'
 import {
   useHivePreviewQuery,
   formatCompactNumber,
-  calculateEffectiveHivePower,
   type HivePost,
 } from './queries'
 import { parseFormattedAsset } from '../../lib/blog-logic'
 import { PlatformIcon } from './SocialLinksSettings'
+// Shared components
+import {
+  createAuthorProfileData,
+  createAuthorProfileSettings,
+  renderAuthorProfileSections,
+  renderSocialLinks,
+} from '../../shared/components/author-profile'
+import {
+  createPostCardDataFromBridge,
+  renderPostCardContent,
+  getSimpleSummary,
+  formatPayout,
+} from '../../shared/components/post-card'
+import {
+  createCommentCardData,
+  createCommentCardSettings,
+  renderCommentCardContent,
+} from '../../shared/components/comment-card'
+import {
+  isExternalUrl,
+  getNavigationItemClasses,
+  getExternalLinkIconSvg,
+} from '../../shared/components/navigation'
 
 // ============================================
 // Full Preview Dialog Component
@@ -74,37 +95,6 @@ export function FullPreview(props: FullPreviewProps) {
   const hasLeftSidebar = createMemo(() => leftSidebarSections().length > 0)
   const hasRightSidebar = createMemo(() => rightSidebarSections().length > 0)
 
-  // Parse post thumbnail
-  const getPostThumbnail = (post: HivePost): string | null => {
-    try {
-      const metadata = typeof post.json_metadata === 'string'
-        ? JSON.parse(post.json_metadata)
-        : post.json_metadata
-      const image = metadata?.image?.[0]
-      if (image && image.startsWith('http')) {
-        return `https://images.hive.blog/${(settings.thumbnailSizePx || 256) * 2}x0/${image}`
-      }
-    } catch {}
-    return null
-  }
-
-  // Parse post tags
-  const getPostTags = (post: HivePost): string[] => {
-    try {
-      const metadata = typeof post.json_metadata === 'string'
-        ? JSON.parse(post.json_metadata)
-        : post.json_metadata
-      return metadata?.tags?.slice(0, settings.maxTags || 5) || []
-    } catch {}
-    return []
-  }
-
-  // Format payout
-  const formatPayout = (value: string): string => {
-    const num = parseFloat(value.replace(' HBD', '').replace(' HIVE', ''))
-    return `$${num.toFixed(2)}`
-  }
-
   // Render header element
   const renderHeader = () => (
     <header
@@ -116,7 +106,7 @@ export function FullPreview(props: FullPreviewProps) {
     </header>
   )
 
-  // Render author profile element using authorProfileLayout2
+  // Render author profile element using shared components
   const renderAuthorProfile = (_layout: 'horizontal' | 'vertical' = 'horizontal') => {
     const currentData = data()
     const profile = currentData?.profile
@@ -124,274 +114,37 @@ export function FullPreview(props: FullPreviewProps) {
     const globalProps = currentData?.globalProps
     if (!profile) return null
 
-    const profileMeta = profile.metadata
-    const username = profile.name
+    // Create normalized data using shared utility
+    const profileData = createAuthorProfileData(
+      profile.name,
+      profile,
+      dbAccount ?? null,
+      globalProps ?? null,
+      null // manabars not available in preview
+    )
 
-    // Calculate profile data
-    const hivePower = dbAccount && globalProps
-      ? calculateEffectiveHivePower(
-          dbAccount.vestingShares,
-          dbAccount.delegatedVestingShares,
-          dbAccount.receivedVestingShares,
-          globalProps
-        )
-      : 0
+    // Create settings using shared utility
+    const profileSettings = createAuthorProfileSettings({
+      authorProfileLayout2: settings.authorProfileLayout2,
+      authorAvatarSizePx: settings.authorAvatarSizePx,
+      authorCoverHeightPx: settings.authorCoverHeightPx,
+      authorUsernameSizePx: settings.authorUsernameSizePx,
+      authorDisplayNameSizePx: settings.authorDisplayNameSizePx,
+      authorAboutSizePx: settings.authorAboutSizePx,
+      authorStatsSizePx: settings.authorStatsSizePx,
+      authorMetaSizePx: settings.authorMetaSizePx,
+      socialLinks: settings.socialLinks,
+    })
 
-    const profileData = {
-      displayName: profileMeta?.name || profile.name,
-      about: profileMeta?.about || '',
-      location: profileMeta?.location || '',
-      website: profileMeta?.website || '',
-      coverImage: profileMeta?.coverImage || '',
-      reputation: Math.floor(profile.reputation),
-      followers: profile.stats.followers,
-      following: profile.stats.following,
-      postCount: profile.postCount,
-      hivePower,
-      hiveBalance: dbAccount ? parseFormattedAsset(dbAccount.balance) : 0,
-      hbdBalance: dbAccount ? parseFormattedAsset(dbAccount.hbdBalance) : 0,
-      joinDate: formatJoinDate(profile.created),
-    }
-
-    // Render element by ID
-    const renderProfileElement = (id: string) => {
-      switch (id) {
-        case 'coverImage':
-          const coverHeight = settings.authorCoverHeightPx ?? 64
-          return (
-            <Show when={profileData.coverImage} fallback={
-              <div class="bg-gradient-to-r from-primary/30 to-accent/30 rounded-lg w-full" style={{ height: `${coverHeight}px` }} />
-            }>
-              <div
-                class="bg-cover bg-center rounded-lg w-full"
-                style={`height: ${coverHeight}px; background-image: url('https://images.hive.blog/640x0/${profileData.coverImage}');`}
-              />
-            </Show>
-          )
-
-        case 'avatar':
-          return (
-            <img
-              src={`https://images.hive.blog/u/${username}/avatar`}
-              alt={username}
-              style={{
-                width: `${settings.authorAvatarSizePx}px`,
-                height: `${settings.authorAvatarSizePx}px`,
-              }}
-              class="rounded-full border-2 border-bg-card ring-2 ring-border flex-shrink-0"
-            />
-          )
-
-        case 'username':
-          const usernameSize = settings.authorUsernameSizePx ?? 14
-          return (
-            <p class="font-bold text-text" style={{ 'font-size': `${usernameSize}px` }}>@{username}</p>
-          )
-
-        case 'displayName':
-          const displayNameSize = settings.authorDisplayNameSizePx ?? 18
-          return (
-            <h2 class="font-bold text-text" style={{ 'font-size': `${displayNameSize}px` }}>{profileData.displayName}</h2>
-          )
-
-        case 'reputation':
-          return (
-            <span class="inline-block px-2 py-0.5 text-xs font-medium bg-primary/10 text-primary rounded-full">
-              Rep: {profileData.reputation}
-            </span>
-          )
-
-        case 'about':
-          const aboutSize = settings.authorAboutSizePx ?? 14
-          return (
-            <Show when={profileData.about}>
-              <p class="text-text-muted line-clamp-2" style={{ 'font-size': `${aboutSize}px` }}>{profileData.about}</p>
-            </Show>
-          )
-
-        case 'location':
-          const locationSize = settings.authorMetaSizePx ?? 12
-          return (
-            <Show when={profileData.location}>
-              <span class="flex items-center gap-1 text-text-muted" style={{ 'font-size': `${locationSize}px` }}>
-                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-                {profileData.location}
-              </span>
-            </Show>
-          )
-
-        case 'website':
-          const websiteSize = settings.authorMetaSizePx ?? 12
-          return (
-            <Show when={profileData.website}>
-              <a
-                href={profileData.website}
-                target="_blank"
-                rel="noopener noreferrer"
-                class="flex items-center gap-1 text-primary hover:underline"
-                style={{ 'font-size': `${websiteSize}px` }}
-              >
-                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                </svg>
-                {profileData.website.replace(/^https?:\/\//, '')}
-              </a>
-            </Show>
-          )
-
-        case 'joinDate':
-          const joinDateSize = settings.authorMetaSizePx ?? 12
-          return (
-            <span class="flex items-center gap-1 text-text-muted" style={{ 'font-size': `${joinDateSize}px` }}>
-              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-              {profileData.joinDate}
-            </span>
-          )
-
-        case 'followers':
-          const followersSize = settings.authorStatsSizePx ?? 14
-          return (
-            <div class="text-center">
-              <p class="font-bold text-text" style={{ 'font-size': `${followersSize}px` }}>{formatCompactNumber(profileData.followers)}</p>
-              <p class="text-xs text-text-muted">Followers</p>
-            </div>
-          )
-
-        case 'following':
-          const followingSize = settings.authorStatsSizePx ?? 14
-          return (
-            <div class="text-center">
-              <p class="font-bold text-text" style={{ 'font-size': `${followingSize}px` }}>{formatCompactNumber(profileData.following)}</p>
-              <p class="text-xs text-text-muted">Following</p>
-            </div>
-          )
-
-        case 'postCount':
-          const postCountSize = settings.authorStatsSizePx ?? 14
-          return (
-            <div class="text-center">
-              <p class="font-bold text-text" style={{ 'font-size': `${postCountSize}px` }}>{formatCompactNumber(profileData.postCount)}</p>
-              <p class="text-xs text-text-muted">Posts</p>
-            </div>
-          )
-
-        case 'hivePower':
-        case 'hpEarned':
-          const hivePowerSize = settings.authorStatsSizePx ?? 14
-          return (
-            <div class="text-center">
-              <p class="font-bold text-text" style={{ 'font-size': `${hivePowerSize}px` }}>{profileData.hivePower.toFixed(3)}</p>
-              <p class="text-xs text-text-muted">HP</p>
-            </div>
-          )
-
-        case 'votingPower':
-          const votingPowerSize = settings.authorStatsSizePx ?? 14
-          return (
-            <div class="text-center">
-              <p class="font-semibold text-text" style={{ 'font-size': `${votingPowerSize}px` }}>--</p>
-              <p class="text-xs text-text-muted">Voting Power</p>
-            </div>
-          )
-
-        case 'hiveBalance':
-          const hiveBalanceSize = settings.authorStatsSizePx ?? 14
-          return (
-            <div class="text-center">
-              <p class="font-semibold text-text" style={{ 'font-size': `${hiveBalanceSize}px` }}>{profileData.hiveBalance.toFixed(3)}</p>
-              <p class="text-xs text-text-muted">HIVE</p>
-            </div>
-          )
-
-        case 'hbdBalance':
-          const hbdBalanceSize = settings.authorStatsSizePx ?? 14
-          return (
-            <div class="text-center">
-              <p class="font-semibold text-text" style={{ 'font-size': `${hbdBalanceSize}px` }}>{profileData.hbdBalance.toFixed(3)}</p>
-              <p class="text-xs text-text-muted">HBD</p>
-            </div>
-          )
-
-        default:
-          return null
-      }
-    }
-
-    // Render a child (element or nested section)
-    const renderProfileChild = (child: CardSectionChild): ReturnType<typeof renderProfileElement> => {
-      if (child.type === 'element') {
-        return renderProfileElement(child.id)
-      } else {
-        return renderProfileSection(child.section)
-      }
-    }
-
-    // Check if section contains a full-width element
-    const hasFullWidthElement = (section: CardSection): boolean => {
-      return section.children?.some(child =>
-        child.type === 'element' && child.id === 'coverImage'
-      ) ?? false
-    }
-
-    // Render a section with its orientation
-    const renderProfileSection = (section: CardSection): ReturnType<typeof renderProfileElement> => {
-      if (!section.children || section.children.length === 0) return null
-
-      const isFullWidth = hasFullWidthElement(section)
-
-      return (
-        <div
-          class={`
-            ${isFullWidth
-              ? 'w-full'
-              : section.orientation === 'horizontal'
-                ? 'flex flex-wrap items-center gap-2'
-                : 'flex flex-col gap-1'
-            }
-          `}
-        >
-          <For each={section.children}>{(child) => renderProfileChild(child)}</For>
-        </div>
-      )
-    }
+    // Render using shared functions
+    const sectionsHtml = renderAuthorProfileSections(profileData, profileSettings)
+    const socialLinksHtml = renderSocialLinks(profileSettings.socialLinks)
 
     return (
       <div class="bg-bg-card rounded-xl shadow-sm border border-border overflow-hidden p-4">
-        <div class="space-y-2">
-          <For each={settings.authorProfileLayout2.sections}>
-            {(section) => renderProfileSection(section)}
-          </For>
-        </div>
-
-        {/* Social Media Links */}
-        <Show when={(settings.socialLinks || []).filter(l => l.url).length > 0}>
-          <div class="flex flex-wrap gap-2 mt-4 pt-4 border-t border-border justify-center">
-            <For each={(settings.socialLinks || []).filter(l => l.url)}>
-              {(link) => {
-                const info = platformInfos[link.platform]
-                return (
-                  <a
-                    href={link.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    class="p-2 rounded-lg transition-colors hover:opacity-80 bg-bg-secondary"
-                    title={info.name}
-                  >
-                    <PlatformIcon
-                      platform={link.platform}
-                      class="w-5 h-5"
-                      style={{ color: info.color }}
-                    />
-                  </a>
-                )
-              }}
-            </For>
-          </div>
+        <div class="space-y-2" innerHTML={sectionsHtml} />
+        <Show when={socialLinksHtml}>
+          <div innerHTML={socialLinksHtml} />
         </Show>
       </div>
     )
@@ -472,9 +225,8 @@ export function FullPreview(props: FullPreviewProps) {
   }
 
   // Single post card component - reactive with hover and scroll animations
+  // Uses shared render functions for content, but adds SolidJS animations
   const PostCard = (props: { post: HivePost; forceVertical: boolean; index: number }) => {
-    const thumbnail = () => getPostThumbnail(props.post)
-    const tags = () => getPostTags(props.post)
     const isVertical = () => props.forceVertical || settings.cardLayout === 'vertical' || settings.postsLayout !== 'list'
 
     // Hover state
@@ -491,6 +243,12 @@ export function FullPreview(props: FullPreviewProps) {
         setIsVisible(true)
       }
     })
+
+    // Create normalized post data using shared utility
+    const postData = createMemo(() => createPostCardDataFromBridge(props.post, {
+      thumbnailSizePx: settings.thumbnailSizePx || 96,
+      maxTags: settings.maxTags || 5,
+    }))
 
     // Compute card styles with hover and scroll animations
     const cardStyle = createMemo(() => {
@@ -535,62 +293,37 @@ export function FullPreview(props: FullPreviewProps) {
       return styles
     })
 
+    // Create settings for shared render function
+    const cardSettings = createMemo(() => ({
+      cardLayout: isVertical() ? 'vertical' as const : (settings.cardLayout || 'horizontal' as const),
+      thumbnailPosition: settings.thumbnailPosition || 'left' as const,
+      thumbnailSizePx: settings.thumbnailSizePx || 96,
+      cardPaddingPx: settings.cardPaddingPx || 24,
+      cardBorderRadiusPx: settings.cardBorderRadiusPx || 16,
+      titleSizePx: settings.titleSizePx || 20,
+      showThumbnail: settings.showThumbnail !== false,
+      showSummary: settings.showSummary !== false,
+      summaryMaxLength: settings.summaryMaxLength || 150,
+      showDate: settings.showDate !== false,
+      showVotes: settings.showVotes !== false,
+      showComments: settings.showComments !== false,
+      showPayout: settings.showPayout !== false,
+      showTags: settings.showTags !== false,
+      cardBorder: settings.cardBorder !== false,
+      maxTags: settings.maxTags || 5,
+    }))
+
+    // Render content using shared function
+    const contentHtml = createMemo(() => renderPostCardContent(postData(), cardSettings(), isVertical()))
+
     return (
       <article
         class="bg-bg-card rounded-xl overflow-hidden cursor-pointer"
         style={cardStyle()}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
-      >
-        <div class={isVertical() ? 'flex flex-col gap-3' : 'flex gap-4'}>
-          <Show when={settings.showThumbnail !== false && thumbnail()}>
-            <div
-              class={`rounded-lg overflow-hidden flex-shrink-0 bg-cover bg-center ${isVertical() ? 'w-full h-40' : ''}`}
-              style={isVertical() ? '' : `width: ${settings.thumbnailSizePx || 96}px; height: ${settings.thumbnailSizePx || 96}px;`}
-            >
-              <img src={thumbnail()!} alt="" class="w-full h-full object-cover" />
-            </div>
-          </Show>
-          <div class="flex-1 min-w-0">
-            <h3
-              class="font-semibold text-text line-clamp-2 hover:text-primary transition-colors"
-              style={`font-size: ${settings.titleSizePx || 20}px;`}
-            >
-              {props.post.title}
-            </h3>
-            <Show when={settings.showSummary !== false}>
-              <p class="text-text-muted text-sm mt-1 line-clamp-2">
-                {props.post.body.replace(/[#*`>\[\]()!]/g, '').slice(0, settings.summaryMaxLength || 150)}...
-              </p>
-            </Show>
-            <div class="flex flex-wrap items-center gap-3 mt-2 text-xs text-text-muted">
-              <Show when={settings.showDate !== false}>
-                <span>{new Date(props.post.created).toLocaleDateString()}</span>
-              </Show>
-              <Show when={settings.showVotes !== false}>
-                <span>{props.post.active_votes.length} votes</span>
-              </Show>
-              <Show when={settings.showComments !== false}>
-                <span>{props.post.children} comments</span>
-              </Show>
-              <Show when={settings.showPayout !== false && props.post.pending_payout_value}>
-                <span class="text-success">{formatPayout(props.post.pending_payout_value!)}</span>
-              </Show>
-            </div>
-            <Show when={settings.showTags !== false && tags().length > 0}>
-              <div class="flex flex-wrap gap-1 mt-2">
-                <For each={tags()}>
-                  {(tag) => (
-                    <span class="px-2 py-0.5 text-xs bg-bg-secondary text-text-muted rounded">
-                      #{tag}
-                    </span>
-                  )}
-                </For>
-              </div>
-            </Show>
-          </div>
-        </div>
-      </article>
+        innerHTML={contentHtml()}
+      />
     )
   }
 
@@ -601,25 +334,10 @@ export function FullPreview(props: FullPreviewProps) {
     </footer>
   )
 
-  // Navigation preview component - uses settings.navigationTabs
+  // Navigation preview component - uses settings.navigationTabs with shared utilities
+  // Note: Count badges are disabled - navigation shows only labels
   const NavigationPreview = () => {
     const enabledTabs = createMemo(() => settings.navigationTabs?.filter(t => t.enabled) || [])
-    const postsCount = () => data()?.posts?.length || 0
-    const commentsCount = () => 128 // Placeholder
-
-    // Check if URL is external (starts with http:// or https://)
-    const isExternalUrl = (url: string | undefined) => {
-      if (!url) return false
-      return url.startsWith('http://') || url.startsWith('https://')
-    }
-
-    // Get count for tab
-    const getTabCount = (tab: typeof settings.navigationTabs[0]) => {
-      if (!tab.showCount) return undefined
-      if (tab.id === 'posts') return postsCount()
-      if (tab.id === 'comments') return commentsCount()
-      return undefined
-    }
 
     return (
       <nav class="border-b border-border mb-6">
@@ -627,32 +345,18 @@ export function FullPreview(props: FullPreviewProps) {
           <For each={enabledTabs()}>
             {(tab) => {
               const isActive = () => activeTab() === tab.id
-              const count = () => getTabCount(tab)
 
               return (
                 <button
                   type="button"
                   onClick={() => setActiveTab(tab.id)}
-                  class={`
-                    relative px-4 py-3 text-sm font-medium transition-colors
-                    ${isActive() ? 'text-text' : 'text-text-muted hover:text-text'}
-                  `}
+                  class={getNavigationItemClasses(isActive())}
                   title={tab.tooltip}
                 >
                   <span class="flex items-center gap-2">
                     {tab.label}
-                    {count() !== undefined && (
-                      <span class={`
-                        text-xs px-1.5 py-0.5 rounded-full
-                        ${isActive() ? 'bg-primary/10 text-primary' : 'bg-bg text-text-muted'}
-                      `}>
-                        {count()}
-                      </span>
-                    )}
                     {isExternalUrl(tab.href) && (
-                      <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                      </svg>
+                      <span innerHTML={getExternalLinkIconSvg()} />
                     )}
                   </span>
                   {isActive() && (
@@ -690,29 +394,20 @@ export function FullPreview(props: FullPreviewProps) {
   const CommentsSection = () => {
     const comments = () => data()?.comments || []
 
-    // Format time ago
-    const formatTimeAgo = (dateString: string): string => {
-      const date = new Date(dateString)
-      const now = new Date()
-      const diffMs = now.getTime() - date.getTime()
-      const diffMins = Math.floor(diffMs / 60000)
-      const diffHours = Math.floor(diffMs / 3600000)
-      const diffDays = Math.floor(diffMs / 86400000)
-
-      if (diffMins < 60) return `${diffMins}m ago`
-      if (diffHours < 24) return `${diffHours}h ago`
-      if (diffDays < 30) return `${diffDays}d ago`
-      return date.toLocaleDateString()
-    }
-
-    // Get parent post title from root_title or construct from permlink
-    const getParentInfo = (comment: HivePost) => {
-      return {
-        title: comment.root_title || comment.permlink.replace(/-/g, ' '),
-        author: comment.parent_author || '',
-        permlink: comment.parent_permlink || ''
-      }
-    }
+    // Create comment settings from current settings
+    const commentSettings = createMemo(() => createCommentCardSettings({
+      commentShowAuthor: settings.commentShowAuthor,
+      commentShowAvatar: settings.commentShowAvatar,
+      commentAvatarSizePx: settings.commentAvatarSizePx,
+      commentShowReplyContext: settings.commentShowReplyContext,
+      commentShowTimestamp: settings.commentShowTimestamp,
+      commentShowRepliesCount: settings.commentShowRepliesCount,
+      commentShowVotes: settings.commentShowVotes,
+      commentShowPayout: settings.commentShowPayout,
+      commentShowViewLink: settings.commentShowViewLink,
+      commentMaxLength: settings.commentMaxLength,
+      commentPaddingPx: settings.commentPaddingPx,
+    }))
 
     return (
       <div class="space-y-4">
@@ -723,51 +418,16 @@ export function FullPreview(props: FullPreviewProps) {
         }>
           <For each={comments()}>
             {(comment) => {
-              const parent = getParentInfo(comment)
+              // Create normalized comment data using shared utility
+              const commentData = createCommentCardData(comment)
+              // Render using shared function
+              const contentHtml = renderCommentCardContent(commentData, commentSettings())
+
               return (
-                <div class="bg-bg-card rounded-xl p-4 border border-border">
-                  {/* Reply context - shows which post this is a reply to */}
-                  <Show when={parent.title}>
-                    <div class="text-xs text-text-muted mb-2 pb-2 border-b border-border/50">
-                      <span>Reply to: </span>
-                      <span class="text-primary font-medium">{parent.title}</span>
-                      <Show when={parent.author}>
-                        <span> by @{parent.author}</span>
-                      </Show>
-                    </div>
-                  </Show>
-
-                  <div class="flex items-start gap-3">
-                    {/* Avatar */}
-                    <img
-                      src={`https://images.hive.blog/u/${comment.author}/avatar/small`}
-                      alt={comment.author}
-                      class="w-10 h-10 rounded-full flex-shrink-0"
-                    />
-                    <div class="flex-1 min-w-0">
-                      {/* Author and time */}
-                      <div class="flex items-center gap-2 mb-1 flex-wrap">
-                        <span class="font-medium text-text">@{comment.author}</span>
-                        <span class="text-xs text-text-muted">{formatTimeAgo(comment.created)}</span>
-                      </div>
-
-                      {/* Comment body - show plain text, strip markdown */}
-                      <p class="text-sm text-text-muted line-clamp-3">
-                        {comment.body.replace(/[#*`>\[\]()!]/g, '').slice(0, 300)}
-                        {comment.body.length > 300 ? '...' : ''}
-                      </p>
-
-                      {/* Stats */}
-                      <div class="flex gap-4 mt-2 text-xs text-text-muted">
-                        <span>{comment.children} replies</span>
-                        <span>{comment.active_votes?.length || 0} votes</span>
-                        <Show when={comment.pending_payout_value}>
-                          <span class="text-success">{formatPayout(comment.pending_payout_value!)}</span>
-                        </Show>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                <article
+                  class="bg-bg-card rounded-xl border border-border"
+                  innerHTML={contentHtml}
+                />
               )
             }}
           </For>

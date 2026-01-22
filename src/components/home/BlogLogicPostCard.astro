@@ -1,5 +1,13 @@
 ---
+/**
+ * BlogLogicPostCard - uses shared PostCard utilities
+ */
 import type { Post } from '../../lib/blog-logic'
+import {
+  createPostCardDataFromPost,
+  createPostCardSettings,
+  renderPostCard,
+} from '../../shared/components/post-card'
 
 interface Props {
   post: Post
@@ -43,144 +51,36 @@ const {
   masonryStyle = ''
 } = Astro.props
 
-// Get async data from Blog Logic Post
-const content = await post.getContent()
-const commentsCount = await post.getCommentsCount()
-// Use cached votesCount property instead of getVotesCount() to avoid extra API call
-const votesCount = post.votesCount
+// Create normalized post data using shared utility
+const postData = await createPostCardDataFromPost(post, {
+  thumbnailSizePx,
+  maxTags,
+  summaryMaxLength,
+})
 
-// Helper functions
-function getSummary(): string {
-  // Use summary from json_metadata if available
-  if (post.summary && post.summary.trim().length > 0) {
-    const desc = post.summary.trim().slice(0, summaryMaxLength)
-    return desc.length < post.summary.trim().length ? desc + '...' : desc
-  }
+// Create settings using shared utility
+const cardSettings = createPostCardSettings({
+  cardLayout,
+  thumbnailPosition,
+  thumbnailSizePx,
+  cardPaddingPx,
+  cardBorderRadiusPx,
+  titleSizePx,
+  showThumbnail,
+  showSummary,
+  summaryMaxLength,
+  showDate,
+  showVotes,
+  showComments,
+  showPayout,
+  showTags,
+  cardBorder,
+  maxTags,
+})
 
-  // Fall back to extracting from body content
-  const plainText = content
-    .replace(/!\[[^\]]*\]\([^)]+\)/g, '')
-    .replace(/\[[^\]]*\]\([^)]+\)/g, '')
-    .replace(/#{1,6}\s*/g, '')
-    .replace(/[*_`~]/g, '')
-    .replace(/<[^>]+>/g, '')
-    .replace(/\n+/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()
-
-  if (plainText.length === 0) return 'No description...'
-
-  return plainText.length > summaryMaxLength
-    ? plainText.slice(0, summaryMaxLength) + '...'
-    : plainText
-}
-
-function getThumbnailUrl(imageUrl: string | undefined): string | null {
-  if (!imageUrl || imageUrl.length === 0) return null
-  if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
-    return `https://images.hive.blog/${thumbnailSizePx * 2}x0/${imageUrl}`
-  }
-  return null
-}
-
-function getFirstValidImage(): string | null {
-  // First try getTitleImage() from Blog Logic
-  const titleImage = post.getTitleImage()
-  if (titleImage) {
-    const url = getThumbnailUrl(titleImage)
-    if (url) return url
-  }
-
-  // Fall back to images array
-  for (const img of post.images) {
-    const url = getThumbnailUrl(img)
-    if (url) return url
-  }
-  return null
-}
-
-function formatPayout(payoutValue: string): string {
-  // Parse "1.234 HBD" format
-  const match = payoutValue.match(/^([\d.]+)/)
-  if (match) {
-    return parseFloat(match[1]).toFixed(2)
-  }
-  return '0.00'
-}
-
-const thumbnail = getFirstValidImage()
-const summary = getSummary()
-
-const borderStyle = cardBorder ? 'border: 1px solid var(--color-border);' : ''
-const cardStyle = `padding: ${cardPaddingPx}px; border-radius: ${cardBorderRadiusPx}px; ${borderStyle} ${masonryStyle}`
-
+// Render using shared function
 const isVertical = cardLayout === 'vertical'
-const flexDirection = isVertical
-  ? 'flex-col'
-  : thumbnailPosition === 'right' ? 'flex-row-reverse' : 'flex-row'
-const gapClass = isVertical ? 'gap-3' : 'gap-4'
-
-const showMeta = showDate || showVotes || showComments || showPayout
+const postCardHtml = renderPostCard(postData, cardSettings, isVertical, `/${post.permlink}`, masonryStyle)
 ---
 
-<article
-  class="bg-bg-card rounded-xl overflow-hidden cursor-pointer shadow-sm hover:shadow-md transition-shadow"
-  style={cardStyle}
->
-  <div class={`flex ${flexDirection} ${gapClass}`}>
-    {showThumbnail && thumbnail && (
-      isVertical ? (
-        <div class="rounded-lg overflow-hidden flex-shrink-0 bg-cover bg-center w-full h-40">
-          <img src={thumbnail} alt="" class="w-full h-full object-cover" onerror="this.style.display='none'" />
-        </div>
-      ) : (
-        <img
-          src={thumbnail}
-          alt=""
-          style={`width: ${thumbnailSizePx}px; height: ${thumbnailSizePx}px; object-fit: cover; border-radius: 8px; flex-shrink: 0;`}
-          onerror="this.style.display='none'"
-        />
-      )
-    )}
-    <div class="flex-1 min-w-0">
-      <h2 class="font-semibold text-text line-clamp-2 hover:text-primary transition-colors" style={`font-size: ${titleSizePx}px;`}>
-        <a href={`/${post.permlink}`}>
-          {post.title}
-        </a>
-      </h2>
-
-      {showSummary && (
-        <p class="text-text-muted text-sm mt-1 line-clamp-2">{summary}</p>
-      )}
-
-      {showMeta && (
-        <div class="flex flex-wrap items-center gap-3 mt-2 text-xs text-text-muted">
-          {showDate && (
-            <span>{post.publishedAt.toLocaleDateString('pl-PL')}</span>
-          )}
-          {showVotes && (
-            <span>{votesCount} votes</span>
-          )}
-          {showComments && (
-            <span>{commentsCount} comments</span>
-          )}
-          {showPayout && (
-            <span class="text-success">
-              ${formatPayout(post.pendingPayoutValue)}
-            </span>
-          )}
-        </div>
-      )}
-
-      {showTags && post.tags.length > 0 && (
-        <div class="flex flex-wrap gap-1 mt-2">
-          {post.tags.slice(0, maxTags).map((tag: string) => (
-            <span class="px-2 py-0.5 text-xs bg-bg-secondary text-text-muted rounded">
-              #{tag}
-            </span>
-          ))}
-        </div>
-      )}
-    </div>
-  </div>
-</article>
+<Fragment set:html={postCardHtml} />

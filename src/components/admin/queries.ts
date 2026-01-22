@@ -7,7 +7,6 @@ import { setHasUnsavedChanges } from './AdminPanel'
 import {
   DataProvider,
   getWax,
-  formatCompactNumber,
   formatJoinDate,
   calculateEffectiveHP,
   type IProfile,
@@ -16,6 +15,7 @@ import {
   type BridgePost,
   type NaiAsset,
 } from '../../lib/blog-logic'
+import { formatCompactNumber } from '../../shared/formatters'
 
 // ============================================
 // Apply theme colors to CSS variables

@@ -1,33 +1,21 @@
 ---
+/**
+ * AuthorProfile component - displays user profile card
+ * Uses shared render functions for consistency with FullPreview
+ */
 import type {
   IProfile,
   IDatabaseAccount,
   IGlobalProperties,
   IAccountManabars,
 } from '../../lib/blog-logic'
-import { calculateEffectiveHP, parseFormattedAsset } from '../../lib/blog-logic'
-import type { CardLayout, CardSection, CardSectionChild, SocialLink } from './types'
-
-// Platform colors for social links
-const platformColors: Record<string, string> = {
-  instagram: '#E4405F',
-  x: '#000000',
-  youtube: '#FF0000',
-  tiktok: '#000000',
-  threads: '#000000',
-  facebook: '#1877F2',
-}
-
-// Default layout if none provided
-const defaultAuthorProfileLayout: CardLayout = {
-  sections: [
-    { id: 'sec-1', orientation: 'horizontal', children: [{ type: 'element', id: 'coverImage' }] },
-    { id: 'sec-2', orientation: 'horizontal', children: [{ type: 'element', id: 'avatar' }, { type: 'element', id: 'username' }, { type: 'element', id: 'reputation' }] },
-    { id: 'sec-3', orientation: 'vertical', children: [{ type: 'element', id: 'displayName' }, { type: 'element', id: 'about' }] },
-    { id: 'sec-4', orientation: 'horizontal', children: [{ type: 'element', id: 'location' }, { type: 'element', id: 'website' }, { type: 'element', id: 'joinDate' }] },
-    { id: 'sec-5', orientation: 'horizontal', children: [{ type: 'element', id: 'followers' }, { type: 'element', id: 'following' }, { type: 'element', id: 'postCount' }] },
-  ],
-}
+import type { CardLayout, SocialLink } from './types'
+import {
+  createAuthorProfileData,
+  createAuthorProfileSettings,
+  renderAuthorProfileSections,
+  renderSocialLinks,
+} from '../../shared/components/author-profile'
 
 interface Props {
   username: string
@@ -55,217 +43,45 @@ const {
   profile,
   globalProperties,
   accountManabars,
-  profileLayout = defaultAuthorProfileLayout,
-  avatarSize = 64,
-  coverHeight = 64,
-  usernameSize = 14,
-  displayNameSize = 18,
-  aboutSize = 14,
-  statsSize = 14,
-  metaSize = 12,
+  profileLayout,
+  avatarSize,
+  coverHeight,
+  usernameSize,
+  displayNameSize,
+  aboutSize,
+  statsSize,
+  metaSize,
   socialLinks = []
 } = Astro.props
 
-// Profile metadata from IProfile (with fallbacks matching FullPreview behavior)
-const profileMeta = profile?.metadata
-const displayName = profileMeta?.name || profile?.name
-const about = profileMeta?.about || ''
-const location = profileMeta?.location || ''
-const website = profileMeta?.website || ''
-const coverImage = profileMeta?.coverImage || ''
-const profileImage = profileMeta?.profileImage
+// Create normalized data using shared utility
+const profileData = createAuthorProfileData(
+  username,
+  profile,
+  account,
+  globalProperties,
+  accountManabars
+)
 
-// Stats from IProfile
-const reputation = profile?.reputation
-const followers = profile?.stats?.followers
-const following = profile?.stats?.following
-const joinDate = profile?.created ? new Date(profile.created) : null
+// Create settings using shared utility
+const profileSettings = createAuthorProfileSettings({
+  authorProfileLayout2: profileLayout,
+  authorAvatarSizePx: avatarSize,
+  authorCoverHeightPx: coverHeight,
+  authorUsernameSizePx: usernameSize,
+  authorDisplayNameSizePx: displayNameSize,
+  authorAboutSizePx: aboutSize,
+  authorStatsSizePx: statsSize,
+  authorMetaSizePx: metaSize,
+  socialLinks,
+})
 
-// Financial data from IDatabaseAccount
-const postCount = account?.postCount ?? 0
-
-// Parse balance amounts
-const hiveBalance = account ? parseFormattedAsset(account.balance) : 0
-const hbdBalance = account ? parseFormattedAsset(account.hbdBalance) : 0
-
-// Calculate HP values using global properties
-let hivePower = 0
-if (globalProperties && account) {
-  hivePower = calculateEffectiveHP(
-    account.vestingShares,
-    account.delegatedVestingShares,
-    account.receivedVestingShares,
-    globalProperties
-  )
-}
-
-// Use Blog Logic manabar data
-const votingPower = accountManabars?.upvote?.percent ?? 0
-
-// Format large numbers
-function formatNumber(num: number): string {
-  if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M'
-  if (num >= 1000) return (num / 1000).toFixed(1) + 'K'
-  return num.toString()
-}
-
-// Format date
-function formatDate(date: Date): string {
-  return date.toLocaleDateString('en-US', {
-    month: 'short',
-    year: 'numeric'
-  })
-}
-
-// Avatar URL
-const avatarUrl = profileImage || `https://images.hive.blog/u/${username}/avatar`
-
-// Render element by ID - returns HTML string
-function renderElement(id: string): string | null {
-  switch (id) {
-    case 'coverImage':
-      if (!coverImage) {
-        return `<div class="bg-gradient-to-r from-primary/30 to-accent/30 rounded-t-lg -mx-4 -mt-4 mb-2" style="height: ${coverHeight}px;"></div>`
-      }
-      return `<div class="bg-cover bg-center rounded-t-lg -mx-4 -mt-4 mb-2" style="height: ${coverHeight}px; background-image: url('https://images.hive.blog/640x0/${coverImage}');"></div>`
-
-    case 'avatar':
-      return `<img src="${avatarUrl}" alt="${username}" style="width: ${avatarSize}px; height: ${avatarSize}px;" class="rounded-full border-2 border-bg-card ring-2 ring-border flex-shrink-0" onerror="this.src='/hive-logo.png'" />`
-
-    case 'username':
-      return `<p class="font-bold text-text" style="font-size: ${usernameSize}px;">@${username}</p>`
-
-    case 'displayName':
-      // Always render displayName (matches FullPreview behavior)
-      return `<h2 class="font-bold text-text" style="font-size: ${displayNameSize}px;">${displayName || username}</h2>`
-
-    case 'reputation':
-      // Always render reputation (matches FullPreview behavior)
-      return `<span class="inline-block px-2 py-0.5 text-xs font-medium bg-primary/10 text-primary rounded-full">Rep: ${reputation !== undefined ? Math.floor(reputation) : '?'}</span>`
-
-    case 'about':
-      if (!about) return null
-      return `<p class="text-text-muted line-clamp-2" style="font-size: ${aboutSize}px;">${about}</p>`
-
-    case 'location':
-      if (!location) return null
-      return `<span class="flex items-center gap-1 text-text-muted" style="font-size: ${metaSize}px;"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>${location}</span>`
-
-    case 'website':
-      if (!website) return null
-      const href = website.startsWith('http') ? website : `https://${website}`
-      const displayUrl = website.replace(/^https?:\/\//, '').replace(/\/$/, '')
-      return `<a href="${href}" target="_blank" rel="noopener noreferrer" class="flex items-center gap-1 text-primary hover:underline" style="font-size: ${metaSize}px;"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>${displayUrl}</a>`
-
-    case 'joinDate':
-      // Always render joinDate (matches FullPreview behavior)
-      return `<span class="flex items-center gap-1 text-text-muted" style="font-size: ${metaSize}px;"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>${joinDate ? formatDate(joinDate) : 'Unknown'}</span>`
-
-    case 'followers':
-      // Always render (matches FullPreview behavior)
-      return `<div class="text-center"><p class="font-bold text-text" style="font-size: ${statsSize}px;">${formatNumber(followers ?? 0)}</p><p class="text-xs text-text-muted">Followers</p></div>`
-
-    case 'following':
-      // Always render (matches FullPreview behavior)
-      return `<div class="text-center"><p class="font-bold text-text" style="font-size: ${statsSize}px;">${formatNumber(following ?? 0)}</p><p class="text-xs text-text-muted">Following</p></div>`
-
-    case 'postCount':
-      // Always render (matches FullPreview behavior)
-      return `<div class="text-center"><p class="font-bold text-text" style="font-size: ${statsSize}px;">${formatNumber(postCount)}</p><p class="text-xs text-text-muted">Posts</p></div>`
-
-    case 'hivePower':
-      return `<div class="text-center"><p class="font-bold text-text" style="font-size: ${statsSize}px;">${hivePower.toFixed(3)}</p><p class="text-xs text-text-muted">Hive Power</p></div>`
-
-    case 'hpEarned':
-      return `<div class="text-center"><p class="font-bold text-success" style="font-size: ${statsSize}px;">${hivePower.toFixed(3)}</p><p class="text-xs text-text-muted">HP</p></div>`
-
-    case 'votingPower':
-      return `<div class="text-center"><p class="font-semibold text-text" style="font-size: ${statsSize}px;">${votingPower.toFixed(1)}%</p><p class="text-xs text-text-muted">Voting Power</p></div>`
-
-    case 'hiveBalance':
-      return `<div class="text-center"><p class="font-semibold text-text" style="font-size: ${statsSize}px;">${hiveBalance.toFixed(3)}</p><p class="text-xs text-text-muted">HIVE</p></div>`
-
-    case 'hbdBalance':
-      return `<div class="text-center"><p class="font-semibold text-text" style="font-size: ${statsSize}px;">${hbdBalance.toFixed(3)}</p><p class="text-xs text-text-muted">HBD</p></div>`
-
-    default:
-      return null
-  }
-}
-
-// Render a child (element or nested section)
-function renderChild(child: CardSectionChild): string {
-  if (child.type === 'element') {
-    return renderElement(child.id) || ''
-  } else {
-    return renderSection(child.section)
-  }
-}
-
-// Render a section with its orientation (recursive)
-function renderSection(section: CardSection): string {
-  if (!section.children || section.children.length === 0) return ''
-
-  const childrenHtml = section.children
-    .map(child => renderChild(child))
-    .filter(html => html.length > 0)
-    .join('')
-
-  if (!childrenHtml) return ''
-
-  const flexClass = section.orientation === 'horizontal'
-    ? 'flex flex-wrap items-center gap-2'
-    : 'flex flex-col gap-1'
-
-  return `<div class="${flexClass}">${childrenHtml}</div>`
-}
-
-// Render all sections
-function renderAllSections(): string {
-  return profileLayout.sections.map(section => renderSection(section)).join('')
-}
-
-// Render social links
-function renderSocialLinks(): string {
-  const validLinks = socialLinks.filter(l => l.url)
-  if (validLinks.length === 0) return ''
-
-  const linksHtml = validLinks.map(link => {
-    const color = platformColors[link.platform] || '#000000'
-    let iconSvg = ''
-
-    switch (link.platform) {
-      case 'instagram':
-        iconSvg = '<svg class="w-5 h-5" viewBox="0 0 24 24" fill="white"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>'
-        break
-      case 'x':
-        iconSvg = '<svg class="w-5 h-5" viewBox="0 0 24 24" fill="white"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>'
-        break
-      case 'youtube':
-        iconSvg = '<svg class="w-5 h-5" viewBox="0 0 24 24" fill="white"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>'
-        break
-      case 'tiktok':
-        iconSvg = '<svg class="w-5 h-5" viewBox="0 0 24 24" fill="white"><path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z"/></svg>'
-        break
-      case 'threads':
-        iconSvg = '<svg class="w-5 h-5" viewBox="0 0 24 24" fill="white"><path d="M12.186 24h-.007c-3.581-.024-6.334-1.205-8.184-3.509C2.35 18.44 1.5 15.586 1.472 12.01v-.017c.03-3.579.879-6.43 2.525-8.482C5.845 1.205 8.6.024 12.18 0h.014c2.746.02 5.043.725 6.826 2.098 1.677 1.29 2.858 3.13 3.509 5.467l-2.04.569c-1.104-3.96-3.898-5.984-8.304-6.015-2.91.022-5.11.936-6.54 2.717C4.307 6.504 3.616 8.914 3.589 12c.027 3.086.718 5.496 2.057 7.164 1.43 1.783 3.631 2.698 6.54 2.717 2.623-.02 4.358-.631 5.8-2.045 1.647-1.613 1.618-3.593 1.09-4.798-.31-.71-.873-1.3-1.634-1.75-.192 1.352-.622 2.446-1.284 3.272-.886 1.102-2.14 1.704-3.73 1.79-1.202.065-2.361-.218-3.259-.801-1.063-.689-1.685-1.74-1.752-2.96-.065-1.182.408-2.256 1.332-3.023.858-.712 2.05-1.169 3.453-1.324 1.039-.114 2.107-.1 3.18.042.022-.652-.053-1.26-.223-1.799-.357-1.132-1.136-1.707-2.313-1.707h-.033c-.747.005-1.363.253-1.833.737l-1.455-1.408c.837-.864 1.96-1.328 3.252-1.346h.048c1.906 0 3.34.758 4.134 2.19.466.838.702 1.88.702 3.1v.092c1.37.821 2.327 1.918 2.745 3.266.567 1.833.392 4.282-1.679 6.312-1.838 1.8-4.17 2.619-7.345 2.644z"/></svg>'
-        break
-      case 'facebook':
-        iconSvg = '<svg class="w-5 h-5" viewBox="0 0 24 24" fill="white"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>'
-        break
-    }
-
-    return `<a href="${link.url}" target="_blank" rel="noopener noreferrer" class="p-2 rounded-lg transition-opacity hover:opacity-80" style="background: ${color};" title="${link.platform}">${iconSvg}</a>`
-  }).join('')
-
-  return `<div class="flex flex-wrap gap-2 mt-4 pt-4 border-t border-border">${linksHtml}</div>`
-}
-
-const sectionsHtml = renderAllSections()
-const socialLinksHtml = renderSocialLinks()
+// Render using shared functions
+const sectionsHtml = renderAuthorProfileSections(profileData, profileSettings)
+const socialLinksHtml = renderSocialLinks(profileSettings.socialLinks)
 ---
 
-<div class="bg-bg-card rounded-xl border border-border overflow-hidden p-4">
+<div class="bg-bg-card rounded-xl shadow-sm border border-border overflow-hidden p-4">
   <div class="space-y-2" set:html={sectionsHtml} />
   {socialLinksHtml && <Fragment set:html={socialLinksHtml} />}
 </div>
