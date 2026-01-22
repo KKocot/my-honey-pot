@@ -60,9 +60,6 @@ function AdminPanelContent(props: AdminPanelContentProps) {
   const [diffViewMode, setDiffViewMode] = createSignal<'diff' | 'old' | 'new'>('diff')
   const [isLoadingDiff, setIsLoadingDiff] = createSignal(false)
 
-  // Dev mode only for barddev
-  const isDeveloper = () => currentUser()?.username === 'barddev'
-
   // Check if logged in user is the blog owner (can save changes)
   const isOwner = () => {
     const user = currentUser()
@@ -188,10 +185,11 @@ function AdminPanelContent(props: AdminPanelContentProps) {
     return diff.sort((a, b) => a.key.localeCompare(b.key))
   }
 
-  // Dev only: Preview JSON without sending - with diff view
+  // Preview JSON without sending - with diff view (available for everyone)
   const handlePreviewJson = async () => {
-    const user = currentUser()
-    if (!user) return
+    // Use owner username for loading config (works for non-logged users too)
+    const username = props.ownerUsername
+    if (!username) return
 
     setIsLoadingDiff(true)
     setShowJsonPreview(true)
@@ -204,7 +202,7 @@ function AdminPanelContent(props: AdminPanelContentProps) {
       setJsonPreviewContent(JSON.stringify(newSettings, null, 2))
 
       // Load old settings from Hive
-      const oldSettings = await loadConfigFromHive(user.username) as Record<string, unknown> | null
+      const oldSettings = await loadConfigFromHive(username) as Record<string, unknown> | null
       setJsonOldContent(oldSettings)
 
       // Calculate diff
@@ -260,7 +258,7 @@ function AdminPanelContent(props: AdminPanelContentProps) {
                   </svg>
                 </div>
                 <div>
-                  <h2 class="text-lg font-bold text-text">Config Diff (Dev Mode)</h2>
+                  <h2 class="text-lg font-bold text-text">Config Preview</h2>
                   <p class="text-xs text-text-muted">Compare current settings with saved on Hive</p>
                 </div>
               </div>
@@ -587,21 +585,19 @@ function AdminPanelContent(props: AdminPanelContentProps) {
               </Show>
             </div>
             <div class="flex gap-3 flex-shrink-0">
-              {/* Dev only: Preview JSON button for barddev */}
-              <Show when={isDeveloper()}>
-                <Button
-                  variant="secondary"
-                  size="lg"
-                  onClick={handlePreviewJson}
-                >
-                  <span class="flex items-center gap-2">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
-                    </svg>
-                    Preview JSON
-                  </span>
-                </Button>
-              </Show>
+              {/* Preview JSON - visible for everyone */}
+              <Button
+                variant="secondary"
+                size="lg"
+                onClick={handlePreviewJson}
+              >
+                <span class="flex items-center gap-2">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                  </svg>
+                  Preview JSON
+                </span>
+              </Button>
               <Button
                 variant="secondary"
                 size="lg"
