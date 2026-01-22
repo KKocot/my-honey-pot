@@ -240,6 +240,26 @@ function AdminPanelContent(props: AdminPanelContentProps) {
     }
   }
 
+  // Download config as JSON file
+  const handleDownloadConfig = () => {
+    try {
+      const snapshot = getSettingsSnapshot()
+      const jsonStr = JSON.stringify(snapshot, null, 2)
+      const blob = new Blob([jsonStr], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `hive-blog-config-${new Date().toISOString().split('T')[0]}.json`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(url)
+      showToast('Config downloaded successfully', 'success')
+    } catch (error) {
+      showToast('Failed to download config', 'error')
+    }
+  }
+
   return (
     <>
       <Toast />
@@ -508,12 +528,22 @@ function AdminPanelContent(props: AdminPanelContentProps) {
                   localStorage.setItem('hive-blog-settings', JSON.stringify(snapshot))
                   showToast('Settings saved to local storage', 'success')
                 }}
-                class="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-primary hover:bg-primary-hover text-white rounded-lg transition-colors"
+                class="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-primary hover:bg-primary-hover text-primary-text rounded-lg transition-colors"
               >
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
                 </svg>
-                Quick Save
+                Local Save
+              </button>
+              <button
+                onClick={handleDownloadConfig}
+                class="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-bg-secondary hover:bg-bg text-text border border-border rounded-lg transition-colors"
+                title="Download config as JSON file"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                Download
               </button>
             </Show>
             <button
