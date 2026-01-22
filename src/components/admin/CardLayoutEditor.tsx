@@ -239,20 +239,20 @@ function SectionNode(props: SectionNodeProps) {
           class={`
             flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-colors
             ${props.section.orientation === 'horizontal'
-              ? 'bg-primary/20 text-primary'
-              : 'bg-accent/20 text-accent'}
+              ? 'bg-accent/20 text-accent'
+              : 'bg-primary/20 text-primary'}
           `}
-          title={`Click to switch to ${props.section.orientation === 'horizontal' ? 'vertical' : 'horizontal'}`}
+          title={`Currently ${props.section.orientation}, click to toggle`}
         >
           {props.section.orientation === 'horizontal' ? (
             <>
-              <HorizontalIcon />
-              <span>H</span>
+              <VerticalIcon />
+              <span>V</span>
             </>
           ) : (
             <>
-              <VerticalIcon />
-              <span>V</span>
+              <HorizontalIcon />
+              <span>H</span>
             </>
           )}
         </button>
@@ -540,17 +540,23 @@ export function CardLayoutEditor(props: CardLayoutEditorProps) {
 // ============================================
 
 function HorizontalIcon() {
+  // Three boxes in a row (horizontal layout)
   return (
-    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 12h16" />
+    <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+      <rect x="2" y="8" width="5" height="8" rx="1" />
+      <rect x="9" y="8" width="5" height="8" rx="1" />
+      <rect x="16" y="8" width="5" height="8" rx="1" />
     </svg>
   )
 }
 
 function VerticalIcon() {
+  // Three boxes stacked (vertical layout)
   return (
-    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16" />
+    <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+      <rect x="6" y="2" width="12" height="5" rx="1" />
+      <rect x="6" y="9" width="12" height="5" rx="1" />
+      <rect x="6" y="16" width="12" height="5" rx="1" />
     </svg>
   )
 }
