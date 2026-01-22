@@ -168,3 +168,58 @@ input[type="range"]:focus::-webkit-slider-thumb {
 input[type="range"]:focus::-moz-range-thumb {
   box-shadow: 0 0 0 3px var(--theme-primary, #3b82f6), 0 0 0 5px rgba(59, 130, 246, 0.2);
 }
+
+/* ============================================
+   Post Card Hover Effects
+   CSS classes for production rendering
+   ============================================ */
+
+/* Base card transition */
+.post-card {
+  transition: transform var(--card-transition, 200ms) ease-out,
+              box-shadow var(--card-transition, 200ms) ease-out,
+              filter var(--card-transition, 200ms) ease-out;
+}
+
+/* Shadow hover effect */
+.post-card.hover-shadow:hover {
+  box-shadow: var(--card-hover-shadow, 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1));
+}
+
+/* Scale hover effect */
+.post-card.hover-scale:hover {
+  transform: scale(var(--card-hover-scale, 1.02));
+}
+
+/* Lift hover effect (scale + translateY + shadow) */
+.post-card.hover-lift:hover {
+  transform: scale(var(--card-hover-scale, 1.02)) translateY(-4px);
+  box-shadow: var(--card-hover-shadow, 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1));
+}
+
+/* Glow hover effect */
+.post-card.hover-glow:hover {
+  filter: brightness(var(--card-hover-brightness, 1.05));
+  box-shadow: 0 0 20px var(--theme-primary, #3b82f6);
+}
+
+/* Shadow size presets as CSS variables */
+.post-card[data-shadow="sm"] {
+  --card-hover-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+}
+
+.post-card[data-shadow="md"] {
+  --card-hover-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+}
+
+.post-card[data-shadow="lg"] {
+  --card-hover-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+}
+
+.post-card[data-shadow="xl"] {
+  --card-hover-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+}
+
+.post-card[data-shadow="2xl"] {
+  --card-hover-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+}
