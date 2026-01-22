@@ -140,18 +140,6 @@ export function NavigationSettings() {
                       </Show>
                     </div>
 
-                    {/* Show count toggle (for posts/comments) */}
-                    <Show when={tab.id === 'posts' || tab.id === 'comments'}>
-                      <label class="flex items-center gap-1 text-xs text-text-muted whitespace-nowrap cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={tab.showCount}
-                          onChange={(e) => updateTab(tab.id, { showCount: e.currentTarget.checked })}
-                          class="w-3.5 h-3.5 rounded border-border text-primary focus:ring-primary cursor-pointer"
-                        />
-                        Count
-                      </label>
-                    </Show>
 
                     {/* URL input for custom tabs */}
                     <Show when={!isBuiltIn(tab.id)}>
@@ -221,16 +209,6 @@ export function NavigationSettings() {
                       >
                         <span class="flex items-center gap-1">
                           {tab.label}
-                          <Show when={tab.showCount && (tab.id === 'posts' || tab.id === 'comments')}>
-                            <span
-                              class={`
-                                text-[10px] px-1 py-0.5 rounded-full
-                                ${isFirst() ? 'bg-primary/10 text-primary' : 'bg-bg-secondary text-text-muted'}
-                              `}
-                            >
-                              {tab.id === 'posts' ? '42' : '128'}
-                            </span>
-                          </Show>
                           <Show when={isExternalUrl(tab.href)}>
                             <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />

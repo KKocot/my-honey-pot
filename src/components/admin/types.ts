@@ -736,9 +736,9 @@ export const defaultSettings: SettingsData = {
   scrollAnimationDelay: 100,
   // Navigation Tabs defaults (only Hive content tabs)
   navigationTabs: [
-    { id: 'posts', label: 'Posts', enabled: true, showCount: true },
+    { id: 'posts', label: 'Posts', enabled: true, showCount: false },
     { id: 'threads', label: 'Hive Threads', enabled: true, showCount: false },
-    { id: 'comments', label: 'Comments', enabled: true, showCount: true },
+    { id: 'comments', label: 'Comments', enabled: true, showCount: false },
   ],
   // Social media links defaults
   socialLinks: [],
