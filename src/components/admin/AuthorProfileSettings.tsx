@@ -81,6 +81,7 @@ export function AuthorProfileSettings() {
   const hasUsername = createMemo(() => isElementInLayout(settings.authorProfileLayout2, 'username'))
   const hasDisplayName = createMemo(() => isElementInLayout(settings.authorProfileLayout2, 'displayName'))
   const hasAbout = createMemo(() => isElementInLayout(settings.authorProfileLayout2, 'about'))
+  const hasReputation = createMemo(() => isElementInLayout(settings.authorProfileLayout2, 'reputation'))
   const hasStats = createMemo(() => areAnyElementsInLayout(settings.authorProfileLayout2, ['followers', 'following', 'postCount', 'hivePower', 'hpEarned', 'hiveBalance', 'hbdBalance']))
   const hasMeta = createMemo(() => areAnyElementsInLayout(settings.authorProfileLayout2, ['location', 'website', 'joinDate']))
 
@@ -141,6 +142,15 @@ export function AuthorProfileSettings() {
               value={settings.authorAboutSizePx ?? 14}
               onInput={(e) => updateSettings({ authorAboutSizePx: parseInt(e.currentTarget.value) })}
               disabled={!hasAbout()}
+            />
+            <Slider
+              label="Reputation size:"
+              unit="px"
+              min={10}
+              max={16}
+              value={settings.authorReputationSizePx ?? 12}
+              onInput={(e) => updateSettings({ authorReputationSizePx: parseInt(e.currentTarget.value) })}
+              disabled={!hasReputation()}
             />
             <Slider
               label="Stats size:"
@@ -234,6 +244,7 @@ function AuthorProfilePreview() {
   const usernameSize = createMemo(() => settings.authorUsernameSizePx ?? 14)
   const displayNameSize = createMemo(() => settings.authorDisplayNameSizePx ?? 18)
   const aboutSize = createMemo(() => settings.authorAboutSizePx ?? 14)
+  const reputationSize = createMemo(() => settings.authorReputationSizePx ?? 12)
   const statsSize = createMemo(() => settings.authorStatsSizePx ?? 14)
   const metaSize = createMemo(() => settings.authorMetaSizePx ?? 12)
 
@@ -309,7 +320,7 @@ function AuthorProfilePreview() {
         </Show>
 
         <Show when={props.id === 'reputation'}>
-          <span class="inline-block px-2 py-0.5 text-xs font-medium bg-primary/10 text-primary rounded-full">
+          <span class="inline-block px-2 py-0.5 font-medium bg-primary/10 text-primary rounded-full" style={{ 'font-size': `${reputationSize()}px` }}>
             Rep: {profileData().reputation}
           </span>
         </Show>
@@ -451,22 +462,20 @@ function AuthorProfilePreview() {
   }
 
   // Render a section with its orientation (recursive)
-  const renderSection = (section: CardSection): ReturnType<typeof renderElement> => {
+  const renderSection = (section: CardSection) => {
     if (!section.children || section.children.length === 0) return null
 
     // Full-width sections (like coverImage) need special treatment
     const isFullWidth = hasFullWidthElement(section)
 
+    // Build class based on orientation
+    const orientationClass = section.orientation === 'horizontal'
+      ? 'flex flex-wrap items-center gap-2'
+      : 'flex flex-col gap-1'
+
     return (
       <div
-        class={`
-          ${isFullWidth
-            ? 'w-full'
-            : section.orientation === 'horizontal'
-              ? 'flex flex-wrap items-center gap-2'
-              : 'flex flex-col gap-1'
-          }
-        `}
+        class={`${orientationClass} ${isFullWidth ? 'w-full' : ''}`}
       >
         <For each={section.children}>{(child) => renderChild(child)}</For>
       </div>
