@@ -1,7 +1,7 @@
 services:
-  hive-blog:
+  my-honey-pot:
     build: .
-    container_name: hive-blog
+    container_name: my-honey-pot
     restart: unless-stopped
     environment:
       - NODE_ENV=production
@@ -14,11 +14,11 @@ services:
       - common_proxy_network
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.hive-blog.rule=Host(`${DOMAIN}`)"
-      - "traefik.http.routers.hive-blog.tls=true"
-      - "traefik.http.services.hive-blog.loadbalancer.server.port=4321"
-      - "traefik.http.routers.hive-blog.service=hive-blog"
-      - "traefik.http.routers.hive-blog.entrypoints=websecure"
+      - "traefik.http.routers.my-honey-pot.rule=Host(`${DOMAIN}`)"
+      - "traefik.http.routers.my-honey-pot.tls=true"
+      - "traefik.http.services.my-honey-pot.loadbalancer.server.port=4321"
+      - "traefik.http.routers.my-honey-pot.service=my-honey-pot"
+      - "traefik.http.routers.my-honey-pot.entrypoints=websecure"
 
 networks:
   common_proxy_network:
