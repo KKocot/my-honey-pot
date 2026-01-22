@@ -323,7 +323,7 @@ export function TemplateSelector() {
             <span class="text-2xl">✨</span>
             <div class="flex-1 min-w-0">
               <h3 class="font-medium text-primary truncate">Randomize</h3>
-              <p class="text-xs text-text-muted line-clamp-2">Apply a random template</p>
+              <p class="text-xs text-text-muted line-clamp-2">Generate random settings</p>
             </div>
           </div>
         </button>
