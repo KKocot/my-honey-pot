@@ -2,7 +2,7 @@
  * PostCard utilities - data transformation and parsing functions
  */
 
-import type { PostCardData, PostCardSettings } from './types'
+import type { PostCardData, PostCardSettings, CardLayout } from './types'
 import type { BridgePost } from '../../../lib/blog-logic'
 import { getSummary, stripMarkdownSimple } from '../../formatters'
 import { defaultPostCardSettings } from './types'
@@ -84,6 +84,12 @@ export function createPostCardSettings(settings: Partial<{
   showTags: boolean
   cardBorder: boolean
   maxTags: number
+  postCardLayout?: CardLayout
+  cardHoverEffect?: 'none' | 'shadow' | 'lift' | 'scale' | 'glow'
+  cardTransitionDuration?: number
+  cardHoverScale?: number
+  cardHoverShadow?: string
+  cardHoverBrightness?: number
 }>): PostCardSettings {
   return {
     cardLayout: settings.cardLayout ?? defaultPostCardSettings.cardLayout,
@@ -102,6 +108,12 @@ export function createPostCardSettings(settings: Partial<{
     showTags: settings.showTags ?? defaultPostCardSettings.showTags,
     cardBorder: settings.cardBorder ?? defaultPostCardSettings.cardBorder,
     maxTags: settings.maxTags ?? defaultPostCardSettings.maxTags,
+    postCardLayout: settings.postCardLayout,
+    cardHoverEffect: settings.cardHoverEffect,
+    cardTransitionDuration: settings.cardTransitionDuration,
+    cardHoverScale: settings.cardHoverScale,
+    cardHoverShadow: settings.cardHoverShadow,
+    cardHoverBrightness: settings.cardHoverBrightness,
   }
 }
 

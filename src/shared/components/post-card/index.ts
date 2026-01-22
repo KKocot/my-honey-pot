@@ -3,7 +3,7 @@
  * Single source of truth for post card rendering
  */
 
-export type { PostCardData, PostCardSettings } from './types'
+export type { PostCardData, PostCardSettings, CardSection, CardSectionChild, CardLayout } from './types'
 export { defaultPostCardSettings } from './types'
 
 export {
@@ -21,4 +21,6 @@ export {
 export {
   renderPostCardContent,
   renderPostCard,
+  isElementInLayout,
+  collectElementIds,
 } from './render'

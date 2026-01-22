@@ -18,6 +18,29 @@ export interface PostCardData {
 }
 
 /**
+ * Card section child - can be element or nested section
+ */
+export type CardSectionChild =
+  | { type: 'element'; id: string }
+  | { type: 'section'; section: CardSection }
+
+/**
+ * Card section with orientation and children
+ */
+export interface CardSection {
+  id: string
+  orientation: 'horizontal' | 'vertical'
+  children: CardSectionChild[]
+}
+
+/**
+ * Card layout with sections for drag & drop
+ */
+export interface CardLayout {
+  sections: CardSection[]
+}
+
+/**
  * Post card display settings
  */
 export interface PostCardSettings {
@@ -37,6 +60,14 @@ export interface PostCardSettings {
   showTags: boolean
   cardBorder: boolean
   maxTags: number
+  // Optional sections layout for drag & drop
+  postCardLayout?: CardLayout
+  // Hover effect settings
+  cardHoverEffect?: 'none' | 'shadow' | 'lift' | 'scale' | 'glow'
+  cardTransitionDuration?: number
+  cardHoverScale?: number
+  cardHoverShadow?: string
+  cardHoverBrightness?: number
 }
 
 /**
