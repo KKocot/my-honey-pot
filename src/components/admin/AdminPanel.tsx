@@ -501,6 +501,21 @@ function AdminPanelContent(props: AdminPanelContentProps) {
             <Show when={!isOwner()}>
               <span class="text-xs text-warning bg-warning/10 px-2 py-0.5 rounded">View only</span>
             </Show>
+            <Show when={isOwner()}>
+              <button
+                onClick={() => {
+                  const snapshot = getSettingsSnapshot()
+                  localStorage.setItem('hive-blog-settings', JSON.stringify(snapshot))
+                  showToast('Settings saved to local storage', 'success')
+                }}
+                class="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-primary hover:bg-primary-hover text-white rounded-lg transition-colors"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                </svg>
+                Quick Save
+              </button>
+            </Show>
             <button
               onClick={handleLogout}
               class="text-text-muted hover:text-text text-sm hover:bg-bg-secondary px-2 py-1 rounded transition-colors"
