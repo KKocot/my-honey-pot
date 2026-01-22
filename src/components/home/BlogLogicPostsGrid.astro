@@ -32,6 +32,14 @@ const showPayout = settings.showPayout !== false
 const showTags = settings.showTags !== false
 const cardBorder = settings.cardBorder !== false
 const maxTags = settings.maxTags ?? 5
+// Get postCardLayout for sections-based rendering (if available)
+const postCardLayout = settings.postCardLayout
+// Hover effect settings
+const cardHoverEffect = settings.cardHoverEffect || 'none'
+const cardTransitionDuration = settings.cardTransitionDuration ?? 200
+const cardHoverScale = settings.cardHoverScale ?? 1.02
+const cardHoverShadow = settings.cardHoverShadow ?? 'lg'
+const cardHoverBrightness = settings.cardHoverBrightness ?? 1.05
 
 function getContainerStyle(): string {
   if (postsLayout === 'list') {
@@ -69,6 +77,12 @@ function getMasonryStyle(): string {
       cardBorder={cardBorder}
       maxTags={maxTags}
       masonryStyle={getMasonryStyle()}
+      postCardLayout={postCardLayout}
+      cardHoverEffect={cardHoverEffect}
+      cardTransitionDuration={cardTransitionDuration}
+      cardHoverScale={cardHoverScale}
+      cardHoverShadow={cardHoverShadow}
+      cardHoverBrightness={cardHoverBrightness}
     />
   ))}
 </div>

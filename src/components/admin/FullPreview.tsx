@@ -311,6 +311,8 @@ export function FullPreview(props: FullPreviewProps) {
       showTags: settings.showTags !== false,
       cardBorder: settings.cardBorder !== false,
       maxTags: settings.maxTags || 5,
+      // Pass sections layout for drag & drop support
+      postCardLayout: settings.postCardLayout,
     }))
 
     // Render content using shared function

@@ -1,8 +1,10 @@
 ---
 /**
  * BlogLogicPostCard - uses shared PostCard utilities
+ * Supports both sections layout and legacy flags
  */
 import type { Post } from '../../lib/blog-logic'
+import type { CardLayout } from '../../shared/components/post-card'
 import {
   createPostCardDataFromPost,
   createPostCardSettings,
@@ -28,6 +30,14 @@ interface Props {
   cardBorder: boolean
   maxTags: number
   masonryStyle?: string
+  // Optional sections layout for drag & drop
+  postCardLayout?: CardLayout
+  // Hover effect settings
+  cardHoverEffect?: 'none' | 'shadow' | 'lift' | 'scale' | 'glow'
+  cardTransitionDuration?: number
+  cardHoverScale?: number
+  cardHoverShadow?: string
+  cardHoverBrightness?: number
 }
 
 const {
@@ -48,7 +58,13 @@ const {
   showTags,
   cardBorder,
   maxTags,
-  masonryStyle = ''
+  masonryStyle = '',
+  postCardLayout,
+  cardHoverEffect,
+  cardTransitionDuration,
+  cardHoverScale,
+  cardHoverShadow,
+  cardHoverBrightness,
 } = Astro.props
 
 // Create normalized post data using shared utility
@@ -76,6 +92,12 @@ const cardSettings = createPostCardSettings({
   showTags,
   cardBorder,
   maxTags,
+  postCardLayout,
+  cardHoverEffect,
+  cardTransitionDuration,
+  cardHoverScale,
+  cardHoverShadow,
+  cardHoverBrightness,
 })
 
 // Render using shared function

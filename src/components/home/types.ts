@@ -90,6 +90,8 @@ export interface SiteSettings {
   showTags?: boolean
   cardBorder?: boolean
   maxTags?: number
+  // Post card sections layout for drag & drop
+  postCardLayout?: CardLayout
   showHeader?: boolean
   showAuthorProfile?: boolean
   authorAvatarSizePx?: number
