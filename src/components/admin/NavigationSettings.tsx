@@ -112,7 +112,8 @@ export function NavigationSettings() {
                       type="checkbox"
                       checked={tab.enabled}
                       onChange={(e) => updateTab(tab.id, { enabled: e.currentTarget.checked })}
-                      class="w-4 h-4 rounded border-border text-primary focus:ring-primary cursor-pointer"
+                      disabled={tab.id === 'threads'}
+                      class={`w-4 h-4 rounded border-border text-primary focus:ring-primary ${tab.id === 'threads' ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                     />
 
                     {/* Tab info */}
