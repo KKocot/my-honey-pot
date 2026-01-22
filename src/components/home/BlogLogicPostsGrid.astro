@@ -10,27 +10,28 @@ interface Props {
 
 const { posts, settings } = Astro.props
 
-// Settings with defaults
+// Settings with defaults - ensure we use the exact values from admin settings
 const postsLayout = settings.postsLayout || 'list'
 const gridColumns = settings.gridColumns || 2
 const cardGapPx = settings.cardGapPx ?? 24
 // Force vertical layout for grid/masonry (matching FullPreview behavior)
 const cardLayout = postsLayout !== 'list' ? 'vertical' : (settings.cardLayout || 'horizontal')
 const thumbnailPosition = settings.thumbnailPosition || 'left'
+// Use explicit defaults matching admin/types.ts defaultSettings
 const thumbnailSizePx = settings.thumbnailSizePx ?? 96
 const cardPaddingPx = settings.cardPaddingPx ?? 24
 const cardBorderRadiusPx = settings.cardBorderRadiusPx ?? 16
 const titleSizePx = settings.titleSizePx ?? 20
 const showThumbnail = settings.showThumbnail !== false
 const showSummary = settings.showSummary !== false
-const summaryMaxLength = settings.summaryMaxLength || 150
+const summaryMaxLength = settings.summaryMaxLength ?? 150
 const showDate = settings.showDate !== false
 const showVotes = settings.showVotes !== false
 const showComments = settings.showComments !== false
 const showPayout = settings.showPayout !== false
 const showTags = settings.showTags !== false
 const cardBorder = settings.cardBorder !== false
-const maxTags = settings.maxTags || 5
+const maxTags = settings.maxTags ?? 5
 
 function getContainerStyle(): string {
   if (postsLayout === 'list') {

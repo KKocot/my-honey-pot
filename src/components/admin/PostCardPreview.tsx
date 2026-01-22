@@ -90,6 +90,7 @@ export function PostCard(props: PostCardProps) {
   const hoverScale = createMemo(() => settings.cardHoverScale)
   const hoverShadow = createMemo(() => settings.cardHoverShadow)
   const hoverBrightness = createMemo(() => settings.cardHoverBrightness)
+  const cardBorder = createMemo(() => settings.cardBorder)
 
   // Generate hover styles based on effect type
   const getHoverStyles = createMemo(() => {
@@ -250,7 +251,7 @@ export function PostCard(props: PostCardProps) {
     const baseStyle: Record<string, string> = {
       padding: `${padding()}px`,
       'border-radius': `${borderRadius()}px`,
-      border: settings.cardBorder ? '1px solid var(--color-border)' : 'none',
+      border: cardBorder() ? '1px solid var(--color-border)' : 'none',
       ...styles.base,
     }
 
