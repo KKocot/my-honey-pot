@@ -2,11 +2,8 @@ import createBeekeeper from '@hiveio/beekeeper'
 import BeekeeperProvider from '@hiveio/wax-signers-beekeeper'
 import { ReplyOperation } from '@hiveio/wax'
 import { DataProvider, getWax } from '../../lib/blog-logic'
+import { CONFIG_PARENT_AUTHOR, CONFIG_PARENT_PERMLINK } from '../../lib/config'
 import type { SettingsData } from './types'
-
-// Config post details - hardcoded parent post for all configs
-const CONFIG_PARENT_AUTHOR = 'barddev'
-const CONFIG_PARENT_PERMLINK = 'my-blog-configs'
 
 /**
  * Find existing config comment from a user under the config post using Blog Logic

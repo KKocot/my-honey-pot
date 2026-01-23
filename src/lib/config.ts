@@ -2,9 +2,30 @@
 // Application Configuration
 // ============================================
 
+// Helper to get env variable from both client and server contexts
+const getEnv = (key: string, fallback: string): string => {
+  // import.meta.env works in dev and client-side (Vite)
+  // process.env works in Node.js SSR
+  if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env[key]) {
+    return import.meta.env[key] as string
+  }
+  if (typeof process !== 'undefined' && process.env && process.env[key]) {
+    return process.env[key] as string
+  }
+  return fallback
+}
+
 // Hive API Endpoints
 // import.meta.env works in dev and client-side, process.env only works in Node.js SSR
-export const HIVE_API_ENDPOINT = import.meta.env.HIVE_API_ENDPOINT || (typeof process !== 'undefined' ? process.env?.HIVE_API_ENDPOINT : undefined) || 'https://api.openhive.network'
+export const HIVE_API_ENDPOINT = getEnv('HIVE_API_ENDPOINT', 'https://api.openhive.network')
+
+// Blog owner username (determines whose config to load and favicon)
+export const HIVE_USERNAME = getEnv('HIVE_USERNAME', '')
+
+// Config storage settings (where user configs are stored on Hive)
+// These can be overridden via environment variables
+export const CONFIG_PARENT_AUTHOR = getEnv('CONFIG_PARENT_AUTHOR', 'barddev')
+export const CONFIG_PARENT_PERMLINK = getEnv('CONFIG_PARENT_PERMLINK', 'my-blog-configs')
 
 // Fallback API endpoints for retry logic (ordered by preference)
 export const HIVE_API_ENDPOINTS = [
