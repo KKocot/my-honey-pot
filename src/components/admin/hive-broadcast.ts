@@ -1,8 +1,7 @@
-import createBeekeeper from '@hiveio/beekeeper'
-import BeekeeperProvider from '@hiveio/wax-signers-beekeeper'
 import { ReplyOperation } from '@hiveio/wax'
 import { DataProvider, getWax } from '../../lib/blog-logic'
 import { CONFIG_PARENT_AUTHOR, CONFIG_PARENT_PERMLINK } from '../../lib/config'
+import { getOnlineClient } from '../../lib/hbauth-service'
 import type { SettingsData } from './types'
 
 /**
@@ -52,16 +51,27 @@ function generateNewConfigPermlink(username: string): string {
 }
 
 /**
- * Broadcast settings as a comment to Hive blockchain
- * If config already exists from this user, it will be updated. Otherwise, a new one is created.
+ * Broadcast settings as a comment to Hive blockchain using HB-Auth
+ * Uses HB-Auth for signing - key is managed securely in IndexedDB
  */
 export async function broadcastConfigToHive(
   settings: SettingsData,
   username: string,
-  privateKey: string
+  _privateKey: string // Kept for API compatibility, but ignored - HB-Auth manages the key
 ): Promise<{ success: boolean; txId?: string; permlink?: string; isUpdate?: boolean; error?: string }> {
   try {
     const chain = await getWax()
+    const authClient = await getOnlineClient()
+
+    // Verify user is authenticated with HB-Auth
+    const registeredUser = await authClient.getRegisteredUserByUsername(username)
+    if (!registeredUser) {
+      throw new Error('User not registered in HB-Auth. Please login first.')
+    }
+
+    if (!registeredUser.unlocked) {
+      throw new Error('Wallet is locked. Please unlock with your password first.')
+    }
 
     // Check if user already has a config comment under this post
     const existingConfig = await findExistingConfig(username)
@@ -69,19 +79,6 @@ export async function broadcastConfigToHive(
 
     // Use existing permlink for update, or generate new one for create
     const permlink = existingConfig ? existingConfig.permlink : generateNewConfigPermlink(username)
-
-    // Create beekeeper instance (in-memory mode for browser)
-    const beekeeper = await createBeekeeper({ inMemory: true })
-
-    // Create session and wallet
-    const session = beekeeper.createSession('config-session')
-    const { wallet } = await session.createWallet('temp-wallet')
-
-    // Import the private key
-    const publicKey = await wallet.importKey(privateKey)
-
-    // Create provider for signing
-    const provider = BeekeeperProvider.for(chain, wallet, publicKey)
 
     // Create transaction
     const tx = await chain.createTransaction()
@@ -107,15 +104,17 @@ export async function broadcastConfigToHive(
       }
     }))
 
-    // Sign the transaction
-    await provider.signTransaction(tx)
+    // Get the transaction digest for signing
+    const digest = tx.sigDigest
+
+    // Sign with HB-Auth (key never leaves IndexedDB)
+    const signature = await authClient.sign(username, digest, 'posting')
+
+    // Add signature to transaction
+    tx.sign(signature)
 
     // Broadcast
     await chain.broadcast(tx)
-
-    // Cleanup
-    session.close()
-    beekeeper.delete()
 
     return {
       success: true,
@@ -132,6 +131,11 @@ export async function broadcastConfigToHive(
     // Check for RC (Resource Credits) error
     if (errorMessage.includes('not_enough_rc') || errorMessage.includes('RC mana')) {
       errorMessage = 'Not enough Resource Credits (RC). Please wait for RC to regenerate or power up more HIVE.'
+    }
+
+    // Check for HB-Auth errors
+    if (errorMessage.includes('Not authorized') || errorMessage.includes('not unlocked')) {
+      errorMessage = 'Session expired. Please login again.'
     }
 
     return {
