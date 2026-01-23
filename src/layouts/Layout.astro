@@ -2,6 +2,7 @@
 import '../styles/global.css'
 import { loadConfigFromHive } from '../components/admin/hive-broadcast'
 import { themePresets, type ThemeColors } from '../components/admin/types'
+import { HIVE_USERNAME } from '../lib/config'
 
 interface SettingsWithTheme {
   siteTheme?: string
@@ -10,10 +11,32 @@ interface SettingsWithTheme {
 
 interface Props {
   title: string
+  description?: string
+  ogImage?: string
+  canonicalUrl?: string
   settings?: SettingsWithTheme | null
 }
 
-const { title, settings: propsSettings } = Astro.props
+// Get username from config
+const hiveUsername = HIVE_USERNAME
+
+// Default description includes username if available
+const defaultDescription = hiveUsername
+  ? `${hiveUsername} Blog`
+  : 'A blog powered by Hive blockchain'
+
+const {
+  title,
+  description = defaultDescription,
+  ogImage,
+  canonicalUrl = Astro.url.href,
+  settings: propsSettings
+} = Astro.props
+
+// Build favicon URL from Hive avatar (if username is set)
+const faviconUrl = hiveUsername
+  ? `https://images.hive.blog/u/${hiveUsername}/avatar`
+  : '/favicon.svg'
 
 // Default to light theme colors
 let themeColors: ThemeColors = themePresets[0].colors
@@ -22,8 +45,6 @@ let themeColors: ThemeColors = themePresets[0].colors
 let settings = propsSettings
 
 if (!settings) {
-  // import.meta.env works in dev, process.env works in production SSR
-  const hiveUsername = import.meta.env.HIVE_USERNAME || process.env.HIVE_USERNAME
   if (hiveUsername) {
     try {
       settings = await loadConfigFromHive(hiveUsername)
@@ -65,13 +86,37 @@ const themeStyle = `
 ---
 
 <!doctype html>
-<html lang="pl" style={themeStyle}>
+<html lang="en" style={themeStyle}>
   <head>
     <meta charset="utf-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="generator" content={Astro.generator} />
+
+    <!-- Primary Meta Tags -->
     <title>{title}</title>
+    <meta name="title" content={title} />
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonicalUrl} />
+
+    <!-- Favicon (uses Hive avatar if HIVE_USERNAME is set) -->
+    <link rel="icon" type={hiveUsername ? 'image/png' : 'image/svg+xml'} href={faviconUrl} />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={canonicalUrl} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    {ogImage && <meta property="og:image" content={ogImage} />}
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content={ogImage ? 'summary_large_image' : 'summary'} />
+    <meta name="twitter:url" content={canonicalUrl} />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    {ogImage && <meta name="twitter:image" content={ogImage} />}
+
+    <!-- Theme Color (for mobile browsers) -->
+    <meta name="theme-color" content={themeColors.primary} />
   </head>
   <body class="bg-bg text-text min-h-screen transition-colors duration-300">
     <slot />

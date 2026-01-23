@@ -1,6 +1,7 @@
 ---
 import Layout from '../layouts/Layout.astro'
 import { loadConfigFromHive } from '../components/admin/hive-broadcast'
+import { HIVE_USERNAME } from '../lib/config'
 
 // Blog Logic imports - all data goes through blog-logic
 import {
@@ -170,7 +171,8 @@ try {
 // Settings with defaults
 // ============================================
 
-const siteName = settings.siteName || 'Hive Blog'
+const defaultSiteName = HIVE_USERNAME ? `${HIVE_USERNAME} Blog` : 'Hive Blog'
+const siteName = settings.siteName || defaultSiteName
 const siteDescription = settings.siteDescription || 'Posts from Hive blockchain'
 
 // Use new pageLayout format, fallback to default

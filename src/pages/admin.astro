@@ -3,11 +3,11 @@ import Layout from '../layouts/Layout.astro'
 import { AdminPanel } from '../components/admin'
 import { loadConfigFromHive } from '../components/admin/hive-broadcast'
 import type { SettingsData } from '../components/admin/types'
+import { HIVE_USERNAME } from '../lib/config'
 
 // Load initial settings from Hive on server
 let initialSettings: SettingsData | null = null
-// import.meta.env works in dev, process.env works in production SSR
-const hiveUsername = import.meta.env.HIVE_USERNAME || process.env.HIVE_USERNAME
+const hiveUsername = HIVE_USERNAME
 
 if (hiveUsername) {
   try {
@@ -23,7 +23,7 @@ if (hiveUsername) {
 }
 ---
 
-<Layout title="Admin Panel - Hive Blog">
+<Layout title={`Admin Panel - ${hiveUsername ? `${hiveUsername} Blog` : 'Hive Blog'}`}>
   <div class="max-w-7xl mx-auto px-4 py-8">
     <a
       href="/"
