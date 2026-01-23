@@ -6,7 +6,8 @@
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "astro": "astro"
+    "astro": "astro",
+    "postinstall": "mkdir -p public/auth/assets && cp -r node_modules/@hiveio/hb-auth/dist/assets/* public/auth/assets/"
   },
   "dependencies": {
     "@astrojs/node": "^9.5.1",
