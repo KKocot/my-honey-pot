@@ -1,9 +1,12 @@
 import { QueryClient, createQuery, createMutation, useQueryClient } from '@tanstack/solid-query'
 import { createStore, produce } from 'solid-js/store'
 import { createSignal, createEffect } from 'solid-js'
-import { defaultSettings, migrateCardLayout, themePresets, ALL_PAGE_ELEMENT_IDS, type SettingsData, type LayoutSection, type ThemeColors, type PageLayout } from './types'
+import { defaultSettings, migrateCardLayout, themePresets, ALL_PAGE_ELEMENT_IDS, settingsToRecord, type SettingsData, type LayoutSection, type ThemeColors, type PageLayout } from './types'
 import { loadConfigFromHive } from './hive-broadcast'
-import { setHasUnsavedChanges } from './AdminPanel'
+
+// Import from store.ts to avoid circular dependency with AdminPanel
+// Note: setHasUnsavedChanges is defined in store.ts and re-exported here
+import { setHasUnsavedChanges } from './store'
 import {
   DataProvider,
   getWax,
@@ -190,9 +193,12 @@ async function fetchSettings(): Promise<SettingsData> {
         const finalSettings: SettingsData = { ...defaultSettings }
 
         // Apply hiveConfig values, but skip undefined/null to keep defaults
+        const hiveConfigRecord = settingsToRecord(hiveConfig as SettingsData)
         for (const key of Object.keys(hiveConfig) as (keyof SettingsData)[]) {
           if (hiveConfig[key] !== undefined && hiveConfig[key] !== null) {
-            (finalSettings as Record<string, unknown>)[key] = hiveConfig[key]
+            const finalRecord = settingsToRecord(finalSettings)
+            finalRecord[key] = hiveConfigRecord[key]
+            Object.assign(finalSettings, { [key]: hiveConfigRecord[key] })
           }
         }
 

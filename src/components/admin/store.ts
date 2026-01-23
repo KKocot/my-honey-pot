@@ -1,5 +1,31 @@
 // ============================================
+// Shared state that needs to be imported by both
+// AdminPanel and queries to avoid circular dependencies
+// ============================================
+
+// Track if user has made changes since last save
+let hasUnsavedChanges = false
+
+/**
+ * Set whether there are unsaved changes in the admin panel.
+ * Used by queries.ts when settings are modified.
+ */
+export function setHasUnsavedChanges(value: boolean): void {
+  hasUnsavedChanges = value
+}
+
+/**
+ * Check if there are unsaved changes.
+ * Used by AdminPanel to show warning before leaving.
+ */
+export function getHasUnsavedChanges(): boolean {
+  return hasUnsavedChanges
+}
+
+// ============================================
 // Re-export from queries.ts for backward compatibility
+// NOTE: These imports must come AFTER the exports above
+// to avoid circular dependency issues
 // ============================================
 
 export {

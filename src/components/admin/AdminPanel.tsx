@@ -13,7 +13,7 @@ import { AuthorProfileSettings } from './AuthorProfileSettings'
 import { CommentSettings } from './CommentSettings'
 import { NavigationSettings } from './NavigationSettings'
 import { FullPreview } from './FullPreview'
-import type { SettingsData } from './types'
+import { settingsToRecord, type SettingsData } from './types'
 import {
   queryClient,
   queryKeys,
@@ -25,17 +25,7 @@ import {
   updateSettings,
   getSettingsSnapshot,
 } from './queries'
-
-// Track if user has made changes since last save
-let hasUnsavedChanges = false
-
-export function setHasUnsavedChanges(value: boolean) {
-  hasUnsavedChanges = value
-}
-
-export function getHasUnsavedChanges() {
-  return hasUnsavedChanges
-}
+import { setHasUnsavedChanges, getHasUnsavedChanges } from './store'
 
 interface AdminPanelContentProps {
   initialSettings?: SettingsData | null
@@ -84,7 +74,7 @@ function AdminPanelContent(props: AdminPanelContentProps) {
 
     // Warn user about unsaved changes when leaving page
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (hasUnsavedChanges) {
+      if (getHasUnsavedChanges()) {
         e.preventDefault()
         // Modern browsers require returnValue to be set
         e.returnValue = 'You have unsaved changes. Are you sure you want to leave?'
@@ -198,7 +188,8 @@ function AdminPanelContent(props: AdminPanelContentProps) {
 
     try {
       // Get current settings
-      const newSettings = getSettingsSnapshot() as Record<string, unknown>
+      const snapshot = getSettingsSnapshot()
+      const newSettings = settingsToRecord(snapshot)
       setJsonNewContent(newSettings)
       setJsonPreviewContent(JSON.stringify(newSettings, null, 2))
 
