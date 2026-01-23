@@ -9,8 +9,11 @@ import { HIVE_API_ENDPOINTS } from "../config";
 
 export type WaxExtendedChain = TWaxExtended<typeof WaxExtendedData, TWaxRestExtended<typeof HafbeExtendedData>>;
 
-let chain: Promise<WaxExtendedChain>;
+// Chain state management - use null instead of undefined to avoid type casting
+let chainPromise: Promise<WaxExtendedChain> | null = null;
 let currentEndpointIndex = 0;
+// Version counter to detect stale chains after reset
+let chainVersion = 0;
 
 async function createChainWithFallback(): Promise<WaxExtendedChain> {
   const endpoints = [...HIVE_API_ENDPOINTS];
@@ -36,17 +39,32 @@ async function createChainWithFallback(): Promise<WaxExtendedChain> {
   throw lastError || new Error('Failed to connect to any Hive API endpoint');
 }
 
-export const getWax = () => {
-  if (!chain) {
-    chain = createChainWithFallback();
+/**
+ * Get or create the Wax chain instance.
+ * Thread-safe: multiple concurrent calls will share the same promise.
+ */
+export const getWax = (): Promise<WaxExtendedChain> => {
+  if (!chainPromise) {
+    chainPromise = createChainWithFallback();
   }
-  return chain;
+  return chainPromise;
 };
 
-// Reset chain to force reconnection (useful after timeout errors)
-export const resetWax = () => {
-  chain = undefined as unknown as Promise<WaxExtendedChain>;
+/**
+ * Reset chain to force reconnection (useful after timeout errors).
+ * Thread-safe: increments version to invalidate any pending operations.
+ */
+export const resetWax = (): void => {
+  // Increment version to signal that old chain is stale
+  chainVersion++;
+  // Clear the promise so next getWax() creates a new chain
+  chainPromise = null;
   // Try next endpoint
   currentEndpointIndex = (currentEndpointIndex + 1) % HIVE_API_ENDPOINTS.length;
 };
+
+/**
+ * Get current chain version (useful for detecting stale operations).
+ */
+export const getChainVersion = (): number => chainVersion;
 
