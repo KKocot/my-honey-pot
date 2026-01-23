@@ -67,8 +67,9 @@ test.describe('HB-Auth Login Flow', () => {
   })
 
   // This test only runs with real credentials
-  test.skip(!TEST_USER.wif, 'full registration and login flow (requires TEST_HIVE_WIF env var)')
   test('full registration and login flow', async ({ page }) => {
+    test.skip(!TEST_USER.wif, 'Requires TEST_HIVE_WIF env var')
+
     // Capture console messages
     const logs: string[] = []
     page.on('console', msg => {
