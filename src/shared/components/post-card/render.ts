@@ -55,7 +55,7 @@ function renderElement(
       return `<img src="${data.thumbnail}" alt="" style="width: ${settings.thumbnailSizePx}px; height: ${settings.thumbnailSizePx}px; object-fit: cover; border-radius: 8px; flex-shrink: 0;" onerror="this.style.display='none'" />`
 
     case 'title':
-      return `<h3 class="font-semibold text-text line-clamp-2 hover:text-primary transition-colors" style="font-size: ${settings.titleSizePx}px;"><a href="${href}">${data.title}</a></h3>`
+      return `<h3 class="font-semibold text-text line-clamp-2" style="font-size: ${settings.titleSizePx}px;">${data.title}</h3>`
 
     case 'summary':
       return `<p class="text-text-muted text-sm line-clamp-3">${getPostSummary(data.body, settings.summaryMaxLength)}</p>`
@@ -156,6 +156,7 @@ export function renderPostCardContent(
 /**
  * Render complete post card as HTML string (with article wrapper)
  * For static rendering in Astro - uses CSS classes for hover effects
+ * Entire card is wrapped in anchor for full clickability
  */
 export function renderPostCard(
   data: PostCardData,
@@ -164,6 +165,7 @@ export function renderPostCard(
   linkHref?: string,
   extraStyle?: string
 ): string {
+  const href = linkHref ?? `/${data.permlink}`
   const borderStyle = settings.cardBorder ? 'border: 1px solid var(--color-border);' : ''
 
   // Build hover effect CSS classes
@@ -189,7 +191,7 @@ export function renderPostCard(
 
   const contentHtml = renderPostCardContent(data, settings, isVertical, linkHref)
 
-  return `<article class="post-card bg-bg-card rounded-xl overflow-hidden cursor-pointer ${hoverClass}" ${shadowAttr} style="${cardStyle}">${contentHtml}</article>`
+  return `<a href="${href}" class="post-card-link block no-underline"><article class="post-card bg-bg-card rounded-xl overflow-hidden cursor-pointer ${hoverClass}" ${shadowAttr} style="${cardStyle}">${contentHtml}</article></a>`
 }
 
 // Export helper for checking element visibility

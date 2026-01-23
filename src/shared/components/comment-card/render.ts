@@ -51,9 +51,7 @@ function renderReplyContext(data: CommentCardData, settings: CommentCardSettings
       ${replyIcon}
       <span>
         Replying to
-        <a href="/@${data.parentAuthor}/${data.parentPermlink}" class="text-primary hover:underline">
-          @${data.parentAuthor}
-        </a>
+        <span class="text-primary">@${data.parentAuthor}</span>
       </span>
     </div>
   `
@@ -66,15 +64,15 @@ function renderAvatar(data: CommentCardData, settings: CommentCardSettings): str
   if (!settings.showAvatar) return ''
 
   return `
-    <a href="/@${data.author}" class="flex-shrink-0">
+    <div class="flex-shrink-0">
       <img
         src="${data.avatarUrl}"
         alt="${data.author}"
         style="width: ${settings.avatarSize}px; height: ${settings.avatarSize}px;"
-        class="rounded-full border border-border hover:opacity-80 transition-opacity"
+        class="rounded-full border border-border"
         onerror="this.src='/hive-logo.png'"
       />
-    </a>
+    </div>
   `
 }
 
@@ -85,7 +83,7 @@ function renderAuthorInfo(data: CommentCardData, settings: CommentCardSettings):
   if (!settings.showAuthor && !settings.showTimestamp) return ''
 
   const authorHtml = settings.showAuthor
-    ? `<a href="/@${data.author}" class="font-semibold text-text hover:underline">${data.author}</a>`
+    ? `<span class="font-semibold text-text">${data.author}</span>`
     : ''
 
   const separatorHtml = settings.showAuthor && settings.showTimestamp
@@ -132,19 +130,7 @@ function renderActionBar(data: CommentCardData, settings: CommentCardSettings): 
     `)
   }
 
-  if (settings.showViewLink) {
-    parts.push(`
-      <a
-        href="https://blog.openhive.network${data.url}"
-        target="_blank"
-        rel="noopener noreferrer"
-        class="flex items-center gap-1.5 text-sm hover:text-primary transition-colors ml-auto"
-      >
-        ${externalLinkIcon}
-        <span>View</span>
-      </a>
-    `)
-  }
+  // View link removed - entire card is now clickable
 
   if (parts.length === 0) return ''
 
@@ -183,6 +169,7 @@ export function renderCommentCardContent(
 
 /**
  * Render complete comment card (with article wrapper)
+ * Entire card is wrapped in anchor for full clickability
  */
 export function renderCommentCard(
   data: CommentCardData,
@@ -195,5 +182,5 @@ export function renderCommentCard(
 
   const contentHtml = renderCommentCardContent(data, settings)
 
-  return `<article class="${baseClasses}">${contentHtml}</article>`
+  return `<a href="${data.url}" class="comment-card-link block no-underline"><article class="${baseClasses}">${contentHtml}</article></a>`
 }
