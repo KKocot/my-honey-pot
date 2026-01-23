@@ -775,6 +775,14 @@ export const defaultSettings: SettingsData = {
   socialLinks: [],
 }
 
+/**
+ * Helper function to convert SettingsData to Record for diff comparison.
+ * This avoids TypeScript errors when using object spread/iteration.
+ */
+export function settingsToRecord(settings: SettingsData): Record<string, unknown> {
+  return { ...settings } as Record<string, unknown>
+}
+
 export const sectionLabels: Record<string, string> = {
   header: 'Header',
   authorProfile: 'Author Profile',

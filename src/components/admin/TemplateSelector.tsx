@@ -128,7 +128,7 @@ export function TemplateSelector() {
     const randomInt = (min: number, max: number) => Math.floor(Math.random() * (max - min + 1)) + min
     const randomFloat = (min: number, max: number, decimals: number = 2) =>
       parseFloat((Math.random() * (max - min) + min).toFixed(decimals))
-    const randomChoice = <T,>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)]
+    const randomChoice = <T,>(arr: readonly T[]): T => arr[Math.floor(Math.random() * arr.length)]
     const randomBool = (probability = 0.5) => Math.random() < probability
 
     // Shuffle array helper
@@ -183,8 +183,8 @@ export function TemplateSelector() {
     const hoverEffects = ['none', 'shadow', 'lift', 'scale', 'glow'] as const
     const hoverEffect = randomChoice(hoverEffects)
 
-    // Random scroll animation
-    const scrollAnimations = ['none', 'fade-up', 'fade-down', 'slide-left', 'slide-right', 'zoom', 'flip'] as const
+    // Random scroll animation - must match type: 'none' | 'fade' | 'slide-up' | 'slide-left' | 'zoom' | 'flip'
+    const scrollAnimations = ['none', 'fade', 'slide-up', 'slide-left', 'zoom', 'flip'] as const
     const scrollAnimation = randomChoice(scrollAnimations)
 
     // Random page layout
@@ -284,7 +284,6 @@ export function TemplateSelector() {
       commentsLayout,
       commentsGridColumns: randomInt(1, 3),
       commentsGapPx: randomInt(8, 24),
-      commentsSortOrder: randomChoice(['comments', 'replies'] as const),
       commentCardLayout: generateRandomCardLayout(commentCardElements),
       commentAvatarSizePx: randomChoice([32, 40, 48]),
       commentMaxLength: randomChoice([0, 200, 300, 500]),
