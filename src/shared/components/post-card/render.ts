@@ -1,23 +1,11 @@
 /**
  * PostCard render functions - HTML string output
  * Used by both Astro (set:html) and SolidJS (innerHTML)
- * Supports both simple flags and sections-based layout
+ * Uses sections-based layout system
  */
 
 import type { PostCardData, PostCardSettings, CardSection, CardSectionChild, CardLayout } from './types'
 import { getPostSummary, formatPayout } from './utils'
-
-/**
- * Default post card layout with sections
- */
-const defaultPostCardLayout: CardLayout = {
-  sections: [
-    { id: 'sec-1', orientation: 'horizontal', children: [{ type: 'element', id: 'thumbnail' }] },
-    { id: 'sec-2', orientation: 'vertical', children: [{ type: 'element', id: 'title' }, { type: 'element', id: 'summary' }] },
-    { id: 'sec-3', orientation: 'horizontal', children: [{ type: 'element', id: 'date' }, { type: 'element', id: 'votes' }, { type: 'element', id: 'comments' }, { type: 'element', id: 'payout' }] },
-    { id: 'sec-4', orientation: 'horizontal', children: [{ type: 'element', id: 'tags' }] },
-  ],
-}
 
 /**
  * Collect all element IDs from a section (recursively)
@@ -110,7 +98,8 @@ function renderChild(
   if (child.type === 'element') {
     return renderElement(child.id, data, settings, isVertical, linkHref)
   }
-  return renderSection(child.section, data, settings, isVertical, linkHref)
+  // Nested sections get flex-1 min-w-0 to fill available space
+  return renderSection(child.section, data, settings, isVertical, linkHref, true)
 }
 
 /**
@@ -121,7 +110,8 @@ function renderSection(
   data: PostCardData,
   settings: PostCardSettings,
   isVertical: boolean,
-  linkHref?: string
+  linkHref?: string,
+  isNested: boolean = false
 ): string {
   if (!section.children || section.children.length === 0) return ''
 
@@ -132,115 +122,19 @@ function renderSection(
 
   if (childrenHtml.length === 0) return ''
 
+  // Horizontal sections: no wrap, align items start for better layout
+  // Nested sections: add flex-1 min-w-0 to fill available space
   const flexClass = section.orientation === 'horizontal'
-    ? 'flex flex-wrap items-center gap-2'
+    ? 'flex items-start gap-4'
     : 'flex flex-col gap-1'
+  const nestedClass = isNested ? ' flex-1 min-w-0' : ''
 
-  return `<div class="${flexClass}">${childrenHtml}</div>`
-}
-
-/**
- * Render post card content using sections layout
- */
-function renderPostCardContentWithSections(
-  data: PostCardData,
-  settings: PostCardSettings,
-  layout: CardLayout,
-  isVertical: boolean,
-  linkHref?: string
-): string {
-  const sectionsHtml = layout.sections
-    .map(section => renderSection(section, data, settings, isVertical, linkHref))
-    .filter(html => html.length > 0)
-    .join('')
-
-  return `<div class="flex flex-col gap-3">${sectionsHtml}</div>`
-}
-
-/**
- * Legacy render functions for backwards compatibility
- */
-function renderThumbnail(
-  data: PostCardData,
-  settings: PostCardSettings,
-  isVertical: boolean
-): string {
-  if (!settings.showThumbnail || !data.thumbnail) return ''
-
-  if (isVertical) {
-    return `<div class="rounded-lg overflow-hidden flex-shrink-0 bg-cover bg-center w-full h-40"><img src="${data.thumbnail}" alt="" class="w-full h-full object-cover" onerror="this.style.display='none'" /></div>`
-  }
-
-  return `<img src="${data.thumbnail}" alt="" style="width: ${settings.thumbnailSizePx}px; height: ${settings.thumbnailSizePx}px; object-fit: cover; border-radius: 8px; flex-shrink: 0;" onerror="this.style.display='none'" />`
-}
-
-function renderMeta(data: PostCardData, settings: PostCardSettings): string {
-  const parts: string[] = []
-
-  if (settings.showDate) {
-    parts.push(`<span>${data.publishedAt.toLocaleDateString()}</span>`)
-  }
-
-  if (settings.showVotes) {
-    parts.push(`<span>${data.votesCount} votes</span>`)
-  }
-
-  if (settings.showComments) {
-    parts.push(`<span>${data.commentsCount} comments</span>`)
-  }
-
-  if (settings.showPayout && data.pendingPayout) {
-    parts.push(`<span class="text-success">${formatPayout(data.pendingPayout)}</span>`)
-  }
-
-  if (parts.length === 0) return ''
-
-  return `<div class="flex flex-wrap items-center gap-3 mt-2 text-xs text-text-muted">${parts.join('')}</div>`
-}
-
-function renderTags(data: PostCardData, settings: PostCardSettings): string {
-  if (!settings.showTags || data.tags.length === 0) return ''
-
-  const tagsHtml = data.tags
-    .slice(0, settings.maxTags)
-    .map(tag => `<span class="px-2 py-0.5 text-xs bg-bg-secondary text-text-muted rounded">#${tag}</span>`)
-    .join('')
-
-  return `<div class="flex flex-wrap gap-1 mt-2">${tagsHtml}</div>`
-}
-
-/**
- * Legacy render using simple flags (backwards compatible)
- */
-function renderPostCardContentLegacy(
-  data: PostCardData,
-  settings: PostCardSettings,
-  isVertical: boolean,
-  linkHref?: string
-): string {
-  const actualIsVertical = isVertical || settings.cardLayout === 'vertical'
-  const flexDirection = actualIsVertical
-    ? 'flex-col'
-    : settings.thumbnailPosition === 'right' ? 'flex-row-reverse' : 'flex-row'
-  const gapClass = actualIsVertical ? 'gap-3' : 'gap-4'
-
-  const thumbnailHtml = renderThumbnail(data, settings, actualIsVertical)
-
-  const summaryHtml = settings.showSummary
-    ? `<p class="text-text-muted text-sm mt-1 line-clamp-2">${getPostSummary(data.body, settings.summaryMaxLength)}</p>`
-    : ''
-
-  const metaHtml = renderMeta(data, settings)
-  const tagsHtml = renderTags(data, settings)
-
-  const href = linkHref ?? `/${data.permlink}`
-
-  return `<div class="flex ${flexDirection} ${gapClass}">${thumbnailHtml}<div class="flex-1 min-w-0"><h3 class="font-semibold text-text line-clamp-2 hover:text-primary transition-colors" style="font-size: ${settings.titleSizePx}px;"><a href="${href}">${data.title}</a></h3>${summaryHtml}${metaHtml}${tagsHtml}</div></div>`
+  return `<div class="${flexClass}${nestedClass}">${childrenHtml}</div>`
 }
 
 /**
  * Render post card content as HTML string (without article wrapper)
- * Supports both sections layout and legacy flags
+ * Uses sections-based layout
  */
 export function renderPostCardContent(
   data: PostCardData,
@@ -248,13 +142,15 @@ export function renderPostCardContent(
   isVertical: boolean = false,
   linkHref?: string
 ): string {
-  // Use sections layout if provided
-  if (settings.postCardLayout && settings.postCardLayout.sections && settings.postCardLayout.sections.length > 0) {
-    return renderPostCardContentWithSections(data, settings, settings.postCardLayout, isVertical, linkHref)
+  const layout = settings.postCardLayout
+  if (!layout || !layout.sections || layout.sections.length === 0) {
+    return '' // No layout defined
   }
 
-  // Fall back to legacy rendering
-  return renderPostCardContentLegacy(data, settings, isVertical, linkHref)
+  return layout.sections
+    .map(section => renderSection(section, data, settings, isVertical, linkHref))
+    .filter(html => html.length > 0)
+    .join('')
 }
 
 /**

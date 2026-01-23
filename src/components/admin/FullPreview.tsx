@@ -295,23 +295,13 @@ export function FullPreview(props: FullPreviewProps) {
 
     // Create settings for shared render function
     const cardSettings = createMemo(() => ({
-      cardLayout: isVertical() ? 'vertical' as const : (settings.cardLayout || 'horizontal' as const),
-      thumbnailPosition: settings.thumbnailPosition || 'left' as const,
       thumbnailSizePx: settings.thumbnailSizePx || 96,
       cardPaddingPx: settings.cardPaddingPx || 24,
       cardBorderRadiusPx: settings.cardBorderRadiusPx || 16,
       titleSizePx: settings.titleSizePx || 20,
-      showThumbnail: settings.showThumbnail !== false,
-      showSummary: settings.showSummary !== false,
       summaryMaxLength: settings.summaryMaxLength || 150,
-      showDate: settings.showDate !== false,
-      showVotes: settings.showVotes !== false,
-      showComments: settings.showComments !== false,
-      showPayout: settings.showPayout !== false,
-      showTags: settings.showTags !== false,
       cardBorder: settings.cardBorder !== false,
       maxTags: settings.maxTags || 5,
-      // Pass sections layout for drag & drop support
       postCardLayout: settings.postCardLayout,
     }))
 

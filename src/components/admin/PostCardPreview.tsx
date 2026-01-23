@@ -216,11 +216,11 @@ export function PostCard(props: PostCardProps) {
   }
 
   // Child renderer component (element or nested section)
-  const ChildRenderer = (childProps: { child: CardSectionChild }) => {
+  const ChildRenderer = (childProps: { child: CardSectionChild; isNested?: boolean }) => {
     return (
       <Show when={childProps.child.type === 'element'} fallback={
         <Show when={childProps.child.type === 'section'}>
-          <SectionRenderer section={(childProps.child as { type: 'section'; section: CardSection }).section} />
+          <SectionRenderer section={(childProps.child as { type: 'section'; section: CardSection }).section} isNested />
         </Show>
       }>
         <ElementRenderer id={(childProps.child as { type: 'element'; id: string }).id} />
@@ -229,14 +229,14 @@ export function PostCard(props: PostCardProps) {
   }
 
   // Section renderer component (recursive)
-  const SectionRenderer = (secProps: { section: CardSection }) => {
+  const SectionRenderer = (secProps: { section: CardSection; isNested?: boolean }) => {
     return (
       <Show when={secProps.section.children && secProps.section.children.length > 0}>
         <div
-          class={secProps.section.orientation === 'horizontal' ? 'flex flex-wrap items-center gap-2' : 'flex flex-col gap-1'}
+          class={`${secProps.section.orientation === 'horizontal' ? 'flex items-start gap-4' : 'flex flex-col gap-1'} ${secProps.isNested ? 'flex-1 min-w-0' : ''}`}
         >
           <For each={secProps.section.children}>
-            {(child) => <ChildRenderer child={child} />}
+            {(child) => <ChildRenderer child={child} isNested />}
           </For>
         </div>
       </Show>
@@ -269,11 +269,9 @@ export function PostCard(props: PostCardProps) {
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <div class="flex flex-col gap-3">
-        <For each={sections()}>
-          {(section) => <SectionRenderer section={section} />}
-        </For>
-      </div>
+      <For each={sections()}>
+        {(section) => <SectionRenderer section={section} />}
+      </For>
     </article>
   )
 }

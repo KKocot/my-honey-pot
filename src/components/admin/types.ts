@@ -687,12 +687,41 @@ export const defaultSettings: SettingsData = {
   commentMaxLength: 0,
   commentPaddingPx: 16,
   // Default card layouts with sections (using new recursive children format)
+  // Main section is horizontal: thumbnail on left, content on right
   postCardLayout: {
     sections: [
-      { id: 'sec-1', orientation: 'horizontal', children: [{ type: 'element', id: 'thumbnail' }] },
-      { id: 'sec-2', orientation: 'vertical', children: [{ type: 'element', id: 'title' }, { type: 'element', id: 'summary' }] },
-      { id: 'sec-3', orientation: 'horizontal', children: [{ type: 'element', id: 'date' }, { type: 'element', id: 'votes' }, { type: 'element', id: 'comments' }, { type: 'element', id: 'payout' }] },
-      { id: 'sec-4', orientation: 'horizontal', children: [{ type: 'element', id: 'tags' }] },
+      {
+        id: 'sec-main',
+        orientation: 'horizontal',
+        children: [
+          { type: 'element', id: 'thumbnail' },
+          {
+            type: 'section',
+            section: {
+              id: 'sec-content',
+              orientation: 'vertical',
+              children: [
+                { type: 'element', id: 'title' },
+                { type: 'element', id: 'summary' },
+                {
+                  type: 'section',
+                  section: {
+                    id: 'sec-meta',
+                    orientation: 'horizontal',
+                    children: [
+                      { type: 'element', id: 'date' },
+                      { type: 'element', id: 'votes' },
+                      { type: 'element', id: 'comments' },
+                      { type: 'element', id: 'payout' },
+                    ],
+                  },
+                },
+                { type: 'element', id: 'tags' },
+              ],
+            },
+          },
+        ],
+      },
     ],
   },
   commentCardLayout: {

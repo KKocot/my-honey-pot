@@ -4,7 +4,6 @@
  */
 
 export type { PostCardData, PostCardSettings, CardSection, CardSectionChild, CardLayout } from './types'
-export { defaultPostCardSettings } from './types'
 
 export {
   getPostThumbnail,
@@ -13,7 +12,6 @@ export {
   getThumbnailUrl,
   createPostCardDataFromBridge,
   createPostCardDataFromPost,
-  createPostCardSettings,
   getPostSummary,
   getSimpleSummary,
 } from './utils'

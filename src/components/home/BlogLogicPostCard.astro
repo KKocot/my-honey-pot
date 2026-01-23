@@ -1,37 +1,27 @@
 ---
 /**
  * BlogLogicPostCard - uses shared PostCard utilities
- * Supports both sections layout and legacy flags
+ * Uses sections-based layout system
  */
 import type { Post } from '../../lib/blog-logic'
-import type { CardLayout } from '../../shared/components/post-card'
+import type { CardLayout, PostCardSettings } from '../../shared/components/post-card'
 import {
   createPostCardDataFromPost,
-  createPostCardSettings,
   renderPostCard,
 } from '../../shared/components/post-card'
 
 interface Props {
   post: Post
-  cardLayout: 'horizontal' | 'vertical'
-  thumbnailPosition: 'left' | 'right'
   thumbnailSizePx: number
   cardPaddingPx: number
   cardBorderRadiusPx: number
   titleSizePx: number
-  showThumbnail: boolean
-  showSummary: boolean
   summaryMaxLength: number
-  showDate: boolean
-  showVotes: boolean
-  showComments: boolean
-  showPayout: boolean
-  showTags: boolean
   cardBorder: boolean
   maxTags: number
   masonryStyle?: string
-  // Optional sections layout for drag & drop
-  postCardLayout?: CardLayout
+  // Sections layout (required)
+  postCardLayout: CardLayout
   // Hover effect settings
   cardHoverEffect?: 'none' | 'shadow' | 'lift' | 'scale' | 'glow'
   cardTransitionDuration?: number
@@ -42,20 +32,11 @@ interface Props {
 
 const {
   post,
-  cardLayout,
-  thumbnailPosition,
   thumbnailSizePx,
   cardPaddingPx,
   cardBorderRadiusPx,
   titleSizePx,
-  showThumbnail,
-  showSummary,
   summaryMaxLength,
-  showDate,
-  showVotes,
-  showComments,
-  showPayout,
-  showTags,
   cardBorder,
   maxTags,
   masonryStyle = '',
@@ -74,35 +55,25 @@ const postData = await createPostCardDataFromPost(post, {
   summaryMaxLength,
 })
 
-// Create settings using shared utility
-const cardSettings = createPostCardSettings({
-  cardLayout,
-  thumbnailPosition,
+// Create settings object
+const cardSettings: PostCardSettings = {
   thumbnailSizePx,
   cardPaddingPx,
   cardBorderRadiusPx,
   titleSizePx,
-  showThumbnail,
-  showSummary,
   summaryMaxLength,
-  showDate,
-  showVotes,
-  showComments,
-  showPayout,
-  showTags,
-  cardBorder,
   maxTags,
+  cardBorder,
   postCardLayout,
   cardHoverEffect,
   cardTransitionDuration,
   cardHoverScale,
   cardHoverShadow,
   cardHoverBrightness,
-})
+}
 
 // Render using shared function
-const isVertical = cardLayout === 'vertical'
-const postCardHtml = renderPostCard(postData, cardSettings, isVertical, `/${post.permlink}`, masonryStyle)
+const postCardHtml = renderPostCard(postData, cardSettings, false, `/${post.permlink}`, masonryStyle)
 ---
 
 <Fragment set:html={postCardHtml} />

@@ -2,10 +2,9 @@
  * PostCard utilities - data transformation and parsing functions
  */
 
-import type { PostCardData, PostCardSettings, CardLayout } from './types'
+import type { PostCardData, PostCardSettings } from './types'
 import type { BridgePost } from '../../../lib/blog-logic'
 import { getSummary, stripMarkdownSimple } from '../../formatters'
-import { defaultPostCardSettings } from './types'
 
 /**
  * Parse thumbnail from HivePost json_metadata
@@ -61,59 +60,6 @@ export function createPostCardDataFromBridge(
     votesCount: post.active_votes?.length ?? 0,
     commentsCount: post.children ?? 0,
     pendingPayout: post.pending_payout_value ?? '0.00 HBD',
-  }
-}
-
-/**
- * Create post card settings from partial settings object
- */
-export function createPostCardSettings(settings: Partial<{
-  cardLayout: 'horizontal' | 'vertical'
-  thumbnailPosition: 'left' | 'right'
-  thumbnailSizePx: number
-  cardPaddingPx: number
-  cardBorderRadiusPx: number
-  titleSizePx: number
-  showThumbnail: boolean
-  showSummary: boolean
-  summaryMaxLength: number
-  showDate: boolean
-  showVotes: boolean
-  showComments: boolean
-  showPayout: boolean
-  showTags: boolean
-  cardBorder: boolean
-  maxTags: number
-  postCardLayout?: CardLayout
-  cardHoverEffect?: 'none' | 'shadow' | 'lift' | 'scale' | 'glow'
-  cardTransitionDuration?: number
-  cardHoverScale?: number
-  cardHoverShadow?: string
-  cardHoverBrightness?: number
-}>): PostCardSettings {
-  return {
-    cardLayout: settings.cardLayout ?? defaultPostCardSettings.cardLayout,
-    thumbnailPosition: settings.thumbnailPosition ?? defaultPostCardSettings.thumbnailPosition,
-    thumbnailSizePx: settings.thumbnailSizePx ?? defaultPostCardSettings.thumbnailSizePx,
-    cardPaddingPx: settings.cardPaddingPx ?? defaultPostCardSettings.cardPaddingPx,
-    cardBorderRadiusPx: settings.cardBorderRadiusPx ?? defaultPostCardSettings.cardBorderRadiusPx,
-    titleSizePx: settings.titleSizePx ?? defaultPostCardSettings.titleSizePx,
-    showThumbnail: settings.showThumbnail ?? defaultPostCardSettings.showThumbnail,
-    showSummary: settings.showSummary ?? defaultPostCardSettings.showSummary,
-    summaryMaxLength: settings.summaryMaxLength ?? defaultPostCardSettings.summaryMaxLength,
-    showDate: settings.showDate ?? defaultPostCardSettings.showDate,
-    showVotes: settings.showVotes ?? defaultPostCardSettings.showVotes,
-    showComments: settings.showComments ?? defaultPostCardSettings.showComments,
-    showPayout: settings.showPayout ?? defaultPostCardSettings.showPayout,
-    showTags: settings.showTags ?? defaultPostCardSettings.showTags,
-    cardBorder: settings.cardBorder ?? defaultPostCardSettings.cardBorder,
-    maxTags: settings.maxTags ?? defaultPostCardSettings.maxTags,
-    postCardLayout: settings.postCardLayout,
-    cardHoverEffect: settings.cardHoverEffect,
-    cardTransitionDuration: settings.cardTransitionDuration,
-    cardHoverScale: settings.cardHoverScale,
-    cardHoverShadow: settings.cardHoverShadow,
-    cardHoverBrightness: settings.cardHoverBrightness,
   }
 }
 

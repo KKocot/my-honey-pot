@@ -44,50 +44,20 @@ export interface CardLayout {
  * Post card display settings
  */
 export interface PostCardSettings {
-  cardLayout: 'horizontal' | 'vertical'
-  thumbnailPosition: 'left' | 'right'
+  // Size settings
   thumbnailSizePx: number
   cardPaddingPx: number
   cardBorderRadiusPx: number
   titleSizePx: number
-  showThumbnail: boolean
-  showSummary: boolean
   summaryMaxLength: number
-  showDate: boolean
-  showVotes: boolean
-  showComments: boolean
-  showPayout: boolean
-  showTags: boolean
-  cardBorder: boolean
   maxTags: number
-  // Optional sections layout for drag & drop
-  postCardLayout?: CardLayout
+  cardBorder: boolean
+  // Sections layout (required)
+  postCardLayout: CardLayout
   // Hover effect settings
   cardHoverEffect?: 'none' | 'shadow' | 'lift' | 'scale' | 'glow'
   cardTransitionDuration?: number
   cardHoverScale?: number
   cardHoverShadow?: string
   cardHoverBrightness?: number
-}
-
-/**
- * Default settings for post card
- */
-export const defaultPostCardSettings: PostCardSettings = {
-  cardLayout: 'horizontal',
-  thumbnailPosition: 'left',
-  thumbnailSizePx: 96,
-  cardPaddingPx: 24,
-  cardBorderRadiusPx: 16,
-  titleSizePx: 20,
-  showThumbnail: true,
-  showSummary: true,
-  summaryMaxLength: 150,
-  showDate: true,
-  showVotes: true,
-  showComments: true,
-  showPayout: true,
-  showTags: true,
-  cardBorder: true,
-  maxTags: 5,
 }
