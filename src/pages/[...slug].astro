@@ -1,10 +1,10 @@
 ---
 import Layout from '../layouts/Layout.astro'
 import { DataProvider, getWax, stripAssetSuffix, type Post as BlogLogicPost } from '../lib/blog-logic'
+import { HIVE_USERNAME } from '../lib/config'
 
 const { slug } = Astro.params
-// import.meta.env works in dev, process.env works in production SSR
-const author = import.meta.env.HIVE_USERNAME || process.env.HIVE_USERNAME
+const author = HIVE_USERNAME
 const permlink = slug ?? ''
 
 let post: BlogLogicPost | null = null
@@ -34,10 +34,43 @@ if (!author || !permlink) {
   }
 }
 
-// Convert markdown to basic HTML (simplified)
+/**
+ * Escape HTML special characters to prevent XSS attacks.
+ * This should be applied to user content before rendering.
+ */
+function escapeHtml(text: string): string {
+  const htmlEscapes: Record<string, string> = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;',
+  }
+  return text.replace(/[&<>"']/g, (char) => htmlEscapes[char] || char)
+}
+
+/**
+ * Validate URL to prevent javascript: and data: XSS attacks.
+ * Only allows http:, https:, and relative URLs.
+ */
+function sanitizeUrl(url: string): string {
+  const trimmed = url.trim().toLowerCase()
+  if (trimmed.startsWith('javascript:') || trimmed.startsWith('data:') || trimmed.startsWith('vbscript:')) {
+    return '#'
+  }
+  return url
+}
+
+/**
+ * Convert markdown to basic HTML with XSS protection.
+ * First escapes HTML, then applies markdown transformations.
+ */
 function markdownToHtml(markdown: string): string {
-  return markdown
-    // Headers
+  // First escape all HTML to prevent XSS
+  let escaped = escapeHtml(markdown)
+
+  return escaped
+    // Headers (using escaped content)
     .replace(/^### (.*$)/gim, '<h3 class="text-lg font-semibold mt-4 mb-2 text-text">$1</h3>')
     .replace(/^## (.*$)/gim, '<h2 class="text-xl font-semibold mt-6 mb-3 text-text">$1</h2>')
     .replace(/^# (.*$)/gim, '<h1 class="text-2xl font-bold mt-8 mb-4 text-text">$1</h1>')
@@ -45,10 +78,18 @@ function markdownToHtml(markdown: string): string {
     .replace(/\*\*\*(.*?)\*\*\*/gim, '<strong><em>$1</em></strong>')
     .replace(/\*\*(.*?)\*\*/gim, '<strong class="font-semibold">$1</strong>')
     .replace(/\*(.*?)\*/gim, '<em>$1</em>')
-    // Links
-    .replace(/\[([^\]]+)\]\(([^\)]+)\)/gim, '<a href="$2" class="text-primary hover:text-primary-hover underline" target="_blank" rel="noopener">$1</a>')
-    // Images
-    .replace(/!\[([^\]]*)\]\(([^\)]+)\)/gim, '<img src="$2" alt="$1" class="max-w-full rounded-lg my-4" />')
+    // Links - sanitize URLs
+    .replace(/\[([^\]]+)\]\(([^\)]+)\)/gim, (_match, text, url) => {
+      const safeUrl = sanitizeUrl(url)
+      return `<a href="${safeUrl}" class="text-primary hover:text-primary-hover underline" target="_blank" rel="noopener nofollow">${text}</a>`
+    })
+    // Images - sanitize URLs and use Hive image proxy
+    .replace(/!\[([^\]]*)\]\(([^\)]+)\)/gim, (_match, alt, url) => {
+      const safeUrl = sanitizeUrl(url)
+      // Use Hive image proxy for external images
+      const proxiedUrl = safeUrl.startsWith('http') ? `https://images.hive.blog/0x0/${safeUrl}` : safeUrl
+      return `<img src="${proxiedUrl}" alt="${alt}" class="max-w-full rounded-lg my-4" loading="lazy" />`
+    })
     // Line breaks
     .replace(/\n\n/gim, '</p><p class="mb-4 text-text leading-relaxed">')
     .replace(/\n/gim, '<br />')
@@ -68,7 +109,7 @@ if (post) {
 }
 ---
 
-<Layout title={`${post?.title ?? 'Post'} | Hive Blog`}>
+<Layout title={`${post?.title ?? 'Post'} | ${HIVE_USERNAME ? `${HIVE_USERNAME} Blog` : 'Hive Blog'}`}>
   <div class="max-w-3xl mx-auto px-4 py-8">
     <a
       href="/"
