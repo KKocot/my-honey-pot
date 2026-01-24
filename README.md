@@ -1,4 +1,4 @@
-# Hive Blog
+# My Honey Pot
 
 Konfigurowalny blog oparty na blockchainie Hive. Posty i konfiguracja są pobierane bezpośrednio z Hive - bez bazy danych.
 
