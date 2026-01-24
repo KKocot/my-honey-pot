@@ -5,7 +5,7 @@ import { OnlineClient, OfflineClient, type ClientOptions } from '@hiveio/hb-auth
 // ============================================================================
 
 /** Default Hive API endpoint - matches the one in hive.ts */
-const DEFAULT_HIVE_ENDPOINT = 'https://api.dev.openhive.network';
+const DEFAULT_HIVE_ENDPOINT = 'https://api.openhive.network';
 
 /** Default session timeout in milliseconds (24 hours) */
 const DEFAULT_SESSION_TIMEOUT = 24 * 60 * 60 * 1000;
