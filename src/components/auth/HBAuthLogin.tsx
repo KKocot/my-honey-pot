@@ -289,6 +289,12 @@ export function HBAuthLogin(props: HBAuthLoginProps) {
               type={showPassword() ? 'text' : 'password'}
               value={password()}
               onInput={(e) => setPassword(e.currentTarget.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && mode() === 'login') {
+                  e.preventDefault()
+                  handleLogin()
+                }
+              }}
               placeholder="Enter password"
               class="w-full px-3 py-2.5 pr-10 rounded-lg border border-border bg-card text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/50"
             />
@@ -322,6 +328,12 @@ export function HBAuthLogin(props: HBAuthLoginProps) {
                 type={showKey() ? 'text' : 'password'}
                 value={privateKey()}
                 onInput={(e) => setPrivateKey(e.currentTarget.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    handleRegister()
+                  }
+                }}
                 placeholder="5..."
                 class="w-full px-3 py-2.5 pr-10 rounded-lg border border-border bg-card text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/50 font-mono text-sm"
               />
