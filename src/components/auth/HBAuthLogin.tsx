@@ -162,8 +162,20 @@ export function HBAuthLogin(props: HBAuthLoginProps) {
       setStoredUsers(users)
 
       setPrivateKey('')
-      setMode('login')
       setError(null)
+
+      // Auto-login after successful registration
+      const authStatus = await client.authenticate(user, pass, keyType)
+      if (authStatus.ok) {
+        props.onSuccess?.({
+          username: user,
+          privateKey: '__HBAUTH_MANAGED__',
+          keyType
+        })
+      } else {
+        // Fallback to login mode if auto-login fails
+        setMode('login')
+      }
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Registration failed')
       setError(error.message)
