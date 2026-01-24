@@ -4,7 +4,6 @@ import { Toast, showToast, Button } from '../ui'
 import { HBAuthLogin, currentUser, isAuthenticated, login, logout, needsReauth, type AuthUser } from '../auth'
 import { broadcastConfigToHive, getConfigUrlSync, loadConfigFromHive } from './hive-broadcast'
 import { TemplateSelector } from './TemplateSelector'
-import { UserSwitcher } from './UserSwitcher'
 import { LayoutEditor } from './LayoutEditor'
 import { SiteSettings } from './SiteSettings'
 import { PostsLayoutSettings } from './PostsLayoutSettings'
@@ -566,7 +565,6 @@ function AdminPanelContent(props: AdminPanelContentProps) {
       {/* Main Admin Panel Content - always visible */}
       <Show when={!settingsQuery.isLoading}>
         <TemplateSelector />
-        <UserSwitcher />
         <LayoutEditor />
         <NavigationSettings />
         <SiteSettings />
