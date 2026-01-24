@@ -34,8 +34,8 @@ export function Toast() {
   return (
     <div
       class={`
-        fixed top-4 right-4 z-50 transform transition-transform duration-300 ease-out
-        ${state().visible ? 'translate-x-0' : 'translate-x-full'}
+        fixed top-4 right-4 z-50 transform transition-all duration-300 ease-out
+        ${state().visible ? 'translate-x-0 opacity-100' : 'translate-x-[calc(100%+1rem)] opacity-0 pointer-events-none'}
       `}
     >
       <div
