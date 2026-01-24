@@ -34,6 +34,11 @@ export function HBAuthLogin(props: HBAuthLoginProps) {
       setAuthClient(client)
       const users = await client.getRegisteredUsers()
       setStoredUsers(users)
+
+      // Auto-select first user if available
+      if (users.length > 0) {
+        setUsername(users[0].username)
+      }
     } catch (err) {
       console.error('Failed to initialize HB-Auth client:', err)
     }
