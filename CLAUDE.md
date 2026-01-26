@@ -2,6 +2,16 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Location in Projects
+
+```
+projects/hive/my-honey-pot/   <-- JESTEŚ TUTAJ
+```
+
+**Inne projekty Hive w repozytorium:**
+- `../denser/` - frontend Hive (blog/wallet)
+- `../honeycomb/` - biblioteka UI komponentów dla Hive
+
 ## Commands
 
 ```bash
