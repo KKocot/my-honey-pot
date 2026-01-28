@@ -18,10 +18,16 @@ export function Slider(props: SliderProps) {
     typeof local.value === 'number' ? local.value : parseInt(String(local.value)) || 0
   )
 
+  // Track if user is currently editing (prevents race condition)
+  const [isEditing, setIsEditing] = createSignal(false)
+
   // Sync local value when prop changes (e.g., external reset)
+  // Guard: don't overwrite during active user editing
   createEffect(() => {
-    const propValue = typeof local.value === 'number' ? local.value : parseInt(String(local.value)) || 0
-    setLocalValue(propValue)
+    if (!isEditing()) {
+      const propValue = typeof local.value === 'number' ? local.value : parseInt(String(local.value)) || 0
+      setLocalValue(propValue)
+    }
   })
 
   const getMinMax = () => {
@@ -32,6 +38,7 @@ export function Slider(props: SliderProps) {
 
   // Handle range slider input (update local state only)
   const handleRangeInput: JSX.EventHandler<HTMLInputElement, InputEvent> = (e) => {
+    setIsEditing(true) // User started editing
     const newValue = parseInt(e.currentTarget.value)
     setLocalValue(newValue)
 
@@ -50,6 +57,7 @@ export function Slider(props: SliderProps) {
 
   // Handle range slider change (when user releases - fires onChange)
   const handleRangeChange: JSX.EventHandler<HTMLInputElement, Event> = () => {
+    setIsEditing(false) // User finished editing
     if (typeof local.onChange === 'function') {
       local.onChange(localValue())
     }
@@ -57,6 +65,7 @@ export function Slider(props: SliderProps) {
 
   // Handle number input change
   const handleNumberInput: JSX.EventHandler<HTMLInputElement, InputEvent> = (e) => {
+    setIsEditing(true) // User started typing
     let newValue = parseInt(e.currentTarget.value)
     const { minVal, maxVal } = getMinMax()
 
@@ -70,6 +79,7 @@ export function Slider(props: SliderProps) {
 
   // Handle number input blur (commit change)
   const handleNumberBlur = () => {
+    setIsEditing(false) // User finished editing
     if (typeof local.onChange === 'function') {
       local.onChange(localValue())
     }
