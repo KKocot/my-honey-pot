@@ -81,6 +81,45 @@ export function PlatformIcon(props: { platform: SocialPlatform } & IconProps) {
 const ALL_PLATFORMS: SocialPlatform[] = ['instagram', 'x', 'youtube', 'tiktok', 'threads', 'facebook']
 
 // ============================================
+// URL Validation Helpers
+// ============================================
+
+/**
+ * Validates URL format and blocks dangerous protocols
+ */
+const isValidUrl = (url: string): boolean => {
+  const trimmed = url.trim()
+  if (!trimmed) return true // Empty URL is OK (optional field)
+
+  // Block dangerous protocols
+  const dangerousProtocols = ['javascript:', 'data:', 'vbscript:']
+  if (dangerousProtocols.some(p => trimmed.toLowerCase().startsWith(p))) {
+    return false
+  }
+
+  // Check if it's a valid URL or relative path
+  if (trimmed.startsWith('/')) return true // Relative paths OK
+
+  try {
+    new URL(trimmed)
+    return true
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Auto-prefix URL with https:// if missing protocol
+ */
+const normalizeUrl = (url: string): string => {
+  const trimmed = url.trim()
+  if (!trimmed) return ''
+  if (trimmed.startsWith('/')) return trimmed // Relative path
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) return trimmed
+  return `https://${trimmed}`
+}
+
+// ============================================
 // Social Links Settings Component
 // ============================================
 
@@ -95,8 +134,16 @@ export function SocialLinksSettings() {
 
   // Update a specific link
   const updateLink = (platform: SocialPlatform, url: string) => {
+    const normalizedUrl = normalizeUrl(url)
+
+    if (normalizedUrl && !isValidUrl(normalizedUrl)) {
+      // Invalid URL - show console warning
+      console.warn('Invalid URL:', url)
+      return
+    }
+
     const newLinks = (settings.socialLinks || []).map(link =>
-      link.platform === platform ? { ...link, url } : link
+      link.platform === platform ? { ...link, url: normalizedUrl } : link
     )
     updateSettings({ socialLinks: newLinks })
   }
