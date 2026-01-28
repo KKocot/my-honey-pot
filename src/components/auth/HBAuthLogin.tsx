@@ -186,22 +186,30 @@ export function HBAuthLogin(props: HBAuthLoginProps) {
   }
 
   /**
-   * Remove key from HB-Auth storage
+   * Logout user from HB-Auth session and remove from quick access list
    */
   async function handleRemoveKey(user: string) {
-    if (!confirm(`Remove stored key for @${user}?`)) return
+    if (!confirm(`Logout and remove @${user} from quick access list?`)) return
 
     const client = authClient()
     if (!client) return
 
     try {
+      // Logout user from HB-Auth (removes session, not the stored key)
       await client.logout(user)
-      // Note: HB-Auth logout doesn't remove the key, just logs out
-      // To fully remove, we'd need unregister if available
+
+      // Refresh stored users list
       const users = await client.getRegisteredUsers()
       setStoredUsers(users)
+
+      // Clear form if removing current user
+      if (username() === user) {
+        setUsername('')
+        setPassword('')
+      }
     } catch (err) {
-      console.error('Failed to remove key:', err)
+      console.error('Failed to logout user:', err)
+      setError('Failed to logout user')
     }
   }
 
@@ -254,7 +262,7 @@ export function HBAuthLogin(props: HBAuthLoginProps) {
                   <button
                     onClick={() => handleRemoveKey(user.username)}
                     class="text-muted hover:text-error ml-1"
-                    title="Remove key"
+                    title="Logout from quick access"
                   >
                     ×
                   </button>
