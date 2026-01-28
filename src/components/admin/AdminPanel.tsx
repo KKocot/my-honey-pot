@@ -57,6 +57,16 @@ function AdminPanelContent(props: AdminPanelContentProps) {
     return user.username.toLowerCase() === props.ownerUsername.toLowerCase()
   }
 
+  // Warn user about unsaved changes when leaving page
+  const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+    if (getHasUnsavedChanges()) {
+      e.preventDefault()
+      // Modern browsers require returnValue to be set
+      e.returnValue = 'You have unsaved changes. Are you sure you want to leave?'
+      return e.returnValue
+    }
+  }
+
   // Apply initial settings from SSR on mount (before query runs)
   onMount(() => {
     if (props.initialSettings) {
@@ -71,21 +81,12 @@ function AdminPanelContent(props: AdminPanelContentProps) {
       updateSettings({ hiveUsername: props.ownerUsername })
     }
 
-    // Warn user about unsaved changes when leaving page
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (getHasUnsavedChanges()) {
-        e.preventDefault()
-        // Modern browsers require returnValue to be set
-        e.returnValue = 'You have unsaved changes. Are you sure you want to leave?'
-        return e.returnValue
-      }
-    }
-
     window.addEventListener('beforeunload', handleBeforeUnload)
+  })
 
-    onCleanup(() => {
-      window.removeEventListener('beforeunload', handleBeforeUnload)
-    })
+  // Cleanup event listener on component unmount
+  onCleanup(() => {
+    window.removeEventListener('beforeunload', handleBeforeUnload)
   })
 
   // Sync query data to store when it changes
@@ -138,7 +139,8 @@ function AdminPanelContent(props: AdminPanelContentProps) {
         const action = result.isUpdate ? 'Updated' : 'Published'
         const url = getConfigUrlSync(user.username, result.permlink)
         showToast(`${action} config on Hive! View at: ${url}`, 'success')
-        // Reset unsaved changes flag after successful save
+        // NOTE: Resetujemy flagę zakładając że broadcast się powiódł.
+        // W przyszłości rozważ dodanie transaction confirmation polling.
         setHasUnsavedChanges(false)
       } else {
         showToast(`Failed: ${result.error}`, 'error')
