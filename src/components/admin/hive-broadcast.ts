@@ -4,6 +4,35 @@ import { CONFIG_PARENT_AUTHOR, CONFIG_PARENT_PERMLINK } from '../../lib/config'
 import { getOnlineClient } from '../../lib/hbauth-service'
 import type { SettingsData } from './types'
 
+const MAX_BODY_SIZE = 64 * 1024 // 64KB in bytes
+
+/**
+ * Retry wrapper for async operations with exponential backoff
+ */
+async function withRetry<T>(
+  operation: () => Promise<T>,
+  maxRetries: number = 3,
+  delayMs: number = 1000
+): Promise<T> {
+  let lastError: Error | null = null
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      return await operation()
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error))
+      console.warn(`Attempt ${attempt}/${maxRetries} failed:`, lastError.message)
+
+      if (attempt < maxRetries) {
+        // Exponential backoff
+        await new Promise(resolve => setTimeout(resolve, delayMs * attempt))
+      }
+    }
+  }
+
+  throw lastError
+}
+
 /**
  * Find existing config comment from a user under the config post using Blog Logic
  * Returns the permlink and body if found, null otherwise
@@ -80,12 +109,29 @@ export async function broadcastConfigToHive(
     // Use existing permlink for update, or generate new one for create
     const permlink = existingConfig ? existingConfig.permlink : generateNewConfigPermlink(username)
 
-    // Create transaction
-    const tx = await chain.createTransaction()
-
     // Prepare config body
     const configBody = JSON.stringify(settings, null, 2)
     const timestamp = new Date().toISOString()
+
+    // Validate config size (Hive has 64KB limit on comment body)
+    const fullBody = `# Blog Configuration for @${username}\n\nLast updated: ${timestamp}\n\n\`\`\`json\n${configBody}\n\`\`\``
+    const bodySize = new Blob([fullBody]).size
+    if (bodySize > MAX_BODY_SIZE) {
+      throw new Error(`Configuration too large (${Math.round(bodySize / 1024)}KB). Maximum size is 64KB. Try reducing custom settings.`)
+    }
+
+    // Validate parent post exists
+    const parentCheck = await chain.api.database_api.get_content({
+      author: CONFIG_PARENT_AUTHOR,
+      permlink: CONFIG_PARENT_PERMLINK
+    })
+
+    if (!parentCheck || !parentCheck.author) {
+      throw new Error('Configuration storage post not found. Please contact support.')
+    }
+
+    // Create transaction
+    const tx = await chain.createTransaction()
 
     // Add reply operation - same operation for create and update
     // In Hive, posting a comment with the same author+permlink updates it
@@ -93,7 +139,7 @@ export async function broadcastConfigToHive(
       parentAuthor: CONFIG_PARENT_AUTHOR,
       parentPermlink: CONFIG_PARENT_PERMLINK,
       author: username,
-      body: `# Blog Configuration for @${username}\n\nLast updated: ${timestamp}\n\n\`\`\`json\n${configBody}\n\`\`\``,
+      body: fullBody,
       permlink: permlink,
       jsonMetadata: {
         app: 'hive-blog-config/1.0',
@@ -113,8 +159,12 @@ export async function broadcastConfigToHive(
     // Add signature to transaction
     tx.sign(signature)
 
-    // Broadcast
-    await chain.broadcast(tx)
+    // Broadcast with retry logic (max 3 attempts with exponential backoff)
+    await withRetry(
+      async () => await chain.broadcast(tx),
+      3, // max 3 retries
+      1000 // 1s initial delay
+    )
 
     return {
       success: true,
