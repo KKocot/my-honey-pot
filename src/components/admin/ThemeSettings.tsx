@@ -35,6 +35,32 @@ const colorLabels: Record<keyof ThemeColors, string> = {
 }
 
 // ============================================
+// HEX Color Validation Helpers
+// ============================================
+
+/**
+ * Validates HEX color format (#RRGGBB or #RGB)
+ */
+const isValidHexColor = (hex: string): boolean => {
+  return /^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/.test(hex)
+}
+
+/**
+ * Normalizes HEX color (converts #RGB to #RRGGBB)
+ */
+const normalizeHexColor = (hex: string): string => {
+  if (!hex.startsWith('#')) hex = '#' + hex
+
+  // Convert #RGB to #RRGGBB
+  if (/^#[0-9A-Fa-f]{3}$/.test(hex)) {
+    const r = hex[1], g = hex[2], b = hex[3]
+    return `#${r}${r}${g}${g}${b}${b}`
+  }
+
+  return hex
+}
+
+// ============================================
 // Get current colors (from custom or preset)
 // ============================================
 
@@ -166,7 +192,14 @@ function ColorCustomizerContent(props: { onClose: () => void }) {
   const currentColors = createMemo(() => getCurrentColors())
 
   const updateColor = (key: keyof ThemeColors, value: string) => {
-    const newColors = { ...currentColors(), [key]: value }
+    const normalized = normalizeHexColor(value)
+
+    if (!isValidHexColor(normalized)) {
+      console.warn('Invalid HEX color:', value)
+      return // Don't update if invalid
+    }
+
+    const newColors = { ...currentColors(), [key]: normalized }
     setCustomColors(newColors)
   }
 
