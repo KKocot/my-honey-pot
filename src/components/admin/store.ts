@@ -3,15 +3,17 @@
 // AdminPanel and queries to avoid circular dependencies
 // ============================================
 
-// Track if user has made changes since last save
-let hasUnsavedChanges = false
+import { createSignal } from 'solid-js'
+
+// Track if user has made changes since last save (reactive signal)
+const [hasUnsavedChanges, setHasUnsavedChangesInternal] = createSignal(false)
 
 /**
  * Set whether there are unsaved changes in the admin panel.
  * Used by queries.ts when settings are modified.
  */
 export function setHasUnsavedChanges(value: boolean): void {
-  hasUnsavedChanges = value
+  setHasUnsavedChangesInternal(value)
 }
 
 /**
@@ -19,8 +21,11 @@ export function setHasUnsavedChanges(value: boolean): void {
  * Used by AdminPanel to show warning before leaving.
  */
 export function getHasUnsavedChanges(): boolean {
-  return hasUnsavedChanges
+  return hasUnsavedChanges()
 }
+
+// Export the signal itself for components that want to use it reactively
+export { hasUnsavedChanges }
 
 // ============================================
 // Re-export from queries.ts for backward compatibility

@@ -80,11 +80,31 @@ export function getSettingsSnapshot(): SettingsData {
   return JSON.parse(JSON.stringify(settings)) as SettingsData
 }
 
+// Debounce state for updateSettings to prevent race conditions
+let updateDebounceTimer: ReturnType<typeof setTimeout> | null = null
+let pendingUpdates: Partial<SettingsData> = {}
+
+/**
+ * Update settings with debouncing to prevent race conditions when multiple
+ * components update settings simultaneously.
+ * Batches updates within ~16ms (1 frame at 60fps).
+ */
 export function updateSettings(partial: Partial<SettingsData>) {
-  setSettings(produce((s) => {
-    Object.assign(s, partial)
-  }))
-  setHasUnsavedChanges(true)
+  // Merge pending updates
+  pendingUpdates = { ...pendingUpdates, ...partial }
+
+  if (updateDebounceTimer) {
+    clearTimeout(updateDebounceTimer)
+  }
+
+  updateDebounceTimer = setTimeout(() => {
+    setSettings(produce((s) => {
+      Object.assign(s, pendingUpdates)
+    }))
+    setHasUnsavedChanges(true)
+    pendingUpdates = {}
+    updateDebounceTimer = null
+  }, 16) // ~1 frame (60fps)
 }
 
 // Dedicated setter for customColors to ensure SolidJS reactivity
