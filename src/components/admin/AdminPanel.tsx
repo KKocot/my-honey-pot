@@ -1,4 +1,4 @@
-import { createEffect, createSignal, Show, For, onMount, onCleanup } from 'solid-js'
+import { createEffect, createSignal, Show, For, onMount, onCleanup, ErrorBoundary } from 'solid-js'
 import { QueryClientProvider } from '@tanstack/solid-query'
 import { Toast, showToast, Button } from '../ui'
 import { HBAuthLogin, currentUser, isAuthenticated, login, logout, needsReauth, type AuthUser } from '../auth'
@@ -12,7 +12,7 @@ import { AuthorProfileSettings } from './AuthorProfileSettings'
 import { CommentSettings } from './CommentSettings'
 import { NavigationSettings } from './NavigationSettings'
 import { FullPreview } from './FullPreview'
-import { settingsToRecord, type SettingsData } from './types'
+import { settingsToRecord, type SettingsData } from './types/index'
 import {
   queryClient,
   queryKeys,
@@ -138,10 +138,13 @@ function AdminPanelContent(props: AdminPanelContentProps) {
       if (result.success && result.permlink) {
         const action = result.isUpdate ? 'Updated' : 'Published'
         const url = getConfigUrlSync(user.username, result.permlink)
-        showToast(`${action} config on Hive! View at: ${url}`, 'success')
-        // NOTE: Resetujemy flagę zakładając że broadcast się powiódł.
-        // W przyszłości rozważ dodanie transaction confirmation polling.
-        setHasUnsavedChanges(false)
+        showToast('Broadcasting... waiting for confirmation', 'success')
+
+        // Wait 5s before resetting hasUnsavedChanges to give blockchain time to confirm
+        setTimeout(() => {
+          setHasUnsavedChanges(false)
+          showToast(`${action} config on Hive! View at: ${url}`, 'success')
+        }, 5000)
       } else {
         showToast(`Failed: ${result.error}`, 'error')
       }
@@ -213,7 +216,7 @@ function AdminPanelContent(props: AdminPanelContentProps) {
         setJsonDiff(diff)
       }
     } catch (error) {
-      console.error('Failed to load old config:', error)
+      if (import.meta.env.DEV) console.error('Failed to load old config:', error)
       showToast('Failed to load old config from Hive', 'error')
     } finally {
       setIsLoadingDiff(false)
@@ -254,7 +257,18 @@ function AdminPanelContent(props: AdminPanelContentProps) {
   }
 
   return (
-    <>
+    <ErrorBoundary fallback={(err) => (
+      <div class="p-8 text-center">
+        <h2 class="text-xl font-bold text-error mb-4">Something went wrong</h2>
+        <p class="text-muted mb-4">{err.message}</p>
+        <button
+          onClick={() => window.location.reload()}
+          class="px-4 py-2 bg-primary text-primary-text rounded-lg hover:bg-primary-hover transition-colors"
+        >
+          Reload page
+        </button>
+      </div>
+    )}>
       <Toast />
       <FullPreview open={showPreview} onClose={() => setShowPreview(false)} />
 
@@ -311,6 +325,7 @@ function AdminPanelContent(props: AdminPanelContentProps) {
                 <button
                   onClick={() => setShowJsonPreview(false)}
                   class="text-text-muted hover:text-text hover:bg-bg-secondary rounded-lg p-1.5 transition-colors"
+                  aria-label="Close config preview"
                 >
                   <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -448,6 +463,7 @@ function AdminPanelContent(props: AdminPanelContentProps) {
               <button
                 onClick={() => setShowLoginModal(false)}
                 class="text-text-muted hover:text-text hover:bg-bg-secondary rounded-lg p-1.5 transition-colors"
+                aria-label="Close login modal"
               >
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -855,7 +871,7 @@ function AdminPanelContent(props: AdminPanelContentProps) {
           </div>
         </div>
       </Show>
-    </>
+    </ErrorBoundary>
   )
 }
 

@@ -1,120 +1,132 @@
-import { splitProps, createSignal, createEffect, type JSX } from 'solid-js'
+import { createSignal, createEffect, createUniqueId, on, type JSX } from 'solid-js'
 
-export interface SliderProps extends Omit<JSX.InputHTMLAttributes<HTMLInputElement>, 'type' | 'onChange'> {
+export interface SliderProps {
   label: string
   unit?: string
-  showValue?: boolean
+  value: number
+  min?: number
+  max?: number
+  step?: number
+  disabled?: boolean
+  class?: string
+  id?: string
   /** Called when user finishes dragging or changes number input (on blur/change) */
   onChange?: (value: number) => void
 }
 
 export function Slider(props: SliderProps) {
-  const [local, rest] = splitProps(props, ['label', 'unit', 'showValue', 'class', 'id', 'value', 'onInput', 'onChange', 'disabled'])
+  const generatedId = createUniqueId()
+  const inputId = props.id || `slider-${generatedId}`
 
-  const inputId = local.id || `slider-${Math.random().toString(36).slice(2)}`
+  // Local state for range slider (numeric)
+  const [localValue, setLocalValue] = createSignal<number>(props.value ?? 0)
 
-  // Local state for display during dragging
-  const [localValue, setLocalValue] = createSignal<number>(
-    typeof local.value === 'number' ? local.value : parseInt(String(local.value)) || 0
-  )
+  // Separate local state for number input (string to allow free typing)
+  const [inputText, setInputText] = createSignal<string>(String(props.value ?? 0))
 
-  // Track if user is currently editing (prevents race condition)
-  const [isEditing, setIsEditing] = createSignal(false)
+  // Intentional: plain object to avoid triggering SolidJS reactivity.
+  // Using a signal here would cause effect loops between local state and prop sync.
+  const editing = { current: false }
 
-  // Sync local value when prop changes (e.g., external reset)
-  // Guard: don't overwrite during active user editing
-  createEffect(() => {
-    if (!isEditing()) {
-      const propValue = typeof local.value === 'number' ? local.value : parseInt(String(local.value)) || 0
-      setLocalValue(propValue)
-    }
-  })
+  // Sync local value ONLY when props.value changes externally (not during editing)
+  // Using on() with defer:true to only react to actual prop changes
+  createEffect(on(
+    () => props.value,
+    (newValue) => {
+      if (!editing.current) {
+        setLocalValue(newValue ?? 0)
+        setInputText(String(newValue ?? 0))
+      }
+    },
+    { defer: true }
+  ))
 
   const getMinMax = () => {
-    const minVal = typeof rest.min === 'number' ? rest.min : parseInt(String(rest.min)) || 0
-    const maxVal = typeof rest.max === 'number' ? rest.max : parseInt(String(rest.max)) || 100
+    const minVal = props.min ?? 0
+    const maxVal = props.max ?? 100
     return { minVal, maxVal }
   }
 
-  // Handle range slider input (update local state only)
-  const handleRangeInput: JSX.EventHandler<HTMLInputElement, InputEvent> = (e) => {
-    setIsEditing(true) // User started editing
-    const newValue = parseInt(e.currentTarget.value)
-    setLocalValue(newValue)
-
-    // Call onInput if provided - handle both function and tuple forms (SolidJS event delegation)
-    const onInputProp = local.onInput
-    if (onInputProp) {
-      if (typeof onInputProp === 'function') {
-        ;(onInputProp as (e: InputEvent & { currentTarget: HTMLInputElement; target: Element }) => void)(e)
-      } else if (Array.isArray(onInputProp)) {
-        // Tuple form: [handler, data]
-        const [handler, data] = onInputProp as [Function, unknown]
-        handler(data, e)
-      }
-    }
-  }
-
-  // Handle range slider change (when user releases - fires onChange)
-  const handleRangeChange: JSX.EventHandler<HTMLInputElement, Event> = () => {
-    setIsEditing(false) // User finished editing
-    if (typeof local.onChange === 'function') {
-      local.onChange(localValue())
-    }
-  }
-
-  // Handle number input change
-  const handleNumberInput: JSX.EventHandler<HTMLInputElement, InputEvent> = (e) => {
-    setIsEditing(true) // User started typing
-    let newValue = parseInt(e.currentTarget.value)
+  // Clamp value to min/max
+  const clampValue = (val: number): number => {
     const { minVal, maxVal } = getMinMax()
-
-    // Clamp value to min/max
-    if (isNaN(newValue)) newValue = minVal
-    if (newValue < minVal) newValue = minVal
-    if (newValue > maxVal) newValue = maxVal
-
-    setLocalValue(newValue)
+    if (isNaN(val)) return minVal
+    if (val < minVal) return minVal
+    if (val > maxVal) return maxVal
+    return val
   }
 
-  // Handle number input blur (commit change)
-  const handleNumberBlur = () => {
-    setIsEditing(false) // User finished editing
-    if (typeof local.onChange === 'function') {
-      local.onChange(localValue())
+  // Commit range slider value
+  const commitRangeValue = () => {
+    const clamped = clampValue(localValue())
+    setLocalValue(clamped)
+    setInputText(String(clamped))
+    // Set isEditing to false AFTER calling onChange to prevent effect from overwriting
+    if (props.onChange) {
+      props.onChange(clamped)
     }
+    editing.current = false
+  }
+
+  // Commit number input value (validate and clamp on blur)
+  const commitNumberValue = () => {
+    const parsed = Number(inputText())
+    const clamped = clampValue(parsed)
+    setLocalValue(clamped)
+    setInputText(String(clamped))
+    // Set editing to false AFTER calling onChange to prevent effect from overwriting
+    if (props.onChange) {
+      props.onChange(clamped)
+    }
+    editing.current = false
+  }
+
+  // Handle range slider input
+  const handleRangeInput: JSX.EventHandler<HTMLInputElement, InputEvent> = (e) => {
+    editing.current = true
+    const val = Number(e.currentTarget.value)
+    setLocalValue(val)
+    setInputText(String(val))
+  }
+
+  // Handle number input - allow free typing without validation
+  const handleNumberInput: JSX.EventHandler<HTMLInputElement, InputEvent> = (e) => {
+    editing.current = true
+    setInputText(e.currentTarget.value)
   }
 
   return (
-    <div class={local.disabled ? 'opacity-50' : ''}>
-      <label for={inputId} class={`block text-sm font-medium mb-1 ${local.disabled ? 'text-text-muted' : 'text-text'}`}>
-        {local.label}
+    <div class={props.disabled ? 'opacity-50' : ''}>
+      <label for={inputId} class={`block text-sm font-medium mb-1 ${props.disabled ? 'text-text-muted' : 'text-text'}`}>
+        {props.label}
       </label>
       <div class="flex items-center gap-3">
         <input
-          {...rest}
           type="range"
           id={inputId}
+          min={props.min}
+          max={props.max}
+          step={props.step}
           value={localValue()}
           onInput={handleRangeInput}
-          onChange={handleRangeChange}
-          disabled={local.disabled}
-          class={`flex-1 ${local.disabled ? 'cursor-not-allowed' : ''} ${local.class || ''}`}
+          onChange={commitRangeValue}
+          disabled={props.disabled}
+          class={`flex-1 ${props.disabled ? 'cursor-not-allowed' : ''} ${props.class || ''}`}
         />
         <div class="flex items-center gap-1">
           <input
             type="number"
-            value={localValue()}
-            min={rest.min}
-            max={rest.max}
-            step={rest.step}
+            value={inputText()}
+            min={props.min}
+            max={props.max}
+            step={props.step}
             onInput={handleNumberInput}
-            onBlur={handleNumberBlur}
-            disabled={local.disabled}
-            class={`w-16 px-2 py-1 text-sm bg-bg border border-border rounded text-text text-center focus:outline-none focus:ring-1 focus:ring-primary ${local.disabled ? 'cursor-not-allowed' : ''}`}
+            onBlur={commitNumberValue}
+            disabled={props.disabled}
+            class={`w-16 px-2 py-1 text-sm bg-bg border border-border rounded text-text text-center focus:outline-none focus:ring-1 focus:ring-primary ${props.disabled ? 'cursor-not-allowed' : ''}`}
           />
-          {local.unit && (
-            <span class="text-xs text-text-muted">{local.unit}</span>
+          {props.unit && (
+            <span class="text-xs text-text-muted">{props.unit}</span>
           )}
         </div>
       </div>

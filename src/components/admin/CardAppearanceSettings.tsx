@@ -1,7 +1,7 @@
 import { Show, For, createMemo } from 'solid-js'
 import { settings, updateSettings } from './store'
 import { Slider } from '../ui'
-import { collectAllElementIds, postCardElementLabels, type CardLayout } from './types'
+import { collectAllElementIds, postCardElementLabels, type CardLayout } from './types/index'
 import { CardLayoutEditor } from './CardLayoutEditor'
 import { PostCard, samplePosts } from './PostCardPreview'
 
@@ -77,7 +77,7 @@ function CardLayoutSection() {
           min={32}
           max={400}
           value={settings.thumbnailSizePx}
-          onInput={(e) => updateSettings({ thumbnailSizePx: parseInt(e.currentTarget.value) })}
+          onChange={(val) => updateSettings({ thumbnailSizePx: val })}
         />
 
         <Slider
@@ -86,7 +86,7 @@ function CardLayoutSection() {
           min={0}
           max={64}
           value={settings.cardPaddingPx}
-          onInput={(e) => updateSettings({ cardPaddingPx: parseInt(e.currentTarget.value) })}
+          onChange={(val) => updateSettings({ cardPaddingPx: val })}
         />
 
         <Slider
@@ -95,7 +95,7 @@ function CardLayoutSection() {
           min={0}
           max={48}
           value={settings.cardBorderRadiusPx}
-          onInput={(e) => updateSettings({ cardBorderRadiusPx: parseInt(e.currentTarget.value) })}
+          onChange={(val) => updateSettings({ cardBorderRadiusPx: val })}
         />
 
         <Slider
@@ -104,7 +104,7 @@ function CardLayoutSection() {
           min={12}
           max={48}
           value={settings.titleSizePx}
-          onInput={(e) => updateSettings({ titleSizePx: parseInt(e.currentTarget.value) })}
+          onChange={(val) => updateSettings({ titleSizePx: val })}
         />
       </div>
     </div>
@@ -130,7 +130,7 @@ function AdditionalSettings() {
           min={50}
           max={500}
           value={settings.summaryMaxLength}
-          onInput={(e) => updateSettings({ summaryMaxLength: parseInt(e.currentTarget.value) })}
+          onChange={(val) => updateSettings({ summaryMaxLength: val })}
         />
       </Show>
 
@@ -140,7 +140,7 @@ function AdditionalSettings() {
           min={1}
           max={10}
           value={settings.maxTags}
-          onInput={(e) => updateSettings({ maxTags: parseInt(e.currentTarget.value) })}
+          onChange={(val) => updateSettings({ maxTags: val })}
         />
       </Show>
     </div>

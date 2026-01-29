@@ -1,7 +1,8 @@
 import { For, Show } from 'solid-js'
 import { settings, updateSettings } from './store'
-import { Slider, Input } from '../ui'
+import { Slider } from '../ui'
 import { LayoutPreview } from './PostCardPreview'
+import { createLocalNumericInput } from './hooks'
 
 // ============================================
 // Posts Layout Settings Section
@@ -53,7 +54,7 @@ export function PostsLayoutSettings() {
                 min={1}
                 max={4}
                 value={settings.gridColumns}
-                onInput={(e) => updateSettings({ gridColumns: parseInt(e.currentTarget.value) })}
+                onChange={(val) => updateSettings({ gridColumns: val })}
               />
 
               <div class="flex items-center gap-2 p-3 bg-bg-secondary rounded-lg text-xs text-text-muted">
@@ -72,25 +73,43 @@ export function PostsLayoutSettings() {
             min={0}
             max={64}
             value={settings.cardGapPx}
-            onInput={(e) => updateSettings({ cardGapPx: parseInt(e.currentTarget.value) })}
+            onChange={(val) => updateSettings({ cardGapPx: val })}
           />
 
           {/* Posts per page */}
-          <div>
-            <Input
-              type="number"
-              label="Posts per page"
-              min={5}
-              max={20}
-              value={Math.min(settings.postsPerPage ?? 20, 20)}
-              onInput={(e) => updateSettings({ postsPerPage: Math.min(parseInt(e.currentTarget.value) || 20, 20) })}
-            />
-          </div>
+          <PostsPerPageInput />
         </div>
 
         {/* Unified Preview - shows actual cards in layout */}
         <LayoutPreview postCount={4} maxHeight="400px" />
       </div>
+    </div>
+  )
+}
+
+// ============================================
+// Posts Per Page Input with local state
+// ============================================
+
+function PostsPerPageInput() {
+  const [localValue, setLocalValue, commitValue] = createLocalNumericInput(
+    () => settings.postsPerPage ?? 20,
+    (val) => updateSettings({ postsPerPage: val }),
+    { min: 5, max: 20, fallback: 5 }
+  )
+
+  return (
+    <div>
+      <label class="block text-sm font-medium text-text mb-1">Posts per page</label>
+      <input
+        type="number"
+        min={5}
+        max={20}
+        value={localValue()}
+        onInput={(e) => setLocalValue(Number(e.currentTarget.value) || 5)}
+        onBlur={commitValue}
+        class="w-full px-4 py-2 bg-bg border border-border rounded-lg text-text focus:outline-none focus:ring-2 focus:ring-primary"
+      />
     </div>
   )
 }

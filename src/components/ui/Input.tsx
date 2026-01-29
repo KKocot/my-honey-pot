@@ -1,4 +1,4 @@
-import { splitProps, type JSX } from 'solid-js'
+import { splitProps, createUniqueId, type JSX } from 'solid-js'
 
 export interface InputProps extends JSX.InputHTMLAttributes<HTMLInputElement> {
   label?: string
@@ -8,7 +8,8 @@ export interface InputProps extends JSX.InputHTMLAttributes<HTMLInputElement> {
 export function Input(props: InputProps) {
   const [local, rest] = splitProps(props, ['label', 'error', 'class', 'id'])
 
-  const inputId = local.id || `input-${Math.random().toString(36).slice(2)}`
+  const generatedId = createUniqueId()
+  const inputId = local.id || `input-${generatedId}`
 
   return (
     <div>

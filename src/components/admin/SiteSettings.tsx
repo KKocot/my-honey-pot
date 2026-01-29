@@ -1,12 +1,22 @@
 import { settings, updateSettings } from './store'
-import { Input, Slider } from '../ui'
+import { Slider } from '../ui'
 import { ThemeSettings } from './ThemeSettings'
+import { createLocalInput } from './hooks'
 
 // ============================================
 // Site Settings Section
 // ============================================
 
 export function SiteSettings() {
+  const [localSiteName, setLocalSiteName, commitSiteName] = createLocalInput(
+    () => settings.siteName,
+    (val) => updateSettings({ siteName: val })
+  )
+  const [localSiteDescription, setLocalSiteDescription, commitSiteDescription] = createLocalInput(
+    () => settings.siteDescription,
+    (val) => updateSettings({ siteDescription: val })
+  )
+
   return (
     <>
       {/* Theme Settings (separate card) */}
@@ -20,11 +30,14 @@ export function SiteSettings() {
           <div class="space-y-6">
             {/* Basic Info */}
             <div>
-              <Input
-                label="Site Name"
-                value={settings.siteName}
+              <label class="block text-sm font-medium text-text mb-1">Site Name</label>
+              <input
+                type="text"
+                value={localSiteName()}
                 placeholder="Hive Blog"
-                onInput={(e) => updateSettings({ siteName: e.currentTarget.value })}
+                onInput={(e) => setLocalSiteName(e.currentTarget.value)}
+                onBlur={commitSiteName}
+                class="w-full px-4 py-2 bg-bg border border-border rounded-lg text-text focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
 
@@ -33,9 +46,10 @@ export function SiteSettings() {
               <textarea
                 rows={2}
                 class="w-full px-4 py-2 bg-bg border border-border rounded-lg text-text resize-y focus:outline-none focus:ring-2 focus:ring-primary"
-                value={settings.siteDescription}
+                value={localSiteDescription()}
                 placeholder="Posts from Hive blockchain"
-                onInput={(e) => updateSettings({ siteDescription: e.currentTarget.value })}
+                onInput={(e) => setLocalSiteDescription(e.currentTarget.value)}
+                onBlur={commitSiteDescription}
               />
             </div>
 
@@ -50,7 +64,7 @@ export function SiteSettings() {
                 max={1920}
                 step={10}
                 value={settings.headerMaxWidthPx ?? 1280}
-                onInput={(e) => updateSettings({ headerMaxWidthPx: parseInt(e.currentTarget.value) })}
+                onChange={(val) => updateSettings({ headerMaxWidthPx: val })}
               />
             </div>
           </div>

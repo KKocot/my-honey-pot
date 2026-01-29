@@ -1,6 +1,6 @@
 import { For, Show, createMemo } from 'solid-js'
 import { settings, updateSettings } from './store'
-import { authorProfileElementLabels, platformInfos, type CardLayout, type CardSection, type CardSectionChild } from './types'
+import { authorProfileElementLabels, platformInfos, type CardLayout, type CardSection, type CardSectionChild } from './types/index'
 import { Slider } from '../ui'
 import { CardLayoutEditor } from './CardLayoutEditor'
 import { SocialLinksSettings, PlatformIcon } from './SocialLinksSettings'
@@ -104,7 +104,7 @@ export function AuthorProfileSettings() {
               min={32}
               max={128}
               value={settings.authorAvatarSizePx}
-              onInput={(e) => updateSettings({ authorAvatarSizePx: parseInt(e.currentTarget.value) })}
+              onChange={(val) => updateSettings({ authorAvatarSizePx: val })}
               disabled={!hasAvatar()}
             />
             <Slider
@@ -113,7 +113,7 @@ export function AuthorProfileSettings() {
               min={48}
               max={200}
               value={settings.authorCoverHeightPx ?? 64}
-              onInput={(e) => updateSettings({ authorCoverHeightPx: parseInt(e.currentTarget.value) })}
+              onChange={(val) => updateSettings({ authorCoverHeightPx: val })}
               disabled={!hasCover()}
             />
             <Slider
@@ -122,7 +122,7 @@ export function AuthorProfileSettings() {
               min={12}
               max={24}
               value={settings.authorUsernameSizePx ?? 14}
-              onInput={(e) => updateSettings({ authorUsernameSizePx: parseInt(e.currentTarget.value) })}
+              onChange={(val) => updateSettings({ authorUsernameSizePx: val })}
               disabled={!hasUsername()}
             />
             <Slider
@@ -131,7 +131,7 @@ export function AuthorProfileSettings() {
               min={14}
               max={32}
               value={settings.authorDisplayNameSizePx ?? 18}
-              onInput={(e) => updateSettings({ authorDisplayNameSizePx: parseInt(e.currentTarget.value) })}
+              onChange={(val) => updateSettings({ authorDisplayNameSizePx: val })}
               disabled={!hasDisplayName()}
             />
             <Slider
@@ -140,7 +140,7 @@ export function AuthorProfileSettings() {
               min={10}
               max={18}
               value={settings.authorAboutSizePx ?? 14}
-              onInput={(e) => updateSettings({ authorAboutSizePx: parseInt(e.currentTarget.value) })}
+              onChange={(val) => updateSettings({ authorAboutSizePx: val })}
               disabled={!hasAbout()}
             />
             <Slider
@@ -149,7 +149,7 @@ export function AuthorProfileSettings() {
               min={10}
               max={16}
               value={settings.authorReputationSizePx ?? 12}
-              onInput={(e) => updateSettings({ authorReputationSizePx: parseInt(e.currentTarget.value) })}
+              onChange={(val) => updateSettings({ authorReputationSizePx: val })}
               disabled={!hasReputation()}
             />
             <Slider
@@ -158,7 +158,7 @@ export function AuthorProfileSettings() {
               min={10}
               max={20}
               value={settings.authorStatsSizePx ?? 14}
-              onInput={(e) => updateSettings({ authorStatsSizePx: parseInt(e.currentTarget.value) })}
+              onChange={(val) => updateSettings({ authorStatsSizePx: val })}
               disabled={!hasStats()}
             />
             <Slider
@@ -167,7 +167,7 @@ export function AuthorProfileSettings() {
               min={10}
               max={16}
               value={settings.authorMetaSizePx ?? 12}
-              onInput={(e) => updateSettings({ authorMetaSizePx: parseInt(e.currentTarget.value) })}
+              onChange={(val) => updateSettings({ authorMetaSizePx: val })}
               disabled={!hasMeta()}
             />
           </div>

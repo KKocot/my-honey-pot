@@ -2,7 +2,7 @@ import { ReplyOperation } from '@hiveio/wax'
 import { DataProvider, getWax } from '../../lib/blog-logic'
 import { CONFIG_PARENT_AUTHOR, CONFIG_PARENT_PERMLINK } from '../../lib/config'
 import { getOnlineClient } from '../../lib/hbauth-service'
-import type { SettingsData } from './types'
+import type { SettingsData } from './types/index'
 
 const MAX_BODY_SIZE = 64 * 1024 // 64KB in bytes
 
@@ -21,11 +21,12 @@ async function withRetry<T>(
       return await operation()
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error))
-      console.warn(`Attempt ${attempt}/${maxRetries} failed:`, lastError.message)
+      // Retry logic - silent on failure, will throw if all retries exhausted
 
       if (attempt < maxRetries) {
-        // Exponential backoff
-        await new Promise(resolve => setTimeout(resolve, delayMs * attempt))
+        // Exponential backoff: 1s, 2s, 4s, 8s...
+        const backoffDelay = delayMs * Math.pow(2, attempt - 1)
+        await new Promise(resolve => setTimeout(resolve, backoffDelay))
       }
     }
   }
@@ -66,7 +67,7 @@ async function findExistingConfig(username: string): Promise<{ permlink: string;
 
     return null
   } catch (error) {
-    console.error('Error finding existing config:', error)
+    if (import.meta.env.DEV) console.error('Error finding existing config:', error)
     return null
   }
 }
@@ -173,7 +174,7 @@ export async function broadcastConfigToHive(
       isUpdate: isUpdate
     }
   } catch (error) {
-    console.error('Failed to broadcast config:', error)
+    if (import.meta.env.DEV) console.error('Failed to broadcast config:', error)
 
     // Parse error for user-friendly message
     let errorMessage = error instanceof Error ? error.message : 'Unknown error'
@@ -215,7 +216,7 @@ export async function loadConfigFromHive(username: string): Promise<SettingsData
     const config = JSON.parse(jsonMatch[1]) as SettingsData
     return config
   } catch (error) {
-    console.error('Failed to load config from Hive:', error)
+    if (import.meta.env.DEV) console.error('Failed to load config from Hive:', error)
     return null
   }
 }

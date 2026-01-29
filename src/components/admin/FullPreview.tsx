@@ -1,7 +1,7 @@
 import { Show, For, createMemo, createSignal, onMount, type Accessor } from 'solid-js'
 import { Portal } from 'solid-js/web'
 import { settings } from './store'
-import { pageElementLabels, platformInfos, type PageSlotPosition, type PageLayoutSection, type CardSection, type CardSectionChild } from './types'
+import { pageElementLabels, platformInfos, type PageSlotPosition, type PageLayoutSection, type CardSection, type CardSectionChild } from './types/index'
 import {
   useHivePreviewQuery,
   formatCompactNumber,
@@ -28,9 +28,7 @@ import {
   renderCommentCardContent,
 } from '../../shared/components/comment-card'
 import {
-  isExternalUrl,
   getNavigationItemClasses,
-  getExternalLinkIconSvg,
 } from '../../shared/components/navigation'
 
 // ============================================
@@ -347,9 +345,6 @@ export function FullPreview(props: FullPreviewProps) {
                 >
                   <span class="flex items-center gap-2">
                     {tab.label}
-                    {isExternalUrl(tab.href) && (
-                      <span innerHTML={getExternalLinkIconSvg()} />
-                    )}
                   </span>
                   {isActive() && (
                     <span class="absolute bottom-0 left-0 right-0 h-1 bg-primary rounded-t-full" />

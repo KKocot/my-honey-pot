@@ -1,7 +1,7 @@
 import { Show, createMemo, For } from 'solid-js'
 import { settings, updateSettings } from './store'
 import { Slider } from '../ui'
-import { commentCardElementLabels, type CardLayout, type CardSection, type CardSectionChild } from './types'
+import { commentCardElementLabels, type CardLayout, type CardSection, type CardSectionChild } from './types/index'
 import { CardLayoutEditor } from './CardLayoutEditor'
 
 // All available comment card element IDs
@@ -75,7 +75,7 @@ export function CommentSettings() {
               min={1}
               max={4}
               value={settings.commentsGridColumns}
-              onInput={(e) => updateSettings({ commentsGridColumns: parseInt(e.currentTarget.value) })}
+              onChange={(val) => updateSettings({ commentsGridColumns: val })}
             />
           </div>
         </Show>
@@ -87,7 +87,7 @@ export function CommentSettings() {
           min={0}
           max={64}
           value={settings.commentsGapPx}
-          onInput={(e) => updateSettings({ commentsGapPx: parseInt(e.currentTarget.value) })}
+          onChange={(val) => updateSettings({ commentsGapPx: val })}
         />
       </div>
 
@@ -102,7 +102,7 @@ export function CommentSettings() {
             min={24}
             max={64}
             value={settings.commentAvatarSizePx}
-            onInput={(e) => updateSettings({ commentAvatarSizePx: parseInt(e.currentTarget.value) })}
+            onChange={(val) => updateSettings({ commentAvatarSizePx: val })}
           />
 
           <Slider
@@ -111,7 +111,7 @@ export function CommentSettings() {
             min={8}
             max={32}
             value={settings.commentPaddingPx}
-            onInput={(e) => updateSettings({ commentPaddingPx: parseInt(e.currentTarget.value) })}
+            onChange={(val) => updateSettings({ commentPaddingPx: val })}
           />
 
           <Slider
@@ -121,7 +121,7 @@ export function CommentSettings() {
             max={1000}
             step={50}
             value={settings.commentMaxLength}
-            onInput={(e) => updateSettings({ commentMaxLength: parseInt(e.currentTarget.value) })}
+            onChange={(val) => updateSettings({ commentMaxLength: val })}
           />
           <p class="text-xs text-text-muted -mt-2">0 = show full content (no limit)</p>
 

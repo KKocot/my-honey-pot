@@ -1,4 +1,4 @@
-import { splitProps, type JSX } from 'solid-js'
+import { splitProps, createUniqueId, type JSX } from 'solid-js'
 
 export interface CheckboxProps extends Omit<JSX.InputHTMLAttributes<HTMLInputElement>, 'type'> {
   label: string
@@ -7,7 +7,8 @@ export interface CheckboxProps extends Omit<JSX.InputHTMLAttributes<HTMLInputEle
 export function Checkbox(props: CheckboxProps) {
   const [local, rest] = splitProps(props, ['label', 'class', 'id'])
 
-  const inputId = local.id || `checkbox-${Math.random().toString(36).slice(2)}`
+  const generatedId = createUniqueId()
+  const inputId = local.id || `checkbox-${generatedId}`
 
   return (
     <label for={inputId} class="flex items-center gap-2 cursor-pointer">

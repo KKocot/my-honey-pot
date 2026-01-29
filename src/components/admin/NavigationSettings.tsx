@@ -1,10 +1,22 @@
 import { For, Show } from 'solid-js'
 import { settings, updateSettings } from './store'
-import { Input } from '../ui'
-import type { NavigationTab } from './types'
+import type { NavigationTab } from './types/index'
+import { TabItem } from './TabItem'
 
 // ============================================
 // Navigation Tabs Settings Section
+// ============================================
+
+// Built-in tab IDs that cannot be removed
+const BUILT_IN_TAB_IDS = ['posts', 'threads', 'comments']
+
+// Check if tab is a category tab (has tag defined)
+const isCategoryTab = (tab: NavigationTab) => {
+  return !BUILT_IN_TAB_IDS.includes(tab.id) && !!tab.tag
+}
+
+// ============================================
+// Main Navigation Settings Component
 // ============================================
 
 export function NavigationSettings() {
@@ -32,36 +44,22 @@ export function NavigationSettings() {
     updateSettings({ navigationTabs: newTabs })
   }
 
-  // Add custom tab
-  const addCustomTab = () => {
+  // Add custom category tab
+  const addCategoryTab = () => {
     const newTab: NavigationTab = {
-      id: `custom-${Date.now()}`,
-      label: 'New Tab',
+      id: `category-${(crypto.randomUUID?.() ?? Date.now().toString()).slice(0, 8)}`,
+      label: 'Category',
       enabled: true,
       showCount: false,
-      href: '',
+      tag: '',
     }
     updateSettings({ navigationTabs: [...settings.navigationTabs, newTab] })
   }
 
-  // Built-in tab IDs that cannot be removed
-  const BUILT_IN_TAB_IDS = ['posts', 'threads', 'comments']
-
   // Remove tab (only custom tabs)
   const removeTab = (tabId: string) => {
-    if (BUILT_IN_TAB_IDS.includes(tabId)) return // Can't remove built-in tabs
+    if (BUILT_IN_TAB_IDS.includes(tabId)) return
     updateSettings({ navigationTabs: settings.navigationTabs.filter((t) => t.id !== tabId) })
-  }
-
-  // Check if tab is built-in
-  const isBuiltIn = (tabId: string) => {
-    return BUILT_IN_TAB_IDS.includes(tabId)
-  }
-
-  // Check if URL is external (starts with http:// or https://)
-  const isExternalUrl = (url: string | undefined) => {
-    if (!url) return false
-    return url.startsWith('http://') || url.startsWith('https://')
   }
 
   return (
@@ -79,115 +77,29 @@ export function NavigationSettings() {
           <div class="space-y-2">
             <For each={settings.navigationTabs}>
               {(tab, index) => (
-                <div class="bg-bg rounded-lg border border-border overflow-hidden">
-                  <div class="flex items-center gap-2 p-3">
-                    {/* Reorder buttons */}
-                    <div class="flex flex-col gap-0.5">
-                      <button
-                        type="button"
-                        onClick={() => moveTabUp(index())}
-                        disabled={index() === 0}
-                        class="p-0.5 text-text-muted hover:text-text disabled:opacity-30 disabled:cursor-not-allowed"
-                        title="Move up"
-                      >
-                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
-                        </svg>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => moveTabDown(index())}
-                        disabled={index() === settings.navigationTabs.length - 1}
-                        class="p-0.5 text-text-muted hover:text-text disabled:opacity-30 disabled:cursor-not-allowed"
-                        title="Move down"
-                      >
-                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                        </svg>
-                      </button>
-                    </div>
-
-                    {/* Enable toggle */}
-                    <input
-                      type="checkbox"
-                      checked={tab.enabled}
-                      onChange={(e) => updateTab(tab.id, { enabled: e.currentTarget.checked })}
-                      disabled={tab.id === 'threads'}
-                      class={`w-4 h-4 rounded border-border text-primary focus:ring-primary ${tab.id === 'threads' ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-                    />
-
-                    {/* Tab info */}
-                    <div class="flex-1 min-w-0">
-                      <Show
-                        when={!isBuiltIn(tab.id)}
-                        fallback={
-                          <div class="flex items-center gap-2">
-                            <span class={`font-medium ${tab.enabled ? 'text-text' : 'text-text-muted'}`}>
-                              {tab.label}
-                            </span>
-                            <Show when={tab.id === 'threads'}>
-                              <span class="text-[10px] px-1.5 py-0.5 bg-warning/20 text-warning rounded">
-                                Work in Progress
-                              </span>
-                            </Show>
-                          </div>
-                        }
-                      >
-                        <Input
-                          value={tab.label}
-                          placeholder="Tab label"
-                          onInput={(e) => updateTab(tab.id, { label: e.currentTarget.value })}
-                        />
-                      </Show>
-                    </div>
-
-
-                    {/* URL input for custom tabs */}
-                    <Show when={!isBuiltIn(tab.id)}>
-                      <div class="flex items-center gap-1">
-                        <Input
-                          value={tab.href || ''}
-                          placeholder="URL"
-                          onInput={(e) => updateTab(tab.id, { href: e.currentTarget.value })}
-                          class="w-32 text-xs"
-                        />
-                        <Show when={isExternalUrl(tab.href)}>
-                          <svg class="w-3.5 h-3.5 text-text-muted flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-label="External link">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                          </svg>
-                        </Show>
-                      </div>
-                    </Show>
-
-                    {/* Remove button (custom tabs only) */}
-                    <Show when={!isBuiltIn(tab.id)}>
-                      <button
-                        type="button"
-                        onClick={() => removeTab(tab.id)}
-                        class="p-1 text-error hover:bg-error/10 rounded"
-                        title="Remove tab"
-                      >
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                      </button>
-                    </Show>
-                  </div>
-                </div>
+                <TabItem
+                  tab={tab}
+                  index={index()}
+                  totalCount={settings.navigationTabs.length}
+                  onUpdate={updateTab}
+                  onMoveUp={moveTabUp}
+                  onMoveDown={moveTabDown}
+                  onRemove={removeTab}
+                />
               )}
             </For>
           </div>
 
-          {/* Add custom tab button */}
+          {/* Add category tab button */}
           <button
             type="button"
-            onClick={addCustomTab}
+            onClick={addCategoryTab}
             class="w-full flex items-center justify-center gap-2 p-2 text-sm text-primary border-2 border-dashed border-primary/30 rounded-lg hover:bg-primary/5 transition-colors"
           >
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
             </svg>
-            Add Custom Tab
+            Add Category Tab
           </button>
         </div>
 
@@ -210,10 +122,10 @@ export function NavigationSettings() {
                       >
                         <span class="flex items-center gap-1">
                           {tab.label}
-                          <Show when={isExternalUrl(tab.href)}>
-                            <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                            </svg>
+                          <Show when={isCategoryTab(tab) && tab.tag}>
+                            <span class="text-[9px] px-1 py-0.5 bg-primary/20 text-primary rounded">
+                              #{tab.tag}
+                            </span>
                           </Show>
                         </span>
                         <Show when={isFirst()}>

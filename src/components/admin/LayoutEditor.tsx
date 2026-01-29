@@ -8,7 +8,7 @@ import {
   type PageLayout,
   type PageLayoutSection,
   type PageSlotPosition,
-} from './types'
+} from './types/index'
 
 // ============================================
 // Page Layout Editor - Button-based UI
@@ -351,6 +351,7 @@ function SectionCard(props: SectionCardProps) {
             disabled={props.sectionIndex === 0}
             class="p-0.5 rounded text-text-muted hover:text-text hover:bg-bg disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             title="Move section up"
+            aria-label="Move section up"
           >
             <ChevronUpIcon class="w-3 h-3" />
           </button>
@@ -360,6 +361,7 @@ function SectionCard(props: SectionCardProps) {
             disabled={props.sectionIndex >= props.totalSections - 1}
             class="p-0.5 rounded text-text-muted hover:text-text hover:bg-bg disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             title="Move section down"
+            aria-label="Move section down"
           >
             <ChevronDownIcon class="w-3 h-3" />
           </button>
@@ -379,6 +381,7 @@ function SectionCard(props: SectionCardProps) {
               : 'bg-text-muted/20 text-text-muted'}
           `}
           title={props.section.active !== false ? 'Click to hide section' : 'Click to show section'}
+          aria-label={props.section.active !== false ? 'Hide section' : 'Show section'}
         >
           {props.section.active !== false ? (
             <EyeIcon class="w-3 h-3" />
@@ -398,6 +401,7 @@ function SectionCard(props: SectionCardProps) {
               : 'bg-accent/20 text-accent'}
           `}
           title={`Click to switch to ${props.section.orientation === 'horizontal' ? 'vertical' : 'horizontal'}`}
+          aria-label={`Switch to ${props.section.orientation === 'horizontal' ? 'vertical' : 'horizontal'} orientation`}
         >
           {props.section.orientation === 'horizontal' ? (
             <>
@@ -418,6 +422,7 @@ function SectionCard(props: SectionCardProps) {
           onClick={props.onRemove}
           class="ml-auto p-1 rounded text-text-muted hover:text-error hover:bg-error/10 transition-colors"
           title="Remove section"
+          aria-label="Remove section"
         >
           <XIcon class="w-3 h-3" />
         </button>
@@ -450,6 +455,7 @@ function SectionCard(props: SectionCardProps) {
                   disabled={elementIndex() === 0}
                   class="p-0.5 rounded hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed"
                   title={props.section.orientation === 'horizontal' ? 'Move left' : 'Move up'}
+                  aria-label={props.section.orientation === 'horizontal' ? 'Move element left' : 'Move element up'}
                 >
                   {props.section.orientation === 'horizontal' ? (
                     <ChevronLeftIcon class="w-2.5 h-2.5" />
@@ -463,6 +469,7 @@ function SectionCard(props: SectionCardProps) {
                   disabled={elementIndex() >= props.section.elements.length - 1}
                   class="p-0.5 rounded hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed"
                   title={props.section.orientation === 'horizontal' ? 'Move right' : 'Move down'}
+                  aria-label={props.section.orientation === 'horizontal' ? 'Move element right' : 'Move element down'}
                 >
                   {props.section.orientation === 'horizontal' ? (
                     <ChevronRightIcon class="w-2.5 h-2.5" />
@@ -479,6 +486,7 @@ function SectionCard(props: SectionCardProps) {
                 onClick={() => props.onRemoveElement(elementId)}
                 class="ml-1 p-0.5 rounded hover:bg-white/20"
                 title="Remove element"
+                aria-label="Remove element"
               >
                 <XIcon class="w-3 h-3" />
               </button>
@@ -499,6 +507,7 @@ function SectionCard(props: SectionCardProps) {
                 : 'border-border/50 text-text-muted hover:border-primary hover:text-primary hover:bg-primary/5'}
             `}
             title={props.unusedElements.length === 0 ? 'All elements are used' : 'Add element'}
+            aria-label={props.unusedElements.length === 0 ? 'All elements are used' : 'Add element'}
           >
             <PlusIcon class="w-3 h-3" />
           </button>

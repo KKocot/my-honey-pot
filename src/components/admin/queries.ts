@@ -1,7 +1,7 @@
 import { QueryClient, createQuery, createMutation, useQueryClient } from '@tanstack/solid-query'
 import { createStore, produce } from 'solid-js/store'
 import { createSignal, createEffect } from 'solid-js'
-import { defaultSettings, migrateCardLayout, themePresets, ALL_PAGE_ELEMENT_IDS, settingsToRecord, type SettingsData, type LayoutSection, type ThemeColors, type PageLayout } from './types'
+import { defaultSettings, migrateCardLayout, themePresets, ALL_PAGE_ELEMENT_IDS, settingsToRecord, type SettingsData, type LayoutSection, type ThemeColors, type PageLayout } from './types/index'
 import { loadConfigFromHive } from './hive-broadcast'
 
 // Import from store.ts to avoid circular dependency with AdminPanel
@@ -80,9 +80,44 @@ export function getSettingsSnapshot(): SettingsData {
   return JSON.parse(JSON.stringify(settings)) as SettingsData
 }
 
-// Debounce state for updateSettings to prevent race conditions
-let updateDebounceTimer: ReturnType<typeof setTimeout> | null = null
-let pendingUpdates: Partial<SettingsData> = {}
+/**
+ * Debounce manager using closure pattern to prevent race conditions
+ * Each call merges updates and schedules a single batch commit
+ */
+const createUpdateDebouncer = () => {
+  let timer: ReturnType<typeof setTimeout> | null = null
+  let pending: Partial<SettingsData> = {}
+
+  const debounce = (partial: Partial<SettingsData>) => {
+    // Merge pending updates
+    pending = { ...pending, ...partial }
+
+    if (timer) {
+      clearTimeout(timer)
+    }
+
+    timer = setTimeout(() => {
+      const toApply = pending
+      pending = {}
+      timer = null
+
+      setSettings(produce((s) => {
+        Object.assign(s, toApply)
+      }))
+      setHasUnsavedChanges(true)
+    }, 16) // ~1 frame (60fps)
+  }
+
+  debounce.cancel = () => {
+    if (timer) clearTimeout(timer)
+    timer = null
+    pending = {}
+  }
+
+  return debounce
+}
+
+const debouncedUpdate = createUpdateDebouncer()
 
 /**
  * Update settings with debouncing to prevent race conditions when multiple
@@ -90,21 +125,7 @@ let pendingUpdates: Partial<SettingsData> = {}
  * Batches updates within ~16ms (1 frame at 60fps).
  */
 export function updateSettings(partial: Partial<SettingsData>) {
-  // Merge pending updates
-  pendingUpdates = { ...pendingUpdates, ...partial }
-
-  if (updateDebounceTimer) {
-    clearTimeout(updateDebounceTimer)
-  }
-
-  updateDebounceTimer = setTimeout(() => {
-    setSettings(produce((s) => {
-      Object.assign(s, pendingUpdates)
-    }))
-    setHasUnsavedChanges(true)
-    pendingUpdates = {}
-    updateDebounceTimer = null
-  }, 16) // ~1 frame (60fps)
+  debouncedUpdate(partial)
 }
 
 // Dedicated setter for customColors to ensure SolidJS reactivity
@@ -176,11 +197,9 @@ function migratePageLayout(pageLayout: PageLayout | undefined): PageLayout {
 // Current user for Hive config loading
 // ============================================
 
-let currentUsername: string | null = null
+const [currentUsername, setCurrentUsername] = createSignal<string | null>(null)
 
-export function setCurrentUsername(username: string | null) {
-  currentUsername = username
-}
+export { currentUsername, setCurrentUsername }
 
 // ============================================
 // API Functions
@@ -201,9 +220,9 @@ async function fetchSettings(): Promise<SettingsData> {
   lastFetchError = null
 
   // Load from Hive if user is logged in
-  if (currentUsername) {
+  if (currentUsername()) {
     try {
-      const hiveConfig = await loadConfigFromHive(currentUsername)
+      const hiveConfig = await loadConfigFromHive(currentUsername()!)
       if (hiveConfig) {
         const migratedData = migrateSettingsLayouts(hiveConfig)
         // Migrate pageLayout to filter out obsolete elements like 'comments'
@@ -415,7 +434,7 @@ async function fetchHivePreviewData(username: string, postsPerPage: number): Pro
       comments: commentsArray,
     }
   } catch (error) {
-    console.error('Failed to fetch Hive preview data:', error)
+    if (import.meta.env.DEV) console.error('Failed to fetch Hive preview data:', error)
     return null
   }
 }

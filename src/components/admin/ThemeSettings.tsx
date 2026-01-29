@@ -1,7 +1,7 @@
 import { For, Show, createSignal, createEffect, on, createMemo } from 'solid-js'
 import { settings, updateSettings, setCustomColors } from './store'
 import { applyThemeColors } from './queries'
-import { themePresets, cardHoverEffectOptions, cardHoverShadowOptions, scrollAnimationTypeOptions, type ThemeColors } from './types'
+import { themePresets, cardHoverEffectOptions, cardHoverShadowOptions, scrollAnimationTypeOptions, type ThemeColors } from './types/index'
 import {
   DialogContent,
   DialogHeader,
@@ -195,8 +195,8 @@ function ColorCustomizerContent(props: { onClose: () => void }) {
     const normalized = normalizeHexColor(value)
 
     if (!isValidHexColor(normalized)) {
-      console.warn('Invalid HEX color:', value)
-      return // Don't update if invalid
+      // Invalid color - don't update (UI shows validation feedback)
+      return
     }
 
     const newColors = { ...currentColors(), [key]: normalized }
@@ -410,7 +410,7 @@ function AnimationSettings() {
               max={500}
               step={10}
               value={settings.cardTransitionDuration}
-              onInput={(e) => updateSettings({ cardTransitionDuration: parseInt(e.currentTarget.value) })}
+              onChange={(val) => updateSettings({ cardTransitionDuration: val })}
             />
           </Show>
 
@@ -430,7 +430,7 @@ function AnimationSettings() {
               max={1.15}
               step={0.01}
               value={settings.cardHoverScale}
-              onInput={(e) => updateSettings({ cardHoverScale: parseFloat(e.currentTarget.value) })}
+              onChange={(val) => updateSettings({ cardHoverScale: val })}
             />
           </Show>
 
@@ -441,7 +441,7 @@ function AnimationSettings() {
               max={1.2}
               step={0.01}
               value={settings.cardHoverBrightness}
-              onInput={(e) => updateSettings({ cardHoverBrightness: parseFloat(e.currentTarget.value) })}
+              onChange={(val) => updateSettings({ cardHoverBrightness: val })}
             />
           </Show>
         </div>
@@ -469,7 +469,7 @@ function AnimationSettings() {
               max={1000}
               step={50}
               value={settings.scrollAnimationDuration}
-              onInput={(e) => updateSettings({ scrollAnimationDuration: parseInt(e.currentTarget.value) })}
+              onChange={(val) => updateSettings({ scrollAnimationDuration: val })}
             />
           </Show>
 
@@ -481,7 +481,7 @@ function AnimationSettings() {
               max={300}
               step={10}
               value={settings.scrollAnimationDelay}
-              onInput={(e) => updateSettings({ scrollAnimationDelay: parseInt(e.currentTarget.value) })}
+              onChange={(val) => updateSettings({ scrollAnimationDelay: val })}
             />
           </Show>
         </div>
@@ -489,6 +489,13 @@ function AnimationSettings() {
     </div>
   )
 }
+
+// ============================================
+// Animation timing constants
+// ============================================
+
+const ANIMATION_INITIAL_DELAY = 100;
+const HOVER_DISPLAY_DURATION = 600;
 
 // ============================================
 // Style Preview Component
@@ -544,24 +551,24 @@ function StylePreview() {
     const delay = settings.scrollAnimationDelay
     const duration = settings.scrollAnimationDuration
 
-    setTimeout(() => setCardVisibility([true, false, false]), 100)
-    setTimeout(() => setCardVisibility([true, true, false]), 100 + delay)
-    setTimeout(() => setCardVisibility([true, true, true]), 100 + delay * 2)
+    setTimeout(() => setCardVisibility([true, false, false]), ANIMATION_INITIAL_DELAY)
+    setTimeout(() => setCardVisibility([true, true, false]), ANIMATION_INITIAL_DELAY + delay)
+    setTimeout(() => setCardVisibility([true, true, true]), ANIMATION_INITIAL_DELAY + delay * 2)
 
     // Then trigger hover animation on first card
     setTimeout(() => {
       setHoveredCard(0)
-    }, 100 + delay * 2 + duration)
+    }, ANIMATION_INITIAL_DELAY + delay * 2 + duration)
 
     // Release hover
     setTimeout(() => {
       setHoveredCard(null)
-    }, 100 + delay * 2 + duration + 600)
+    }, ANIMATION_INITIAL_DELAY + delay * 2 + duration + HOVER_DISPLAY_DURATION)
 
     // Animation complete
     setTimeout(() => {
       setIsAnimating(false)
-    }, 100 + delay * 2 + duration + 600 + settings.cardTransitionDuration)
+    }, ANIMATION_INITIAL_DELAY + delay * 2 + duration + HOVER_DISPLAY_DURATION + settings.cardTransitionDuration)
   }
 
   // Compute card style for a specific card index

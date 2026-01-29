@@ -1,8 +1,8 @@
 import { For, Show, createSignal, type JSX } from 'solid-js'
-import { Input } from '../ui'
 import { settings, updateSettings } from './store'
-import type { SocialLink, SocialPlatform } from './types'
-import { platformInfos } from './types'
+import type { SocialLink, SocialPlatform } from './types/index'
+import { platformInfos } from './types/index'
+import { createLocalInput } from './hooks'
 
 // ============================================
 // Social Platform Icons
@@ -78,7 +78,7 @@ export function PlatformIcon(props: { platform: SocialPlatform } & IconProps) {
 // All available social platforms
 // ============================================
 
-const ALL_PLATFORMS: SocialPlatform[] = ['instagram', 'x', 'youtube', 'tiktok', 'threads', 'facebook']
+const ALL_PLATFORMS = Object.keys(platformInfos) as SocialPlatform[]
 
 // ============================================
 // URL Validation Helpers
@@ -120,6 +120,67 @@ const normalizeUrl = (url: string): string => {
 }
 
 // ============================================
+// Social Link Item Component with local state
+// ============================================
+
+interface SocialLinkItemProps {
+  link: SocialLink
+  onUpdate: (platform: SocialPlatform, url: string) => boolean
+  onRemove: (platform: SocialPlatform) => void
+}
+
+function SocialLinkItem(props: SocialLinkItemProps) {
+  const info = platformInfos[props.link.platform]
+  const [localUrl, setLocalUrl, commitUrl] = createLocalInput(
+    () => props.link.url,
+    (val) => props.onUpdate(props.link.platform, val)
+  )
+
+  return (
+    <div class="flex items-center gap-3 p-3 bg-bg rounded-lg border border-border">
+      {/* Platform icon */}
+      <div
+        class="p-2 rounded-lg flex-shrink-0"
+        style={{ background: info.color }}
+      >
+        <PlatformIcon
+          platform={props.link.platform}
+          class="w-5 h-5"
+          style={{ color: '#ffffff' }}
+        />
+      </div>
+
+      {/* Platform name and input */}
+      <div class="flex-1 min-w-0">
+        <label class="block text-sm font-medium text-text mb-1">
+          {info.name}
+        </label>
+        <input
+          type="text"
+          placeholder={info.profilePlaceholder}
+          value={localUrl()}
+          onInput={(e) => setLocalUrl(e.currentTarget.value)}
+          onBlur={commitUrl}
+          class="w-full px-4 py-2 bg-bg border border-border rounded-lg text-text focus:outline-none focus:ring-2 focus:ring-primary"
+        />
+      </div>
+
+      {/* Remove button */}
+      <button
+        type="button"
+        onClick={() => props.onRemove(props.link.platform)}
+        class="p-2 text-text-muted hover:text-error hover:bg-error/10 rounded-lg transition-colors flex-shrink-0"
+        title="Remove"
+      >
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+  )
+}
+
+// ============================================
 // Social Links Settings Component
 // ============================================
 
@@ -132,20 +193,20 @@ export function SocialLinksSettings() {
   // Available platforms (not yet added)
   const availablePlatforms = () => ALL_PLATFORMS.filter(p => !existingPlatforms().includes(p))
 
-  // Update a specific link
-  const updateLink = (platform: SocialPlatform, url: string) => {
+  // Update a specific link. Returns false if validation fails (triggers rollback in createLocalInput).
+  const updateLink = (platform: SocialPlatform, url: string): boolean => {
     const normalizedUrl = normalizeUrl(url)
 
     if (normalizedUrl && !isValidUrl(normalizedUrl)) {
-      // Invalid URL - show console warning
-      console.warn('Invalid URL:', url)
-      return
+      // Invalid URL - return false to trigger rollback in UI
+      return false
     }
 
     const newLinks = (settings.socialLinks || []).map(link =>
       link.platform === platform ? { ...link, url: normalizedUrl } : link
     )
     updateSettings({ socialLinks: newLinks })
+    return true
   }
 
   // Add new social link
@@ -174,48 +235,13 @@ export function SocialLinksSettings() {
       {/* Existing social links */}
       <div class="space-y-3">
         <For each={settings.socialLinks || []}>
-          {(link) => {
-            const info = platformInfos[link.platform]
-            return (
-              <div class="flex items-center gap-3 p-3 bg-bg rounded-lg border border-border">
-                {/* Platform icon */}
-                <div
-                  class="p-2 rounded-lg flex-shrink-0"
-                  style={{ background: info.color }}
-                >
-                  <PlatformIcon
-                    platform={link.platform}
-                    class="w-5 h-5"
-                    style={{ color: '#ffffff' }}
-                  />
-                </div>
-
-                {/* Platform name and input */}
-                <div class="flex-1 min-w-0">
-                  <label class="block text-sm font-medium text-text mb-1">
-                    {info.name}
-                  </label>
-                  <Input
-                    placeholder={info.profilePlaceholder}
-                    value={link.url}
-                    onInput={(e) => updateLink(link.platform, e.currentTarget.value)}
-                  />
-                </div>
-
-                {/* Remove button */}
-                <button
-                  type="button"
-                  onClick={() => removeLink(link.platform)}
-                  class="p-2 text-text-muted hover:text-error hover:bg-error/10 rounded-lg transition-colors flex-shrink-0"
-                  title="Remove"
-                >
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-            )
-          }}
+          {(link) => (
+            <SocialLinkItem
+              link={link}
+              onUpdate={updateLink}
+              onRemove={removeLink}
+            />
+          )}
         </For>
       </div>
 

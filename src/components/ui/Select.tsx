@@ -1,4 +1,4 @@
-import { splitProps, For, type JSX } from 'solid-js'
+import { splitProps, For, createUniqueId, type JSX } from 'solid-js'
 
 export interface SelectOption {
   value: string
@@ -13,7 +13,8 @@ export interface SelectProps extends Omit<JSX.SelectHTMLAttributes<HTMLSelectEle
 export function Select(props: SelectProps) {
   const [local, rest] = splitProps(props, ['label', 'options', 'class', 'id'])
 
-  const selectId = local.id || `select-${Math.random().toString(36).slice(2)}`
+  const generatedId = createUniqueId()
+  const selectId = local.id || `select-${generatedId}`
 
   return (
     <div>

@@ -1,7 +1,7 @@
 import { For } from 'solid-js'
 import { settings, updateSettings } from './store'
 import { applyThemeColors } from './queries'
-import { websiteTemplates, themePresets, type WebsiteTemplate, type SettingsData } from './types'
+import { websiteTemplates, themePresets, type WebsiteTemplate, type SettingsData } from './types/index'
 import { showToast } from '../ui'
 
 // ============================================

@@ -1,6 +1,6 @@
 import { For, Show, createMemo, createSignal } from 'solid-js'
 import { settings } from './store'
-import type { CardSection, CardSectionChild } from './types'
+import type { CardSection, CardSectionChild } from './types/index'
 
 // ============================================
 // Sample post data for preview
