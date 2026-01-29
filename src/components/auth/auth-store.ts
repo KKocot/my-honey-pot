@@ -33,7 +33,6 @@ function checkSessionTimeout() {
 
   const now = Date.now()
   if (now - lastActivityTimestamp > SESSION_TIMEOUT_MS) {
-    console.log('Session expired due to inactivity')
     logout()
   }
 }
@@ -45,7 +44,11 @@ export function updateActivity() {
 
 // Start timeout checker
 function startTimeoutChecker() {
-  if (timeoutCheckInterval) return
+  // Clear any existing interval first (prevent multiple intervals in HMR)
+  if (timeoutCheckInterval) {
+    clearInterval(timeoutCheckInterval)
+    timeoutCheckInterval = null
+  }
 
   timeoutCheckInterval = setInterval(checkSessionTimeout, 60 * 1000) // Check every minute
 
@@ -63,6 +66,14 @@ function stopTimeoutChecker() {
   if (timeoutCheckInterval) {
     clearInterval(timeoutCheckInterval)
     timeoutCheckInterval = null
+  }
+
+  // Remove event listeners on cleanup
+  if (typeof window !== 'undefined') {
+    const activityEvents = ['mousedown', 'keydown', 'scroll', 'touchstart']
+    activityEvents.forEach((event) => {
+      window.removeEventListener(event, updateActivity)
+    })
   }
 }
 
@@ -134,3 +145,10 @@ export function getIsAuthenticated() {
 
 // Export signals for reactive use in components
 export { currentUser, isAuthenticated }
+
+// Cleanup on page unload (for HMR and production)
+if (typeof window !== 'undefined') {
+  window.addEventListener('beforeunload', () => {
+    stopTimeoutChecker()
+  })
+}
