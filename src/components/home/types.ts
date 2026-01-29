@@ -1,76 +1,33 @@
 import type { BridgePost, IDatabaseAccount, AccountPostsSortOption, CommentSortOption } from '../../lib/blog-logic'
 
 // ============================================
-// Types for homepage components
+// Re-export types from admin/types
 // ============================================
 
-// Card Layout types (from admin/types.ts)
-export type CardSectionChild =
-  | { type: 'element'; id: string }
-  | { type: 'section'; section: CardSection }
+export type {
+  CardSectionChild,
+  CardSection,
+  CardLayout,
+  SocialLink,
+  LayoutSection,
+  PageSlotPosition,
+  PageLayoutSection,
+  PageLayout,
+  ThemeColors,
+} from '../admin/types/index'
 
-export interface CardSection {
-  id: string
-  orientation: 'horizontal' | 'vertical'
-  children: CardSectionChild[]
-}
-
-export interface CardLayout {
-  sections: CardSection[]
-}
-
-// Social link type
-export interface SocialLink {
-  platform: 'instagram' | 'x' | 'youtube' | 'tiktok' | 'threads' | 'facebook'
-  url: string
-}
-
-// Old layout section format (legacy)
-export interface LayoutSection {
-  id: string
-  position: 'top' | 'sidebar-left' | 'main' | 'sidebar-right' | 'bottom'
-  enabled: boolean
-}
-
-// New page layout format (Page Layout Editor)
-export type PageSlotPosition = 'top' | 'sidebar-left' | 'main' | 'sidebar-right' | 'bottom'
-
-export interface PageLayoutSection {
-  id: string
-  slot: PageSlotPosition
-  orientation: 'horizontal' | 'vertical'
-  elements: string[]
-}
-
-export interface PageLayout {
-  sections: PageLayoutSection[]
-}
-
-export interface ThemeColors {
-  bg: string
-  bgSecondary: string
-  bgCard: string
-  text: string
-  textMuted: string
-  primary: string
-  primaryHover: string
-  primaryText: string
-  accent: string
-  border: string
-  success: string
-  error: string
-  warning: string
-  info: string
-}
+// ============================================
+// Site Settings (partial version for SSR)
+// ============================================
 
 export interface SiteSettings {
   hiveUsername?: string
   siteName?: string
   siteDescription?: string
   siteTheme?: string
-  customColors?: ThemeColors | null
-  layoutSections?: LayoutSection[]
-  pageLayout?: PageLayout
+  customColors?: import('../admin/types/index').ThemeColors | null
+  layoutSections?: import('../admin/types/index').LayoutSection[]
+  pageLayout?: import('../admin/types/index').PageLayout
   postsLayout?: 'list' | 'grid' | 'masonry'
   gridColumns?: number
   cardGapPx?: number
@@ -91,7 +48,7 @@ export interface SiteSettings {
   cardBorder?: boolean
   maxTags?: number
   // Post card sections layout for drag & drop
-  postCardLayout?: CardLayout
+  postCardLayout?: import('../admin/types/index').CardLayout
   showHeader?: boolean
   showAuthorProfile?: boolean
   authorAvatarSizePx?: number
@@ -102,7 +59,7 @@ export interface SiteSettings {
   headerMaxWidthPx?: number
   // Author Profile extended settings
   authorProfileLayout?: 'horizontal' | 'vertical'
-  authorProfileLayout2?: CardLayout
+  authorProfileLayout2?: import('../admin/types/index').CardLayout
   showAuthorAbout?: boolean
   showAuthorLocation?: boolean
   showAuthorWebsite?: boolean
@@ -122,7 +79,7 @@ export interface SiteSettings {
   authorStatsSizePx?: number
   authorMetaSizePx?: number
   // Social Links
-  socialLinks?: SocialLink[]
+  socialLinks?: import('../admin/types/index').SocialLink[]
   // Comments Tab settings
   showCommentsTab?: boolean
   commentsLayout?: 'list' | 'grid' | 'masonry'
@@ -140,6 +97,7 @@ export interface SiteSettings {
   commentShowViewLink?: boolean
   commentMaxLength?: number
   commentPaddingPx?: number
+  commentCardLayout?: import('../admin/types/index').CardLayout
   // Card Hover Animation settings
   cardHoverEffect?: 'none' | 'shadow' | 'lift' | 'scale' | 'glow'
   cardTransitionDuration?: number
@@ -155,7 +113,13 @@ export interface SiteSettings {
   scrollAnimationType?: 'none' | 'fade' | 'slide-up' | 'slide-left' | 'zoom' | 'flip'
   scrollAnimationDuration?: number
   scrollAnimationDelay?: number
+  // Navigation Tabs settings
+  navigationTabs?: import('../admin/types/index').NavigationTab[]
 }
+
+// ============================================
+// Homepage Data
+// ============================================
 
 export interface HomePageData {
   siteName: string
@@ -167,14 +131,18 @@ export interface HomePageData {
   error: string | null
 }
 
-export const defaultLayoutSections: LayoutSection[] = [
+// ============================================
+// Default values
+// ============================================
+
+export const defaultLayoutSections: import('../admin/types/index').LayoutSection[] = [
   { id: 'header', position: 'top', enabled: true },
   { id: 'authorProfile', position: 'sidebar-left', enabled: true },
   { id: 'posts', position: 'main', enabled: true },
   { id: 'footer', position: 'bottom', enabled: false },
 ]
 
-export const defaultPageLayout: PageLayout = {
+export const defaultPageLayout: import('../admin/types/index').PageLayout = {
   sections: [
     { id: 'page-sec-1', slot: 'top', orientation: 'horizontal', elements: ['header'] },
     { id: 'page-sec-2', slot: 'sidebar-left', orientation: 'vertical', elements: ['authorProfile'] },

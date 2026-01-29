@@ -9,5 +9,5 @@ export { CardAppearanceSettings } from './CardAppearanceSettings'
 export { AuthorProfileSettings } from './AuthorProfileSettings'
 export { PostCard, LayoutPreview, ResponsivePreview, samplePosts } from './PostCardPreview'
 
-export * from './types'
+export * from './types/index'
 export * from './store'
