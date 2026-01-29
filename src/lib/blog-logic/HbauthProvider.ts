@@ -49,7 +49,7 @@ export class HbauthSession implements ILoginSession {
     try {
       await this.authClient.logout(this.authenticatedAccount);
     } catch (error) {
-      console.error("Error during logout:", error);
+      if (import.meta.env.DEV) console.error("Error during logout:", error);
     }
   }
 }

@@ -67,7 +67,7 @@ export class Post extends Comment implements IPost  {
       try {
         repliesIds = await this.dataProvider.enumReplies(postId, {}, {page: 1, pageSize: 10000});
       } catch (e) {
-        console.error('Failed to fetch replies for post:', postId, e);
+        if (import.meta.env.DEV) console.error('Failed to fetch replies for post:', postId, e);
         return 0;
       }
     }

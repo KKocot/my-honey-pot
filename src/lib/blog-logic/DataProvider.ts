@@ -53,7 +53,7 @@ async function withRetry<T>(fn: () => Promise<T>): Promise<T> {
 
       // Retry on timeout or network errors
       if ((isTimeout || isNetworkError) && attempt < MAX_RETRIES - 1) {
-        console.warn(`API request failed (attempt ${attempt + 1}/${MAX_RETRIES}): ${lastError.message}, switching endpoint...`);
+        if (import.meta.env.DEV) console.warn(`API request failed (attempt ${attempt + 1}/${MAX_RETRIES}): ${lastError.message}, switching endpoint...`);
         resetWax();
         await new Promise(resolve => setTimeout(resolve, 300 * (attempt + 1))); // Exponential backoff
       } else if (!isTimeout && !isNetworkError) {

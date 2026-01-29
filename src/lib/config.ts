@@ -6,12 +6,19 @@
 const getEnv = (key: string, fallback: string): string => {
   // import.meta.env works in dev and client-side (Vite)
   // process.env works in Node.js SSR
+  let value: string | undefined
+
   if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env[key]) {
-    return import.meta.env[key] as string
+    value = import.meta.env[key] as string
+  } else if (typeof process !== 'undefined' && process.env && process.env[key]) {
+    value = process.env[key] as string
   }
-  if (typeof process !== 'undefined' && process.env && process.env[key]) {
-    return process.env[key] as string
+
+  // Validate: trim whitespace and check if non-empty
+  if (value && value.trim() !== '') {
+    return value.trim()
   }
+
   return fallback
 }
 
