@@ -11,14 +11,12 @@ const hiveUsername = HIVE_USERNAME
 
 if (hiveUsername) {
   try {
-    console.log(`Admin: Loading config from Hive for @${hiveUsername}...`)
     const config = await loadConfigFromHive(hiveUsername)
     if (config) {
-      console.log('Admin: Loaded config from Hive!')
       initialSettings = config as SettingsData
     }
   } catch (e) {
-    console.warn('Admin: Failed to load config from Hive:', e)
+    console.error('Admin: Failed to load config from Hive:', e)
   }
 }
 ---
@@ -37,6 +35,10 @@ if (hiveUsername) {
 
     <h1 class="text-3xl font-bold text-text mb-8">Admin Panel</h1>
 
-    <AdminPanel client:only="solid-js" initialSettings={initialSettings} ownerUsername={hiveUsername} />
+    <AdminPanel
+      client:only="solid-js"
+      initialSettings={initialSettings}
+      ownerUsername={hiveUsername}
+    />
   </div>
 </Layout>

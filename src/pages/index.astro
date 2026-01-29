@@ -7,7 +7,7 @@ import { HIVE_USERNAME } from '../lib/config'
 import {
   DataProvider,
   getWax,
-  type Post,
+  Post,
   type IAccountManabars,
   type IProfile,
   type IDatabaseAccount,
@@ -18,12 +18,7 @@ import {
   type BridgeComment,
 } from '../lib/blog-logic'
 
-import Header from '../components/home/Header.astro'
-import Navigation from '../components/home/Navigation.astro'
-import AuthorProfile from '../components/home/AuthorProfile.astro'
-import BlogLogicPostsGrid from '../components/home/BlogLogicPostsGrid.astro'
-import Footer from '../components/home/Footer.astro'
-import CommentCard from '../components/home/CommentCard.astro'
+import SlotRenderer from '../components/home/SlotRenderer.astro'
 import { type SiteSettings, type PageLayout, type PageSlotPosition, defaultPageLayout } from '../components/home/types'
 
 // ============================================
@@ -43,6 +38,7 @@ let settings: SiteSettings = {}
 let error: string | null = null
 let hasMorePosts = false
 let hasMoreComments = false
+let totalFetchedBeforeFilter = 0
 let nextPostsCursor: IPaginationCursor | undefined
 let nextCommentsCursor: IPaginationCursor | undefined
 
@@ -53,16 +49,12 @@ const hiveUsername = import.meta.env.HIVE_USERNAME || process.env.HIVE_USERNAME
 // Load settings from Hive blockchain for this user
 if (hiveUsername) {
   try {
-    console.log(`Loading blog config from Hive for @${hiveUsername}...`)
     const hiveConfig = await loadConfigFromHive(hiveUsername)
     if (hiveConfig) {
-      console.log('Loaded config from Hive!')
       settings = hiveConfig as SiteSettings
-    } else {
-      console.log('No config found on Hive, using defaults')
     }
   } catch (e) {
-    console.warn('Failed to load config from Hive:', e)
+    console.error('Failed to load config from Hive:', e)
   }
 }
 
@@ -75,8 +67,18 @@ const commentsTabConfig = settings.navigationTabs?.find(tab => tab.id === 'comme
 const showCommentsTab = commentsTabConfig?.enabled !== false
 
 const requestedTab = url.searchParams.get('tab') || 'posts'
+
+// Validate tab ID against known tabs - unknown tabs fall back to 'posts'
+// Include 'comments' as fallback even when navigationTabs is undefined
+const knownTabIds = ['posts', 'comments', ...(settings.navigationTabs?.map(t => t.id) || [])]
+const validatedTab = knownTabIds.includes(requestedTab) ? requestedTab : 'posts'
+
 // If comments tab is disabled but user requested it, fall back to posts
-const activeTab = (requestedTab === 'comments' && !showCommentsTab) ? 'posts' : requestedTab
+const activeTab = (validatedTab === 'comments' && !showCommentsTab) ? 'posts' : validatedTab
+
+// Check if active tab is a category tab (has tag for filtering)
+const activeCategoryTab = settings.navigationTabs?.find(tab => tab.id === activeTab && tab.tag)
+const activeCategoryTag = activeCategoryTab?.tag || null
 
 // ============================================
 // Pagination cursor from URL
@@ -91,6 +93,19 @@ const cursor: IPaginationCursor | undefined = (startAuthor && startPermlink)
 // ============================================
 // Fetch Hive data (all through blog-logic)
 // ============================================
+
+/**
+ * Wraps a promise with a timeout to prevent indefinite waiting
+ * @param promise - The promise to wrap
+ * @param ms - Timeout in milliseconds
+ * @returns Promise that rejects if timeout is exceeded
+ */
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => setTimeout(() => reject(new Error(`Timeout after ${ms}ms`)), ms))
+  ])
+}
 
 try {
   const postsLimit = settings.postsPerPage || 20
@@ -107,11 +122,12 @@ try {
 
     // Fetch account data, profile, global properties, and manabars
     // Using Promise.allSettled for resilience - if one fails, others still succeed
+    // Wrap each promise with 10s timeout to prevent indefinite waiting
     const [accountResult, profileResult, globalPropsResult, manabarResult] = await Promise.allSettled([
-      dataProvider.getDatabaseAccount(hiveUsername),
-      account.getProfile(),
-      dataProvider.getGlobalProperties(),
-      account.getManabars(),
+      withTimeout(dataProvider.getDatabaseAccount(hiveUsername), 10000),
+      withTimeout(account.getProfile(), 10000),
+      withTimeout(dataProvider.getGlobalProperties(), 10000),
+      withTimeout(account.getManabars(), 10000),
     ])
 
     // Extract successful results, log failures
@@ -146,19 +162,33 @@ try {
       hasMoreComments = result.hasMore
       nextCommentsCursor = result.nextCursor
     } else {
-      // Use Blog Logic to fetch posts
+      // Use Blog Logic to fetch posts (API hard limit is 20)
+      const pageSize = Math.min(postsLimit, 20)
       const posts = await dataProvider.bloggingPlatform.enumAccountPosts(
         { sort: postsSortOrder, account: hiveUsername },
-        { page: 1, pageSize: postsLimit }
+        { page: 1, pageSize }
       )
-      blogLogicPosts = [...posts] as Post[]
+      const postsArray = Array.from(posts)
+      const allPosts = postsArray.filter((p): p is Post => p instanceof Post)
+      totalFetchedBeforeFilter = allPosts.length
 
-      // TODO: Blog Logic pagination - currently fetches first page only
-      // Need to implement cursor-based pagination in Blog Logic
-      hasMorePosts = blogLogicPosts.length >= postsLimit
-      if (blogLogicPosts.length > 0) {
-        const lastPost = blogLogicPosts[blogLogicPosts.length - 1]
-        nextPostsCursor = { startAuthor: lastPost.author, startPermlink: lastPost.permlink }
+      // Filter by tag if this is a category tab
+      // Note: Hive API doesn't support tag filtering, so we filter client-side.
+      // Pagination is disabled for category tabs since cursor-based paging
+      // would skip filtered-out posts unpredictably.
+      if (activeCategoryTag) {
+        blogLogicPosts = allPosts.filter(post => post.tags.includes(activeCategoryTag))
+      } else {
+        blogLogicPosts = allPosts
+      }
+
+      // Only enable pagination for non-category tabs
+      if (!activeCategoryTag) {
+        hasMorePosts = allPosts.length >= pageSize
+        const lastPost = allPosts[allPosts.length - 1]
+        if (lastPost) {
+          nextPostsCursor = { startAuthor: lastPost.author, startPermlink: lastPost.permlink }
+        }
       }
     }
   }
@@ -264,7 +294,7 @@ const authorProfileBaseProps = {
 // Pagination URL helpers
 // ============================================
 
-function buildNextPageUrl(tab: string, nextCursor: PaginationCursor | undefined): string | null {
+function buildNextPageUrl(tab: string, nextCursor: IPaginationCursor | undefined): string | null {
   if (!nextCursor?.startAuthor || !nextCursor?.startPermlink) return null
 
   const nextUrl = new URL(url)
@@ -277,49 +307,44 @@ function buildNextPageUrl(tab: string, nextCursor: PaginationCursor | undefined)
 const nextPostsPageUrl = buildNextPageUrl('posts', nextPostsCursor)
 const nextCommentsPageUrl = buildNextPageUrl('comments', nextCommentsCursor)
 const isFirstPage = !cursor
+
+const isCategory = !!activeCategoryTag
+// Show warning when category filter may hide matching posts beyond the API fetch limit
+const showCategoryLimitWarning = isCategory && totalFetchedBeforeFilter >= (settings.postsPerPage || 20)
+
+// Common props for SlotRenderer
+const slotRendererProps = {
+  siteName,
+  siteDescription,
+  showHeader,
+  hiveUsername,
+  hiveAccount,
+  hiveProfile,
+  globalProperties,
+  accountManabars,
+  blogLogicPosts,
+  hiveComments,
+  activeTab,
+  showCommentsTab,
+  settings,
+  showAuthorProfile,
+  authorProfileBaseProps,
+  isCategory,
+  activeCategoryTag,
+  totalFetchedBeforeFilter,
+  showCategoryLimitWarning,
+  isFirstPage,
+  hasMorePosts,
+  nextPostsPageUrl,
+  hasMoreComments,
+  nextCommentsPageUrl,
+}
 ---
 
 <Layout title={siteName} settings={settings}>
   <div class="max-w-7xl mx-auto px-4 py-8">
     {/* Top sections - render elements in order */}
-    {getElementsInSlot('top').map(elementId => (
-      <div class="mb-6">
-        {elementId === 'header' && showHeader && (
-          <Header siteName={siteName} siteDescription={siteDescription} />
-        )}
-        {elementId === 'navigation' && (
-          <Navigation activeTab={activeTab} postsCount={blogLogicPosts.length} commentsCount={hiveComments.length} navigationTabs={settings.navigationTabs} />
-        )}
-        {elementId === 'authorProfile' && showAuthorProfile && hiveUsername && hiveAccount && (
-          <AuthorProfile {...authorProfileBaseProps} />
-        )}
-        {elementId === 'posts' && hiveUsername && (
-          <>
-            {blogLogicPosts.length > 0 ? (
-              <BlogLogicPostsGrid posts={blogLogicPosts} settings={settings} />
-            ) : (
-              <div class="text-center py-8 bg-bg-card rounded-xl border border-border">
-                <p class="text-text-muted">No posts found</p>
-              </div>
-            )}
-          </>
-        )}
-        {elementId === 'comments' && hiveUsername && showCommentsTab && (
-          <>
-            {hiveComments.length > 0 && (
-              <div class="space-y-4">
-                {hiveComments.map(comment => (
-                  <CommentCard comment={comment} settings={settings} layout="list" />
-                ))}
-              </div>
-            )}
-          </>
-        )}
-        {elementId === 'footer' && (
-          <Footer />
-        )}
-      </div>
-    ))}
+    <SlotRenderer elementIds={getElementsInSlot('top')} context="top" {...slotRendererProps} />
 
     {error && (
       <div class="bg-error/10 border border-error/30 text-error px-4 py-3 rounded-lg mb-6">
@@ -340,326 +365,28 @@ const isFirstPage = !cursor
         {/* Left Sidebar - Mobile: above main content | Desktop: left side with fixed width */}
         {hasLeftSidebar && (
           <aside class="sidebar-left" style={`--sidebar-width: ${sidebarWidthPx}px;`}>
-              {getElementsInSlot('sidebar-left').map(elementId => (
-                <div class="mb-4">
-                  {elementId === 'header' && showHeader && (
-                    <div class="pb-4 border-b border-border">
-                      <h1 class="text-xl font-bold text-text">{siteName}</h1>
-                      <p class="text-text-muted mt-1 text-sm">{siteDescription}</p>
-                    </div>
-                  )}
-                  {elementId === 'navigation' && (
-                    <Navigation activeTab={activeTab} postsCount={blogLogicPosts.length} commentsCount={hiveComments.length} navigationTabs={settings.navigationTabs} />
-                  )}
-                  {elementId === 'authorProfile' && showAuthorProfile && hiveUsername && hiveAccount && (
-                    <AuthorProfile {...authorProfileBaseProps} />
-                  )}
-                  {elementId === 'posts' && hiveUsername && (
-                    <div class="bg-bg-card rounded-lg p-3 border border-border">
-                      {blogLogicPosts.length > 0 ? (
-                        <BlogLogicPostsGrid posts={blogLogicPosts} settings={settings} />
-                      ) : (
-                        <p class="text-text-muted text-xs">No posts</p>
-                      )}
-                    </div>
-                  )}
-                  {elementId === 'comments' && hiveUsername && showCommentsTab && (
-                    <div class="bg-bg-card rounded-lg p-3 border border-border">
-                      {hiveComments.length > 0 ? (
-                        <div class="space-y-2">
-                          {hiveComments.slice(0, 5).map(comment => (
-                            <CommentCard comment={comment} settings={settings} layout="list" />
-                          ))}
-                        </div>
-                      ) : (
-                        <p class="text-text-muted text-xs">No comments</p>
-                      )}
-                    </div>
-                  )}
-                  {elementId === 'footer' && (
-                    <Footer />
-                  )}
-                </div>
-              ))}
+            <SlotRenderer elementIds={getElementsInSlot('sidebar-left')} context="sidebar-left" {...slotRendererProps} />
           </aside>
         )}
 
         {/* Main Content - always in the center */}
         <main class="main-content">
-          {getElementsInSlot('main').map(elementId => (
-            <div class="mb-6">
-              {elementId === 'header' && showHeader && (
-                <Header siteName={siteName} siteDescription={siteDescription} />
-              )}
-              {elementId === 'navigation' && (
-                <Navigation activeTab={activeTab} postsCount={blogLogicPosts.length} commentsCount={hiveComments.length} navigationTabs={settings.navigationTabs} />
-              )}
-              {elementId === 'authorProfile' && showAuthorProfile && hiveUsername && hiveAccount && (
-                <AuthorProfile {...authorProfileBaseProps} />
-              )}
-              {elementId === 'posts' && hiveUsername && (
-                <>
-                  {activeTab === 'posts' ? (
-                    <>
-                      {blogLogicPosts.length > 0 ? (
-                        <>
-                          <BlogLogicPostsGrid posts={blogLogicPosts} settings={settings} />
-                          <div class="flex justify-between items-center mt-6 pt-4 border-t border-border">
-                            {!isFirstPage ? (
-                              <a href="/?tab=posts" class="px-4 py-2 bg-bg-card border border-border rounded-lg text-text hover:bg-primary hover:text-primary-text hover:border-primary transition-colors">
-                                First page
-                              </a>
-                            ) : <span />}
-                            {hasMorePosts && nextPostsPageUrl ? (
-                              <a href={nextPostsPageUrl} class="px-4 py-2 bg-primary text-primary-text rounded-lg hover:bg-primary/90 transition-colors">
-                                Load more posts
-                              </a>
-                            ) : <span />}
-                          </div>
-                        </>
-                      ) : (
-                        <div class="text-center py-12 bg-bg-card rounded-xl shadow-sm border border-border">
-                          <p class="text-text">No posts found for @{hiveUsername}</p>
-                        </div>
-                      )}
-                    </>
-                  ) : hiveComments.length > 0 ? (
-                    <>
-                      {settings.commentsLayout === 'list' ? (
-                        <div class="divide-y divide-border bg-bg-card rounded-xl shadow-sm border border-border overflow-hidden">
-                          {hiveComments.map(comment => (
-                            <CommentCard comment={comment} settings={settings} layout="list" />
-                          ))}
-                        </div>
-                      ) : settings.commentsLayout === 'masonry' ? (
-                        <div style={`column-count: ${settings.commentsGridColumns || 2}; column-gap: ${settings.commentsGapPx || 16}px;`}>
-                          {hiveComments.map(comment => (
-                            <div class="break-inside-avoid" style={`margin-bottom: ${settings.commentsGapPx || 16}px;`}>
-                              <CommentCard comment={comment} settings={settings} layout="masonry" />
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <div style={`display: grid; grid-template-columns: repeat(${settings.commentsGridColumns || 2}, 1fr); gap: ${settings.commentsGapPx || 16}px;`}>
-                          {hiveComments.map(comment => (
-                            <CommentCard comment={comment} settings={settings} layout="grid" />
-                          ))}
-                        </div>
-                      )}
-                      <div class="flex justify-between items-center mt-6 pt-4 border-t border-border">
-                        {!isFirstPage ? (
-                          <a href="/?tab=comments" class="px-4 py-2 bg-bg-card border border-border rounded-lg text-text hover:bg-primary hover:text-primary-text hover:border-primary transition-colors">
-                            First page
-                          </a>
-                        ) : <span />}
-                        {hasMoreComments && nextCommentsPageUrl ? (
-                          <a href={nextCommentsPageUrl} class="px-4 py-2 bg-primary text-primary-text rounded-lg hover:bg-primary/90 transition-colors">
-                            Load more comments
-                          </a>
-                        ) : <span />}
-                      </div>
-                    </>
-                  ) : null}
-                </>
-              )}
-              {/* Only render standalone comments element when NOT on comments tab (since posts element handles that) */}
-              {elementId === 'comments' && hiveUsername && showCommentsTab && activeTab !== 'comments' && hiveComments.length > 0 && (
-                <div class="space-y-4">
-                  {hiveComments.map(comment => (
-                    <CommentCard comment={comment} settings={settings} layout="list" />
-                  ))}
-                </div>
-              )}
-              {elementId === 'footer' && (
-                <Footer />
-              )}
-            </div>
-          ))}
+          <SlotRenderer elementIds={getElementsInSlot('main')} context="main" {...slotRendererProps} />
         </main>
 
         {/* Right Sidebar - Mobile: above main content (after left sidebar) | Desktop: right side */}
         {hasRightSidebar && (
           <aside class="sidebar-right" style={`--sidebar-width: ${sidebarWidthPx}px;`}>
-              {getElementsInSlot('sidebar-right').map(elementId => (
-                <div class="mb-4">
-                  {elementId === 'header' && showHeader && (
-                    <div class="pb-4 border-b border-border">
-                      <h1 class="text-xl font-bold text-text">{siteName}</h1>
-                      <p class="text-text-muted mt-1 text-sm">{siteDescription}</p>
-                    </div>
-                  )}
-                  {elementId === 'navigation' && (
-                    <Navigation activeTab={activeTab} postsCount={blogLogicPosts.length} commentsCount={hiveComments.length} navigationTabs={settings.navigationTabs} />
-                  )}
-                  {elementId === 'authorProfile' && showAuthorProfile && hiveUsername && hiveAccount && (
-                    <AuthorProfile {...authorProfileBaseProps} />
-                  )}
-                  {elementId === 'posts' && hiveUsername && (
-                    <div class="bg-bg-card rounded-lg p-3 border border-border">
-                      {blogLogicPosts.length > 0 ? (
-                        <BlogLogicPostsGrid posts={blogLogicPosts} settings={settings} />
-                      ) : (
-                        <p class="text-text-muted text-xs">No posts</p>
-                      )}
-                    </div>
-                  )}
-                  {elementId === 'comments' && hiveUsername && showCommentsTab && (
-                    <div class="bg-bg-card rounded-lg p-3 border border-border">
-                      {hiveComments.length > 0 ? (
-                        <div class="space-y-2">
-                          {hiveComments.slice(0, 5).map(comment => (
-                            <CommentCard comment={comment} settings={settings} layout="list" />
-                          ))}
-                        </div>
-                      ) : (
-                        <p class="text-text-muted text-xs">No comments</p>
-                      )}
-                    </div>
-                  )}
-                  {elementId === 'footer' && (
-                    <Footer />
-                  )}
-                </div>
-              ))}
+            <SlotRenderer elementIds={getElementsInSlot('sidebar-right')} context="sidebar-right" {...slotRendererProps} />
           </aside>
         )}
       </div>
     ) : (
       /* No sidebars - render main content directly */
-      <>
-        {getElementsInSlot('main').map(elementId => (
-          <div class="mb-6">
-            {elementId === 'header' && showHeader && (
-              <Header siteName={siteName} siteDescription={siteDescription} />
-            )}
-            {elementId === 'navigation' && (
-              <Navigation activeTab={activeTab} postsCount={blogLogicPosts.length} commentsCount={hiveComments.length} navigationTabs={settings.navigationTabs} />
-            )}
-            {elementId === 'authorProfile' && showAuthorProfile && hiveUsername && hiveAccount && (
-              <AuthorProfile {...authorProfileBaseProps} />
-            )}
-            {elementId === 'posts' && hiveUsername && (
-              <>
-                {activeTab === 'posts' ? (
-                  <>
-                    {blogLogicPosts.length > 0 ? (
-                      <>
-                        <BlogLogicPostsGrid posts={blogLogicPosts} settings={settings} />
-                        <div class="flex justify-between items-center mt-6 pt-4 border-t border-border">
-                          {!isFirstPage ? (
-                            <a href="/?tab=posts" class="px-4 py-2 bg-bg-card border border-border rounded-lg text-text hover:bg-primary hover:text-primary-text hover:border-primary transition-colors">
-                              First page
-                            </a>
-                          ) : <span />}
-                          {hasMorePosts && nextPostsPageUrl ? (
-                            <a href={nextPostsPageUrl} class="px-4 py-2 bg-primary text-primary-text rounded-lg hover:bg-primary/90 transition-colors">
-                              Load more posts
-                            </a>
-                          ) : <span />}
-                        </div>
-                      </>
-                    ) : (
-                      <div class="text-center py-12 bg-bg-card rounded-xl shadow-sm border border-border">
-                        <p class="text-text">No posts found for @{hiveUsername}</p>
-                      </div>
-                    )}
-                  </>
-                ) : hiveComments.length > 0 && (
-                  <>
-                    {settings.commentsLayout === 'list' ? (
-                      <div class="divide-y divide-border bg-bg-card rounded-xl shadow-sm border border-border overflow-hidden">
-                        {hiveComments.map(comment => (
-                          <CommentCard comment={comment} settings={settings} layout="list" />
-                        ))}
-                      </div>
-                    ) : settings.commentsLayout === 'masonry' ? (
-                      <div style={`column-count: ${settings.commentsGridColumns || 2}; column-gap: ${settings.commentsGapPx || 16}px;`}>
-                        {hiveComments.map(comment => (
-                          <div class="break-inside-avoid" style={`margin-bottom: ${settings.commentsGapPx || 16}px;`}>
-                            <CommentCard comment={comment} settings={settings} layout="masonry" />
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div style={`display: grid; grid-template-columns: repeat(${settings.commentsGridColumns || 2}, 1fr); gap: ${settings.commentsGapPx || 16}px;`}>
-                        {hiveComments.map(comment => (
-                          <CommentCard comment={comment} settings={settings} layout="grid" />
-                        ))}
-                      </div>
-                    )}
-                    <div class="flex justify-between items-center mt-6 pt-4 border-t border-border">
-                      {!isFirstPage ? (
-                        <a href="/?tab=comments" class="px-4 py-2 bg-bg-card border border-border rounded-lg text-text hover:bg-primary hover:text-primary-text hover:border-primary transition-colors">
-                          First page
-                        </a>
-                      ) : <span />}
-                      {hasMoreComments && nextCommentsPageUrl ? (
-                        <a href={nextCommentsPageUrl} class="px-4 py-2 bg-primary text-primary-text rounded-lg hover:bg-primary/90 transition-colors">
-                          Load more comments
-                        </a>
-                      ) : <span />}
-                    </div>
-                  </>
-                )}
-              </>
-            )}
-            {/* Only render standalone comments element when NOT on comments tab (since posts element handles that) */}
-            {elementId === 'comments' && hiveUsername && showCommentsTab && activeTab !== 'comments' && hiveComments.length > 0 && (
-              <div class="space-y-4">
-                {hiveComments.map(comment => (
-                  <CommentCard comment={comment} settings={settings} layout="list" />
-                ))}
-              </div>
-            )}
-            {elementId === 'footer' && (
-              <Footer />
-            )}
-          </div>
-        ))}
-      </>
+      <SlotRenderer elementIds={getElementsInSlot('main')} context="main" {...slotRendererProps} />
     )}
 
     {/* Bottom sections - render elements in order */}
-    {getElementsInSlot('bottom').map(elementId => (
-      <div class="mt-6">
-        {elementId === 'header' && showHeader && (
-          <div class="pt-4 border-t border-border">
-            <h1 class="text-2xl font-bold text-text">{siteName}</h1>
-            <p class="text-text-muted mt-1">{siteDescription}</p>
-          </div>
-        )}
-        {elementId === 'navigation' && (
-          <Navigation activeTab={activeTab} postsCount={blogLogicPosts.length} commentsCount={hiveComments.length} navigationTabs={settings.navigationTabs} />
-        )}
-        {elementId === 'authorProfile' && showAuthorProfile && hiveUsername && hiveAccount && (
-          <AuthorProfile {...authorProfileBaseProps} />
-        )}
-        {elementId === 'posts' && hiveUsername && (
-          <>
-            {blogLogicPosts.length > 0 ? (
-              <BlogLogicPostsGrid posts={blogLogicPosts} settings={settings} />
-            ) : (
-              <div class="text-center py-8 bg-bg-card rounded-xl border border-border">
-                <p class="text-text-muted">No posts found</p>
-              </div>
-            )}
-          </>
-        )}
-        {elementId === 'comments' && hiveUsername && showCommentsTab && (
-          <>
-            {hiveComments.length > 0 && (
-              <div class="space-y-4">
-                {hiveComments.map(comment => (
-                  <CommentCard comment={comment} settings={settings} layout="list" />
-                ))}
-              </div>
-            )}
-          </>
-        )}
-        {elementId === 'footer' && (
-          <Footer />
-        )}
-      </div>
-    ))}
+    <SlotRenderer elementIds={getElementsInSlot('bottom')} context="bottom" {...slotRendererProps} />
   </div>
 </Layout>
