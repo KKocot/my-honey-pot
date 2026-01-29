@@ -10,7 +10,7 @@ export interface NavigationTabConfig {
   label: string
   enabled: boolean
   showCount: boolean
-  href?: string
+  tag?: string
   tooltip?: string
 }
 
@@ -22,7 +22,6 @@ export interface NavigationItem {
   label: string
   count?: number
   href: string
-  external: boolean
   disabled: boolean
   tooltip?: string
 }

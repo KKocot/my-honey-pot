@@ -11,7 +11,6 @@ export type {
 export { defaultNavigationTabs } from './types'
 
 export {
-  isExternalUrl,
   getTabCount,
   buildNavHref,
   buildNavigationItems,
@@ -20,9 +19,7 @@ export {
 
 export {
   renderNavigationItem,
-  renderCountBadge,
   getNavigationItemClasses,
-  getExternalLinkIconSvg,
   renderNavigation,
   renderNavigationItems,
 } from './render'

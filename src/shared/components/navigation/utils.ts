@@ -6,14 +6,6 @@ import type { NavigationTabConfig, NavigationItem, NavigationSettings } from './
 import { defaultNavigationTabs } from './types'
 
 /**
- * Check if URL is external (starts with http:// or https://)
- */
-export function isExternalUrl(url: string | undefined): boolean {
-  if (!url) return false
-  return url.startsWith('http://') || url.startsWith('https://')
-}
-
-/**
  * Get count for a specific tab
  */
 export function getTabCount(
@@ -28,16 +20,14 @@ export function getTabCount(
 }
 
 /**
- * Build href for navigation item
+ * Build href for navigation item based on tab type
  */
-export function buildNavHref(item: { id: string; href?: string; external: boolean }): string {
-  if (item.external && item.href) {
-    return item.href
-  }
-  if (item.id === 'posts') {
+export function buildNavHref(tab: { id: string; tag?: string }): string {
+  if (tab.id === 'posts') {
     return '/'
   }
-  return `/?tab=${item.id}`
+  // Category tabs link to /?tab={id} (filtered by tag on the server)
+  return `/?tab=${encodeURIComponent(tab.id)}`
 }
 
 /**
@@ -49,24 +39,18 @@ export function buildNavigationItems(settings: NavigationSettings): NavigationIt
   return tabs
     .filter(tab => tab.enabled)
     .map(tab => {
-      const external = isExternalUrl(tab.href)
       const count = getTabCount(tab, settings.postsCount, settings.commentsCount)
       // Threads are work in progress
       const disabled = tab.id === 'threads'
 
-      const item: NavigationItem = {
+      return {
         id: tab.id,
         label: tab.label,
         count,
-        href: '', // Will be set below
-        external,
+        href: buildNavHref(tab),
         disabled,
         tooltip: disabled ? 'Work in Progress' : tab.tooltip,
       }
-
-      item.href = buildNavHref(item)
-
-      return item
     })
 }
 
