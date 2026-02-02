@@ -4,7 +4,7 @@
  * Uses sections-based layout system
  */
 
-import type { PostCardData, PostCardSettings, CardSection, CardSectionChild, CardLayout } from './types'
+import type { PostCardData, PostCardSettings, CardSection, CardSectionChild, CardLayout, PostsGridSettings } from './types'
 import { getPostSummary, formatPayout } from './utils'
 
 /**
@@ -215,6 +215,29 @@ export function renderPostCard(
   const contentHtml = renderPostCardContent(data, settings, isVertical, linkHref)
 
   return `<a href="${href}" class="post-card-link block no-underline"><article class="post-card bg-bg-card rounded-xl overflow-hidden cursor-pointer ${hoverClass}" ${shadowAttr} style="${cardStyle}">${contentHtml}</article></a>`
+}
+
+/**
+ * Wrap pre-rendered card HTML strings in appropriate layout container
+ */
+export function renderPostsGrid(cards_html: string[], settings: PostsGridSettings): string {
+  if (cards_html.length === 0) return ''
+
+  const gap = settings.gap_px
+
+  if (settings.layout === 'list') {
+    return `<div style="display: flex; flex-direction: column; gap: ${gap}px;">${cards_html.join('')}</div>`
+  }
+
+  if (settings.layout === 'masonry') {
+    const wrapped = cards_html.map(html =>
+      `<div style="break-inside: avoid; margin-bottom: ${gap}px;">${html}</div>`
+    ).join('')
+    return `<div style="column-count: ${settings.columns}; column-gap: ${gap}px;">${wrapped}</div>`
+  }
+
+  // grid (default)
+  return `<div style="display: grid; grid-template-columns: repeat(${settings.columns}, 1fr); gap: ${gap}px;">${cards_html.join('')}</div>`
 }
 
 // Export helper for checking element visibility

@@ -52,12 +52,30 @@ export interface PostCardSettings {
   summaryMaxLength: number
   maxTags: number
   cardBorder: boolean
-  // Sections layout (required)
-  postCardLayout: CardLayout
+  // Sections layout (optional)
+  postCardLayout?: CardLayout
   // Hover effect settings
   cardHoverEffect?: 'none' | 'shadow' | 'lift' | 'scale' | 'glow'
   cardTransitionDuration?: number
   cardHoverScale?: number
   cardHoverShadow?: string
   cardHoverBrightness?: number
+}
+
+/**
+ * Posts grid layout settings
+ */
+export interface PostsGridSettings {
+  layout: 'list' | 'grid' | 'masonry'
+  columns: number
+  gap_px: number
+}
+
+/**
+ * Default posts grid settings
+ */
+export const DEFAULT_POSTS_GRID_SETTINGS: PostsGridSettings = {
+  layout: 'grid',
+  columns: 2,
+  gap_px: 24,
 }
