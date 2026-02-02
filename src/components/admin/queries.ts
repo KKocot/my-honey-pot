@@ -128,6 +128,18 @@ export function updateSettings(partial: Partial<SettingsData>) {
   debouncedUpdate(partial)
 }
 
+/**
+ * Update settings immediately without debouncing.
+ * Use for blur-commit inputs where the store must be in sync
+ * before createEffect re-syncs the local input value.
+ */
+export function updateSettingsImmediate(partial: Partial<SettingsData>) {
+  setSettings(produce((s) => {
+    Object.assign(s, partial)
+  }))
+  setHasUnsavedChanges(true)
+}
+
 // Dedicated setter for customColors to ensure SolidJS reactivity
 export function setCustomColors(colors: ThemeColors | null) {
   setSettings('customColors', colors)

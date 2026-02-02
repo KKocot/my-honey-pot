@@ -120,5 +120,19 @@ const themeStyle = `
   </head>
   <body class="bg-bg text-text min-h-screen transition-colors duration-300">
     <slot />
+
+    <!-- Event delegation for custom social links (external navigation warning) -->
+    <script is:inline>
+      document.addEventListener('click', function(e) {
+        const link = e.target.closest('[data-custom-link]');
+        if (link) {
+          e.preventDefault();
+          const url = link.dataset.customLink;
+          if (url && confirm('You are leaving this site. Continue to ' + url + '?')) {
+            window.open(url, '_blank', 'noopener,noreferrer');
+          }
+        }
+      });
+    </script>
   </body>
 </html>

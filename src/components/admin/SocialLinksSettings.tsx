@@ -1,7 +1,7 @@
 import { For, Show, createSignal, type JSX } from 'solid-js'
-import { settings, updateSettings } from './store'
+import { settings, updateSettingsImmediate } from './store'
 import type { SocialLink, SocialPlatform } from './types/index'
-import { platformInfos } from './types/index'
+import { platformInfos, extract_username_from_url, is_valid_username } from './types/index'
 import { createLocalInput } from './hooks'
 
 // ============================================
@@ -61,6 +61,14 @@ function FacebookIcon(props: IconProps) {
   )
 }
 
+function CustomLinkIcon(props: IconProps) {
+  return (
+    <svg class={props.class} style={props.style} viewBox="0 0 24 24" fill="none" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+    </svg>
+  )
+}
+
 export function PlatformIcon(props: { platform: SocialPlatform } & IconProps) {
   const icons: Record<SocialPlatform, (p: IconProps) => JSX.Element> = {
     instagram: InstagramIcon,
@@ -69,6 +77,7 @@ export function PlatformIcon(props: { platform: SocialPlatform } & IconProps) {
     tiktok: TikTokIcon,
     threads: ThreadsIcon,
     facebook: FacebookIcon,
+    custom: CustomLinkIcon,
   }
   const Icon = icons[props.platform]
   return <Icon class={props.class} style={props.style} />
@@ -81,42 +90,22 @@ export function PlatformIcon(props: { platform: SocialPlatform } & IconProps) {
 const ALL_PLATFORMS = Object.keys(platformInfos) as SocialPlatform[]
 
 // ============================================
-// URL Validation Helpers
+// Username Auto-extraction Helper
 // ============================================
 
 /**
- * Validates URL format and blocks dangerous protocols
+ * Auto-extract username if user pastes full URL
  */
-const isValidUrl = (url: string): boolean => {
-  const trimmed = url.trim()
-  if (!trimmed) return true // Empty URL is OK (optional field)
+const auto_extract_username = (input: string, platform: SocialPlatform): string => {
+  const trimmed = input.trim()
 
-  // Block dangerous protocols
-  const dangerousProtocols = ['javascript:', 'data:', 'vbscript:']
-  if (dangerousProtocols.some(p => trimmed.toLowerCase().startsWith(p))) {
-    return false
+  // If it looks like a URL, try to extract username
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://') || trimmed.startsWith('www.')) {
+    return extract_username_from_url(trimmed, platform)
   }
 
-  // Check if it's a valid URL or relative path
-  if (trimmed.startsWith('/')) return true // Relative paths OK
-
-  try {
-    new URL(trimmed)
-    return true
-  } catch {
-    return false
-  }
-}
-
-/**
- * Auto-prefix URL with https:// if missing protocol
- */
-const normalizeUrl = (url: string): string => {
-  const trimmed = url.trim()
-  if (!trimmed) return ''
-  if (trimmed.startsWith('/')) return trimmed // Relative path
-  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) return trimmed
-  return `https://${trimmed}`
+  // Remove @ prefix if present
+  return trimmed.startsWith('@') ? trimmed.slice(1) : trimmed
 }
 
 // ============================================
@@ -125,16 +114,45 @@ const normalizeUrl = (url: string): string => {
 
 interface SocialLinkItemProps {
   link: SocialLink
-  onUpdate: (platform: SocialPlatform, url: string) => boolean
+  onUpdate: (platform: SocialPlatform, username: string) => boolean
   onRemove: (platform: SocialPlatform) => void
 }
 
 function SocialLinkItem(props: SocialLinkItemProps) {
   const info = platformInfos[props.link.platform]
-  const [localUrl, setLocalUrl, commitUrl] = createLocalInput(
-    () => props.link.url,
+  const is_custom = props.link.platform === 'custom'
+
+  // Get current username (backward compat: try username first, fallback to url)
+  const current_value = () => props.link.username || props.link.url || ''
+
+  const [localUsername, setLocalUsername, commitUsername] = createLocalInput(
+    current_value,
     (val) => props.onUpdate(props.link.platform, val)
   )
+
+  const [validationError, setValidationError] = createSignal<string>('')
+
+  const handleInput = (e: InputEvent) => {
+    const input = (e.currentTarget as HTMLInputElement).value
+    const processed = auto_extract_username(input, props.link.platform)
+    setLocalUsername(processed)
+
+    // Clear validation error on input
+    setValidationError('')
+  }
+
+  const handleBlur = () => {
+    // Validate on blur
+    const val = localUsername()
+    if (val && !is_valid_username(val, props.link.platform)) {
+      if (props.link.platform === 'custom') {
+        setValidationError('Invalid URL format. Must start with http:// or https://')
+      } else {
+        setValidationError('Invalid username. Cannot contain URLs, spaces, or path traversal (..)')
+      }
+    }
+    commitUsername()
+  }
 
   return (
     <div class="flex items-center gap-3 p-3 bg-bg rounded-lg border border-border">
@@ -143,11 +161,20 @@ function SocialLinkItem(props: SocialLinkItemProps) {
         class="p-2 rounded-lg flex-shrink-0"
         style={{ background: info.color }}
       >
-        <PlatformIcon
-          platform={props.link.platform}
-          class="w-5 h-5"
-          style={{ color: '#ffffff' }}
-        />
+        <Show
+          when={props.link.platform !== 'custom'}
+          fallback={
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="white" stroke="white">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+            </svg>
+          }
+        >
+          <PlatformIcon
+            platform={props.link.platform}
+            class="w-5 h-5"
+            style={{ color: '#ffffff' }}
+          />
+        </Show>
       </div>
 
       {/* Platform name and input */}
@@ -155,14 +182,30 @@ function SocialLinkItem(props: SocialLinkItemProps) {
         <label class="block text-sm font-medium text-text mb-1">
           {info.name}
         </label>
-        <input
-          type="text"
-          placeholder={info.profilePlaceholder}
-          value={localUrl()}
-          onInput={(e) => setLocalUrl(e.currentTarget.value)}
-          onBlur={commitUrl}
-          class="w-full px-4 py-2 bg-bg border border-border rounded-lg text-text focus:outline-none focus:ring-2 focus:ring-primary"
-        />
+        <div class="relative">
+          <Show when={!is_custom && info.baseUrl}>
+            <div class="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted text-sm pointer-events-none">
+              {info.baseUrl?.replace('https://', '')}
+            </div>
+          </Show>
+          <input
+            type="text"
+            placeholder={info.profilePlaceholder}
+            value={localUsername()}
+            onInput={handleInput}
+            onBlur={handleBlur}
+            class="w-full px-4 py-2 bg-bg border border-border rounded-lg text-text focus:outline-none focus:ring-2 focus:ring-primary"
+            classList={{
+              'border-error': !!validationError()
+            }}
+            style={{
+              'padding-left': !is_custom && info.baseUrl ? `${(info.baseUrl.replace('https://', '').length * 7) + 16}px` : '1rem'
+            }}
+          />
+        </div>
+        <Show when={validationError()}>
+          <p class="text-xs text-error mt-1">{validationError()}</p>
+        </Show>
       </div>
 
       {/* Remove button */}
@@ -194,31 +237,31 @@ export function SocialLinksSettings() {
   const availablePlatforms = () => ALL_PLATFORMS.filter(p => !existingPlatforms().includes(p))
 
   // Update a specific link. Returns false if validation fails (triggers rollback in createLocalInput).
-  const updateLink = (platform: SocialPlatform, url: string): boolean => {
-    const normalizedUrl = normalizeUrl(url)
+  const updateLink = (platform: SocialPlatform, username: string): boolean => {
+    const trimmed = username.trim()
 
-    if (normalizedUrl && !isValidUrl(normalizedUrl)) {
-      // Invalid URL - return false to trigger rollback in UI
+    if (trimmed && !is_valid_username(trimmed, platform)) {
+      // Invalid username - return false to trigger rollback in UI
       return false
     }
 
     const newLinks = (settings.socialLinks || []).map(link =>
-      link.platform === platform ? { ...link, url: normalizedUrl } : link
+      link.platform === platform ? { ...link, username: trimmed } : link
     )
-    updateSettings({ socialLinks: newLinks })
+    updateSettingsImmediate({ socialLinks: newLinks })
     return true
   }
 
   // Add new social link
   const addLink = (platform: SocialPlatform) => {
-    const newLink: SocialLink = { platform, url: '' }
-    updateSettings({ socialLinks: [...(settings.socialLinks || []), newLink] })
+    const newLink: SocialLink = { platform, username: '' }
+    updateSettingsImmediate({ socialLinks: [...(settings.socialLinks || []), newLink] })
     setNewPlatform('')
   }
 
   // Remove social link
   const removeLink = (platform: SocialPlatform) => {
-    updateSettings({ socialLinks: (settings.socialLinks || []).filter(l => l.platform !== platform) })
+    updateSettingsImmediate({ socialLinks: (settings.socialLinks || []).filter(l => l.platform !== platform) })
   }
 
   return (
@@ -272,28 +315,35 @@ export function SocialLinksSettings() {
       </Show>
 
       {/* Preview */}
-      <Show when={(settings.socialLinks || []).filter(l => l.url).length > 0}>
+      <Show when={(settings.socialLinks || []).filter(l => l.username || l.url).length > 0}>
         <div class="pt-4 border-t border-border">
           <p class="text-xs text-text-muted mb-3 uppercase tracking-wide">Preview</p>
           <div class="flex flex-wrap gap-2">
-            <For each={(settings.socialLinks || []).filter(l => l.url)}>
+            <For each={(settings.socialLinks || []).filter(l => l.username || l.url)}>
               {(link) => {
                 const info = platformInfos[link.platform]
+                const display_value = link.username || link.url || ''
                 return (
-                  <a
-                    href={link.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    class="p-2 rounded-lg transition-colors hover:opacity-80"
+                  <div
+                    class="p-2 rounded-lg transition-colors hover:opacity-80 cursor-pointer"
                     style={{ background: info.color }}
-                    title={info.name}
+                    title={`${info.name}: ${display_value}`}
                   >
-                    <PlatformIcon
-                      platform={link.platform}
-                      class="w-5 h-5"
-                      style={{ color: '#ffffff' }}
-                    />
-                  </a>
+                    <Show
+                      when={link.platform !== 'custom'}
+                      fallback={
+                        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="white" stroke="white">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                        </svg>
+                      }
+                    >
+                      <PlatformIcon
+                        platform={link.platform}
+                        class="w-5 h-5"
+                        style={{ color: '#ffffff' }}
+                      />
+                    </Show>
+                  </div>
                 )
               }}
             </For>

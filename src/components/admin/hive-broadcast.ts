@@ -121,16 +121,6 @@ export async function broadcastConfigToHive(
       throw new Error(`Configuration too large (${Math.round(bodySize / 1024)}KB). Maximum size is 64KB. Try reducing custom settings.`)
     }
 
-    // Validate parent post exists
-    const parentCheck = await chain.api.database_api.get_content({
-      author: CONFIG_PARENT_AUTHOR,
-      permlink: CONFIG_PARENT_PERMLINK
-    })
-
-    if (!parentCheck || !parentCheck.author) {
-      throw new Error('Configuration storage post not found. Please contact support.')
-    }
-
     // Create transaction
     const tx = await chain.createTransaction()
 
@@ -158,7 +148,7 @@ export async function broadcastConfigToHive(
     const signature = await authClient.sign(username, digest, 'posting')
 
     // Add signature to transaction
-    tx.sign(signature)
+    tx.addSignature(signature)
 
     // Broadcast with retry logic (max 3 attempts with exponential backoff)
     await withRetry(

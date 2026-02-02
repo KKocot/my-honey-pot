@@ -36,6 +36,7 @@ export { hasUnsavedChanges }
 export {
   settings,
   updateSettings,
+  updateSettingsImmediate,
   setCustomColors,
   updateLayoutSection,
   setLayoutSections,

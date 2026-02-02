@@ -7,6 +7,8 @@ import type { AuthorProfileData, AuthorProfileSettings } from './types'
 import type { CardSection, CardSectionChild } from '../../../components/home/types'
 import { formatCompactNumber, normalizeUrl, getDisplayUrl } from '../../formatters'
 import { locationIcon, websiteIcon, calendarIcon, getSocialIcon, platformColors } from '../../icons'
+import { build_social_url } from '../../../components/admin/types/social'
+import type { SocialLink } from '../../../components/admin/types/social'
 
 /**
  * Render a single profile element as HTML string
@@ -148,14 +150,27 @@ export function renderAuthorProfileSections(
  * Render social links as HTML string
  */
 export function renderSocialLinks(socialLinks: AuthorProfileSettings['socialLinks']): string {
-  const validLinks = socialLinks.filter(l => l.url)
+  const validLinks = socialLinks.filter(l => l.username || l.url)
   if (validLinks.length === 0) return ''
 
   const linksHtml = validLinks.map(link => {
-    const color = platformColors[link.platform] || '#000000'
-    const iconSvg = getSocialIcon(link.platform)
-    return `<a href="${link.url}" target="_blank" rel="noopener noreferrer" class="p-2 rounded-lg transition-opacity hover:opacity-80" style="background: ${color};" title="${link.platform}">${iconSvg}</a>`
-  }).join('')
+    const url = build_social_url(link)
+    if (!url) return ''
+
+    const color = platformColors[link.platform] || '#6B7280'
+    const iconSvg = link.platform === 'custom'
+      ? `<svg class="w-5 h-5" viewBox="0 0 24 24" fill="white" stroke="white"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>`
+      : getSocialIcon(link.platform)
+
+    // Add data attribute for custom links to enable external navigation warning via event delegation
+    const dataAttr = link.platform === 'custom'
+      ? ` data-custom-link="${url.replace(/"/g, '&quot;')}"`
+      : ''
+
+    return `<a href="${url}" target="_blank" rel="noopener noreferrer" class="p-2 rounded-lg transition-opacity hover:opacity-80" style="background: ${color};" title="${link.platform}"${dataAttr}>${iconSvg}</a>`
+  }).filter(html => html.length > 0).join('')
+
+  if (!linksHtml) return ''
 
   return `<div class="flex flex-wrap gap-2 mt-4 pt-4 border-t border-border justify-center">${linksHtml}</div>`
 }
