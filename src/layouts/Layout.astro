@@ -121,6 +121,14 @@ const themeStyle = `
   <body class="bg-bg text-text min-h-screen transition-colors duration-300">
     <slot />
 
+    <!-- Fixed Admin badge -->
+    <a
+      href="/admin"
+      class="fixed top-4 right-4 z-50 px-3 py-1.5 rounded-lg bg-bg-secondary border border-border text-text text-sm font-medium shadow-lg hover:bg-border transition-colors"
+    >
+      Admin
+    </a>
+
     <!-- Event delegation for custom social links (external navigation warning) -->
     <script is:inline>
       document.addEventListener('click', function(e) {

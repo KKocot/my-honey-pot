@@ -11,8 +11,9 @@ import AuthorProfile from './AuthorProfile.astro'
 import BlogLogicPostsGrid from './BlogLogicPostsGrid.astro'
 import CommentCard from './CommentCard.astro'
 import Footer from './Footer.astro'
+import { createHeaderData, renderHeaderCompact, renderHeaderBottom } from '../../shared/components/header'
 
-import type { SiteSettings, CardLayout, SocialLink } from './types'
+import type { SiteSettings, CardLayout, SocialLink, PageLayoutSection } from './types'
 import type { Post, BridgeComment, IDatabaseAccount, IProfile, IGlobalProperties, IAccountManabars } from '../../lib/blog-logic'
 
 interface AuthorProfileBaseProps {
@@ -33,7 +34,7 @@ interface AuthorProfileBaseProps {
 }
 
 interface Props {
-  elementIds: string[]
+  sections: PageLayoutSection[]
   context: 'top' | 'sidebar-left' | 'main' | 'sidebar-right' | 'bottom'
   // Site info
   siteName: string
@@ -67,7 +68,7 @@ interface Props {
 }
 
 const {
-  elementIds,
+  sections,
   context,
   siteName,
   siteDescription,
@@ -116,26 +117,29 @@ function isMainCommentsView(ctx: string, tab: string, hasComments: boolean): boo
 }
 
 const wrapperClass = getWrapperClass(context)
+
+// Prepare header data for sidebar/bottom variants
+const headerData = createHeaderData(siteName, siteDescription)
+
+// Filter active sections with elements (same as FullPreview)
+const activeSections = sections.filter(s => s.active !== false && s.elements.length > 0)
 ---
 
-{elementIds.map(elementId => (
+{activeSections.map(section => (
   <div class={wrapperClass}>
-    {elementId === 'header' && showHeader && (
+    <div class={section.orientation === 'horizontal' ? 'flex flex-wrap items-start gap-4' : 'flex flex-col gap-4'}>
+      {section.elements.map(elementId => (
+        <div class={section.orientation === 'horizontal' ? 'flex-shrink-0' : 'w-full'}>
+          {elementId === 'header' && showHeader && (
       <>
         {isSidebar(context) && (
-          <div class="pb-4 border-b border-border">
-            <h1 class="text-xl font-bold text-text">{siteName}</h1>
-            <p class="text-text-muted mt-1 text-sm">{siteDescription}</p>
-          </div>
+          <Fragment set:html={renderHeaderCompact(headerData)} />
         )}
         {context === 'bottom' && (
-          <div class="pt-4 border-t border-border">
-            <h1 class="text-2xl font-bold text-text">{siteName}</h1>
-            <p class="text-text-muted mt-1">{siteDescription}</p>
-          </div>
+          <Fragment set:html={renderHeaderBottom(headerData)} />
         )}
         {!isSidebar(context) && context !== 'bottom' && (
-          <Header siteName={siteName} siteDescription={siteDescription} />
+          <Header siteName={siteName} siteDescription={siteDescription} headerMaxWidthPx={settings.headerMaxWidthPx} />
         )}
       </>
     )}
@@ -277,5 +281,8 @@ const wrapperClass = getWrapperClass(context)
     {elementId === 'footer' && (
       <Footer />
     )}
+        </div>
+      ))}
+    </div>
   </div>
 ))}
