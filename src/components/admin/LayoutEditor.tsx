@@ -83,6 +83,8 @@ export function LayoutEditor() {
   }
 
   const toggleSectionActive = (sectionId: string) => {
+    const section = settings.pageLayout.sections.find((s) => s.id === sectionId)
+    if (section && section.elements.includes('footer')) return
     updatePageLayout({
       sections: settings.pageLayout.sections.map((s) =>
         s.id === sectionId
@@ -93,6 +95,8 @@ export function LayoutEditor() {
   }
 
   const removeSection = (sectionId: string) => {
+    const section = settings.pageLayout.sections.find((s) => s.id === sectionId)
+    if (section && section.elements.includes('footer')) return
     updatePageLayout({
       sections: settings.pageLayout.sections.filter((s) => s.id !== sectionId),
     })
@@ -153,6 +157,7 @@ export function LayoutEditor() {
   }
 
   const removeElement = (sectionId: string, elementId: string) => {
+    if (elementId === 'footer') return
     updatePageLayout({
       sections: settings.pageLayout.sections.map((section) =>
         section.id === sectionId
@@ -299,6 +304,7 @@ function SlotContainer(props: SlotContainerProps) {
               onMoveUp={() => props.onMoveSectionUp(section.id)}
               onMoveDown={() => props.onMoveSectionDown(section.id)}
               onAddElement={(elementId) => props.onAddElement(section.id, elementId)}
+              hasFooter={section.elements.includes('footer')}
               onRemoveElement={(elementId) => props.onRemoveElement(section.id, elementId)}
               onMoveElementUp={(index) => props.onMoveElementUp(section.id, index)}
               onMoveElementDown={(index) => props.onMoveElementDown(section.id, index)}
@@ -319,6 +325,7 @@ interface SectionCardProps {
   sectionIndex: number
   totalSections: number
   unusedElements: string[]
+  hasFooter: boolean
   onRemove: () => void
   onToggleOrientation: () => void
   onToggleActive: () => void
@@ -371,24 +378,26 @@ function SectionCard(props: SectionCardProps) {
         <span class="text-xs font-medium text-text-muted">Section {props.sectionIndex + 1}</span>
 
         {/* Active toggle */}
-        <button
-          type="button"
-          onClick={props.onToggleActive}
-          class={`
-            flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium transition-colors
-            ${props.section.active !== false
-              ? 'bg-success/20 text-success'
-              : 'bg-text-muted/20 text-text-muted'}
-          `}
-          title={props.section.active !== false ? 'Click to hide section' : 'Click to show section'}
-          aria-label={props.section.active !== false ? 'Hide section' : 'Show section'}
-        >
-          {props.section.active !== false ? (
-            <EyeIcon class="w-3 h-3" />
-          ) : (
-            <EyeOffIcon class="w-3 h-3" />
-          )}
-        </button>
+        <Show when={!props.hasFooter}>
+          <button
+            type="button"
+            onClick={props.onToggleActive}
+            class={`
+              flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium transition-colors
+              ${props.section.active !== false
+                ? 'bg-success/20 text-success'
+                : 'bg-text-muted/20 text-text-muted'}
+            `}
+            title={props.section.active !== false ? 'Click to hide section' : 'Click to show section'}
+            aria-label={props.section.active !== false ? 'Hide section' : 'Show section'}
+          >
+            {props.section.active !== false ? (
+              <EyeIcon class="w-3 h-3" />
+            ) : (
+              <EyeOffIcon class="w-3 h-3" />
+            )}
+          </button>
+        </Show>
 
         {/* Orientation toggle */}
         <button
@@ -417,15 +426,17 @@ function SectionCard(props: SectionCardProps) {
         </button>
 
         {/* Remove section */}
-        <button
-          type="button"
-          onClick={props.onRemove}
-          class="ml-auto p-1 rounded text-text-muted hover:text-error hover:bg-error/10 transition-colors"
-          title="Remove section"
-          aria-label="Remove section"
-        >
-          <XIcon class="w-3 h-3" />
-        </button>
+        <Show when={!props.hasFooter}>
+          <button
+            type="button"
+            onClick={props.onRemove}
+            class="ml-auto p-1 rounded text-text-muted hover:text-error hover:bg-error/10 transition-colors"
+            title="Remove section"
+            aria-label="Remove section"
+          >
+            <XIcon class="w-3 h-3" />
+          </button>
+        </Show>
       </div>
 
       {/* Elements container */}
@@ -481,15 +492,17 @@ function SectionCard(props: SectionCardProps) {
 
               <span>{pageElementLabels[elementId] || elementId}</span>
 
-              <button
-                type="button"
-                onClick={() => props.onRemoveElement(elementId)}
-                class="ml-1 p-0.5 rounded hover:bg-white/20"
-                title="Remove element"
-                aria-label="Remove element"
-              >
-                <XIcon class="w-3 h-3" />
-              </button>
+              <Show when={elementId !== 'footer'}>
+                <button
+                  type="button"
+                  onClick={() => props.onRemoveElement(elementId)}
+                  class="ml-1 p-0.5 rounded hover:bg-white/20"
+                  title="Remove element"
+                  aria-label="Remove element"
+                >
+                  <XIcon class="w-3 h-3" />
+                </button>
+              </Show>
             </div>
           )}
         </For>
@@ -788,7 +801,7 @@ function MockFooter(props: { compact?: boolean }) {
   return (
     <div class={`bg-bg-card rounded border border-border text-center ${props.compact ? 'p-1' : 'p-2'}`}>
       <div class={`text-text-muted ${props.compact ? 'text-[6px]' : 'text-[8px]'}`}>
-        © 2024 Hive Blog | Powered by Hive Blockchain
+        Built by BardDev | Ko-fi | Powered by Hive
       </div>
     </div>
   )
