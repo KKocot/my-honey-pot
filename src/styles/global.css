@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
+@import "./rendered-content.css";
 
 @theme {
   /* Using CSS fallback syntax: var(--custom, fallback) for graceful degradation */
@@ -185,11 +186,11 @@ input[type="range"]:focus {
 }
 
 input[type="range"]:focus::-webkit-slider-thumb {
-  box-shadow: 0 0 0 3px var(--theme-primary, #3b82f6), 0 0 0 5px rgba(59, 130, 246, 0.2);
+  box-shadow: 0 0 0 3px var(--theme-primary, #3b82f6), 0 0 0 5px color-mix(in srgb, var(--theme-primary) 20%, transparent);
 }
 
 input[type="range"]:focus::-moz-range-thumb {
-  box-shadow: 0 0 0 3px var(--theme-primary, #3b82f6), 0 0 0 5px rgba(59, 130, 246, 0.2);
+  box-shadow: 0 0 0 3px var(--theme-primary, #3b82f6), 0 0 0 5px color-mix(in srgb, var(--theme-primary) 20%, transparent);
 }
 
 /* ============================================
@@ -248,55 +249,16 @@ input[type="range"]:focus::-moz-range-thumb {
 }
 
 /* ============================================
-   Hive-specific Styles for Rendered Content
-   For Hive post/comment content rendered via DefaultRenderer
-   Base typography handled by @tailwindcss/typography (prose)
+   Progressive Enhancement
+   JS-only content for TanStack Query island
    ============================================ */
 
-/* External link indicator */
-.rendered-content a.link-external::after {
-  content: " ↗";
-  font-size: 0.8em;
-  vertical-align: super;
+/* JS-only content is shown by default (when JS loads) */
+.js-only {
+  display: block;
 }
 
-/* Phishing link warning */
-.rendered-content a.phishy {
-  color: var(--theme-error, #ef4444);
-  text-decoration: line-through;
-  cursor: not-allowed;
-}
-
-/* Table wrapper for horizontal scroll on mobile */
-.rendered-content .table-responsive {
-  overflow-x: auto;
-  margin: 1.5rem 0;
-  border-radius: 0.5rem;
-  border: 1px solid var(--theme-border, #d1d5db);
-}
-
-/* Embedded videos (iframes) - Hive content specific aspect ratio */
-.rendered-content iframe {
-  max-width: 100%;
-  width: 100%;
-  aspect-ratio: 16 / 9;
-  border-radius: 0.5rem;
-  margin: 1.5rem 0;
-  border: 1px solid var(--theme-border, #d1d5db);
-}
-
-/* Video wrapper for responsive embeds */
-.rendered-content .videoWrapper {
-  position: relative;
-  padding-bottom: 56.25%; /* 16:9 aspect ratio */
-  height: 0;
-  overflow: hidden;
-}
-
-.rendered-content .videoWrapper iframe {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+/* Noscript fallback is hidden by default (only shown when JS is disabled) */
+noscript {
+  display: block;
 }
