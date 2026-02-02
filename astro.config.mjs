@@ -14,9 +14,11 @@ export default defineConfig({
     mode: 'standalone'
   }),
 
+  site: process.env.PUBLIC_SITE_URL?.trim() || undefined,
+
   server: {
     host: '0.0.0.0',
-    port: 4321
+    port: 4326
   },
 
   vite: {
