@@ -6,6 +6,25 @@ import type { CommentCardData, CommentCardSettings } from './types'
 import { processCommentBody, formatTimeAgo } from './utils'
 
 /**
+ * Escape HTML to prevent XSS
+ */
+function escape_html(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;')
+}
+
+/**
+ * Validate URL (must start with http/https or be relative path)
+ */
+function is_valid_url(url: string): boolean {
+  return url.startsWith('http://') || url.startsWith('https://') || url.startsWith('/')
+}
+
+/**
  * Reply icon SVG
  */
 const replyIcon = `<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -51,7 +70,7 @@ function renderReplyContext(data: CommentCardData, settings: CommentCardSettings
       ${replyIcon}
       <span>
         Replying to
-        <span class="text-primary">@${data.parentAuthor}</span>
+        <span class="text-primary">@${escape_html(data.parentAuthor)}</span>
       </span>
     </div>
   `
@@ -63,11 +82,14 @@ function renderReplyContext(data: CommentCardData, settings: CommentCardSettings
 function renderAvatar(data: CommentCardData, settings: CommentCardSettings): string {
   if (!settings.showAvatar) return ''
 
+  // Validate avatar URL
+  const avatarUrl = is_valid_url(data.avatarUrl) ? data.avatarUrl : '/hive-logo.png'
+
   return `
     <div class="flex-shrink-0">
       <img
-        src="${data.avatarUrl}"
-        alt="${data.author}"
+        src="${avatarUrl}"
+        alt="${escape_html(data.author)}"
         style="width: ${settings.avatarSize}px; height: ${settings.avatarSize}px;"
         class="rounded-full border border-border"
         onerror="this.src='/hive-logo.png'"
@@ -83,7 +105,7 @@ function renderAuthorInfo(data: CommentCardData, settings: CommentCardSettings):
   if (!settings.showAuthor && !settings.showTimestamp) return ''
 
   const authorHtml = settings.showAuthor
-    ? `<span class="font-semibold text-text">${data.author}</span>`
+    ? `<span class="font-semibold text-text">${escape_html(data.author)}</span>`
     : ''
 
   const separatorHtml = settings.showAuthor && settings.showTimestamp
@@ -91,7 +113,7 @@ function renderAuthorInfo(data: CommentCardData, settings: CommentCardSettings):
     : ''
 
   const timestampHtml = settings.showTimestamp
-    ? `<time class="text-text-muted text-sm" datetime="${data.created}">${formatTimeAgo(data.created)}</time>`
+    ? `<time class="text-text-muted text-sm" datetime="${escape_html(data.created)}">${escape_html(formatTimeAgo(data.created))}</time>`
     : ''
 
   return `<div class="flex items-center gap-2 flex-wrap">${authorHtml}${separatorHtml}${timestampHtml}</div>`
@@ -147,7 +169,8 @@ export function renderCommentCardContent(
   const replyContextHtml = renderReplyContext(data, settings)
   const avatarHtml = renderAvatar(data, settings)
   const authorInfoHtml = renderAuthorInfo(data, settings)
-  const processedBody = processCommentBody(data.body, settings.maxLength)
+  // processCommentBody already strips HTML, but escape it to be safe
+  const processedBody = escape_html(processCommentBody(data.body, settings.maxLength))
   const actionBarHtml = renderActionBar(data, settings)
 
   return `
@@ -180,7 +203,10 @@ export function renderCommentCard(
     ? ''
     : 'bg-bg-card rounded-xl border border-border'
 
+  // Validate URL before using it
+  const href = is_valid_url(data.url) ? data.url : '#'
+
   const contentHtml = renderCommentCardContent(data, settings)
 
-  return `<a href="${data.url}" class="comment-card-link block no-underline"><article class="${baseClasses}">${contentHtml}</article></a>`
+  return `<a href="${href}" class="comment-card-link block no-underline"><article class="${baseClasses}">${contentHtml}</article></a>`
 }

@@ -18,12 +18,20 @@ import {
   type BridgeComment,
 } from '../lib/blog-logic'
 
+// TanStack Query imports for SSR prefetching
+import { dehydrate } from '@tanstack/solid-query'
+import { create_query_client, query_keys, fetch_profile, fetch_database_account, fetch_global_properties, fetch_manabars, fetch_posts, fetch_comments, type FetchPostsResult, type FetchCommentsResult } from '../lib/queries'
+import { BlogContent } from '../components/home/BlogContent'
+
 import SlotRenderer from '../components/home/SlotRenderer.astro'
 import { type SiteSettings, type PageLayout, type PageSlotPosition, defaultPageLayout } from '../components/home/types'
 
 // ============================================
-// Data fetching
+// Data fetching with TanStack Query
 // ============================================
+
+// Create per-request QueryClient (NEVER global on server)
+const query_client = create_query_client()
 
 // Get URL for parsing query params
 const url = new URL(Astro.request.url)
@@ -41,6 +49,7 @@ let hasMoreComments = false
 let totalFetchedBeforeFilter = 0
 let nextPostsCursor: IPaginationCursor | undefined
 let nextCommentsCursor: IPaginationCursor | undefined
+let dehydrated_state = null
 
 // Get hive username from env variable first (this is the blog owner)
 // import.meta.env works in dev, process.env works in production SSR
@@ -107,90 +116,69 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   ])
 }
 
+const postsLimit = settings.postsPerPage || 20
+const postsSortOrder: AccountPostsSortOption = settings.postsSortOrder || 'blog'
+const commentsSortOrder: CommentSortOption = settings.commentsSortOrder || 'comments'
+
 try {
-  const postsLimit = settings.postsPerPage || 20
-  const postsSortOrder: AccountPostsSortOption = settings.postsSortOrder || 'blog'
-  const commentsSortOrder: CommentSortOption = settings.commentsSortOrder || 'comments'
 
   if (hiveUsername) {
-    // Initialize Blog Logic DataProvider (used for all data fetching)
-    const chain = await getWax()
-    const dataProvider = new DataProvider(chain)
-
-    // Fetch account object first (needed for profile and manabars)
-    const account = await dataProvider.bloggingPlatform.getAccount(hiveUsername)
-
-    // Fetch account data, profile, global properties, and manabars
-    // Using Promise.allSettled for resilience - if one fails, others still succeed
-    // Wrap each promise with 10s timeout to prevent indefinite waiting
-    const [accountResult, profileResult, globalPropsResult, manabarResult] = await Promise.allSettled([
-      withTimeout(dataProvider.getDatabaseAccount(hiveUsername), 10000),
-      withTimeout(account.getProfile(), 10000),
-      withTimeout(dataProvider.getGlobalProperties(), 10000),
-      withTimeout(account.getManabars(), 10000),
+    // Prefetch data using TanStack Query
+    await Promise.allSettled([
+      query_client.prefetchQuery({
+        queryKey: query_keys.profile(hiveUsername),
+        queryFn: () => fetch_profile(hiveUsername),
+      }),
+      query_client.prefetchQuery({
+        queryKey: query_keys.database_account(hiveUsername),
+        queryFn: () => fetch_database_account(hiveUsername),
+      }),
+      query_client.prefetchQuery({
+        queryKey: query_keys.global_properties(),
+        queryFn: () => fetch_global_properties(),
+      }),
+      query_client.prefetchQuery({
+        queryKey: query_keys.manabars(hiveUsername),
+        queryFn: () => fetch_manabars(hiveUsername),
+      }),
     ])
 
-    // Extract successful results, log failures
-    if (accountResult.status === 'fulfilled') {
-      hiveAccount = accountResult.value
-    } else {
-      console.error('Failed to fetch Hive account:', accountResult.reason)
-    }
+    // Get cached data for SSR rendering
+    hiveProfile = query_client.getQueryData(query_keys.profile(hiveUsername)) ?? null
+    hiveAccount = query_client.getQueryData(query_keys.database_account(hiveUsername)) ?? null
+    globalProperties = query_client.getQueryData(query_keys.global_properties()) ?? null
+    accountManabars = query_client.getQueryData(query_keys.manabars(hiveUsername)) ?? null
 
-    if (profileResult.status === 'fulfilled') {
-      hiveProfile = profileResult.value
-    } else {
-      console.error('Failed to fetch Hive profile:', profileResult.reason)
-    }
-
-    if (globalPropsResult.status === 'fulfilled') {
-      globalProperties = globalPropsResult.value
-    } else {
-      console.error('Failed to fetch global properties:', globalPropsResult.reason)
-    }
-
-    if (manabarResult.status === 'fulfilled') {
-      accountManabars = manabarResult.value
-    } else {
-      console.error('Failed to fetch account manabars:', manabarResult.reason)
-    }
-
-    // Fetch content based on active tab with pagination
+    // Prefetch content based on active tab
     if (activeTab === 'comments' && showCommentsTab) {
-      const result = await dataProvider.getCommentsPaginated(hiveUsername, commentsSortOrder, postsLimit, cursor)
-      hiveComments = result.items
-      hasMoreComments = result.hasMore
-      nextCommentsCursor = result.nextCursor
-    } else {
-      // Use Blog Logic to fetch posts (API hard limit is 20)
-      const pageSize = Math.min(postsLimit, 20)
-      const posts = await dataProvider.bloggingPlatform.enumAccountPosts(
-        { sort: postsSortOrder, account: hiveUsername },
-        { page: 1, pageSize }
-      )
-      const postsArray = Array.from(posts)
-      const allPosts = postsArray.filter((p): p is Post => p instanceof Post)
-      totalFetchedBeforeFilter = allPosts.length
+      await query_client.prefetchQuery({
+        queryKey: query_keys.comments(hiveUsername, commentsSortOrder, postsLimit, cursor),
+        queryFn: () => fetch_comments(hiveUsername, commentsSortOrder, postsLimit, cursor),
+      })
 
-      // Filter by tag if this is a category tab
-      // Note: Hive API doesn't support tag filtering, so we filter client-side.
-      // Pagination is disabled for category tabs since cursor-based paging
-      // would skip filtered-out posts unpredictably.
-      if (activeCategoryTag) {
-        blogLogicPosts = allPosts.filter(post => post.tags.includes(activeCategoryTag))
-      } else {
-        blogLogicPosts = allPosts
+      const comments_data = query_client.getQueryData<FetchCommentsResult>(query_keys.comments(hiveUsername, commentsSortOrder, postsLimit, cursor))
+      if (comments_data) {
+        hiveComments = comments_data.comments
+        hasMoreComments = comments_data.has_more
+        nextCommentsCursor = comments_data.next_cursor
       }
+    } else {
+      await query_client.prefetchQuery({
+        queryKey: query_keys.posts(hiveUsername, postsSortOrder, postsLimit, cursor, activeCategoryTag),
+        queryFn: () => fetch_posts(hiveUsername, postsSortOrder, postsLimit, cursor, activeCategoryTag),
+      })
 
-      // Only enable pagination for non-category tabs
-      if (!activeCategoryTag) {
-        hasMorePosts = allPosts.length >= pageSize
-        const lastPost = allPosts[allPosts.length - 1]
-        if (lastPost) {
-          nextPostsCursor = { startAuthor: lastPost.author, startPermlink: lastPost.permlink }
-        }
+      const posts_data = query_client.getQueryData<FetchPostsResult>(query_keys.posts(hiveUsername, postsSortOrder, postsLimit, cursor, activeCategoryTag))
+      if (posts_data) {
+        blogLogicPosts = posts_data.posts
+        hasMorePosts = posts_data.has_more
+        nextPostsCursor = posts_data.next_cursor
+        totalFetchedBeforeFilter = posts_data.posts.length
       }
     }
+
+    // Dehydrate state for client-side hydration
+    dehydrated_state = dehydrate(query_client)
   }
 } catch (e) {
   console.error('Error fetching Hive data:', e)
@@ -243,23 +231,7 @@ const hasSidebars = hasLeftSidebar || hasRightSidebar
 const showHeader = settings.showHeader !== false
 const showAuthorProfile = settings.showAuthorProfile !== false
 const authorAvatarSizePx = settings.authorAvatarSizePx ?? 64
-const showPostCount = settings.showPostCount !== false
-const showAuthorRewards = settings.showAuthorRewards !== false
 const sidebarWidthPx = settings.sidebarWidthPx || 280
-
-// Author Profile extended settings
-const authorProfileLayout = settings.authorProfileLayout || 'horizontal'
-const showAuthorAbout = settings.showAuthorAbout !== false
-const showAuthorLocation = settings.showAuthorLocation !== false
-const showAuthorWebsite = settings.showAuthorWebsite !== false
-const showAuthorJoinDate = settings.showAuthorJoinDate !== false
-const showAuthorReputation = settings.showAuthorReputation !== false
-const showAuthorFollowers = settings.showAuthorFollowers !== false
-const showAuthorFollowing = settings.showAuthorFollowing !== false
-const showAuthorVotingPower = settings.showAuthorVotingPower ?? false
-const showAuthorHiveBalance = settings.showAuthorHiveBalance ?? false
-const showAuthorHbdBalance = settings.showAuthorHbdBalance ?? false
-const showAuthorCoverImage = settings.showAuthorCoverImage !== false
 
 // Size settings for Author Profile
 const authorCoverHeight = settings.authorCoverHeightPx ?? 64
@@ -371,7 +343,62 @@ const slotRendererProps = {
 
         {/* Main Content - always in the center */}
         <main class="main-content">
-          <SlotRenderer elementIds={getElementsInSlot('main')} context="main" {...slotRendererProps} />
+          {/* Progressive enhancement: Use SolidJS island for interactive content with TanStack Query */}
+          {/* Falls back to SSR content if JS is disabled */}
+          {hiveUsername && dehydrated_state && (
+            <>
+              <noscript>
+                {/* Static fallback for no-JS - render posts directly without interactive components */}
+                {activeTab !== 'comments' && blogLogicPosts.length > 0 && (
+                  <div class="flex flex-col gap-4">
+                    {blogLogicPosts.map((post) => (
+                      <article class="bg-bg-card border border-border p-6 rounded-2xl">
+                        <h2 class="font-bold text-text mb-2 text-xl">
+                          <a href={`/posts/${post.permlink}`} class="hover:text-primary transition-colors">
+                            {post.title}
+                          </a>
+                        </h2>
+                        <div class="text-text-muted text-sm">
+                          by {post.author} • {post.publishedAt.toLocaleDateString()}
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                )}
+                {activeTab === 'comments' && hiveComments.length > 0 && (
+                  <div class="flex flex-col gap-4">
+                    {hiveComments.map((comment) => (
+                      <article class="bg-bg-card border border-border p-4 rounded-xl">
+                        <div class="text-text-muted text-sm mb-2">
+                          @{comment.author} • {new Date(comment.created).toLocaleDateString()}
+                        </div>
+                        <div class="text-text">{comment.body?.substring(0, 200)}...</div>
+                      </article>
+                    ))}
+                  </div>
+                )}
+              </noscript>
+              <div class="js-only">
+                <BlogContent
+                  client:only="solid-js"
+                  hive_username={hiveUsername}
+                  initial_tab={activeTab}
+                  show_comments_tab={showCommentsTab}
+                  posts_sort_order={postsSortOrder}
+                  comments_sort_order={commentsSortOrder}
+                  posts_per_page={postsLimit}
+                  settings={settings}
+                  dehydrated_state={dehydrated_state}
+                  category_tag={activeCategoryTag}
+                  navigation_tabs={settings.navigationTabs}
+                  post_card_layout={settings.postCardLayout}
+                />
+              </div>
+            </>
+          )}
+          {(!hiveUsername || !dehydrated_state) && (
+            <SlotRenderer elementIds={getElementsInSlot('main')} context="main" {...slotRendererProps} />
+          )}
         </main>
 
         {/* Right Sidebar - Mobile: above main content (after left sidebar) | Desktop: right side */}
@@ -383,7 +410,62 @@ const slotRendererProps = {
       </div>
     ) : (
       /* No sidebars - render main content directly */
-      <SlotRenderer elementIds={getElementsInSlot('main')} context="main" {...slotRendererProps} />
+      <>
+        {hiveUsername && dehydrated_state && (
+          <>
+            <noscript>
+              {/* Static fallback for no-JS - render posts directly without interactive components */}
+              {activeTab !== 'comments' && blogLogicPosts.length > 0 && (
+                <div class="flex flex-col gap-4">
+                  {blogLogicPosts.map((post) => (
+                    <article class="bg-bg-card border border-border p-6 rounded-2xl">
+                      <h2 class="font-bold text-text mb-2 text-xl">
+                        <a href={`/posts/${post.permlink}`} class="hover:text-primary transition-colors">
+                          {post.title}
+                        </a>
+                      </h2>
+                      <div class="text-text-muted text-sm">
+                        by {post.author} • {post.publishedAt.toLocaleDateString()}
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              )}
+              {activeTab === 'comments' && hiveComments.length > 0 && (
+                <div class="flex flex-col gap-4">
+                  {hiveComments.map((comment) => (
+                    <article class="bg-bg-card border border-border p-4 rounded-xl">
+                      <div class="text-text-muted text-sm mb-2">
+                        @{comment.author} • {new Date(comment.created).toLocaleDateString()}
+                      </div>
+                      <div class="text-text">{comment.body?.substring(0, 200)}...</div>
+                    </article>
+                  ))}
+                </div>
+              )}
+            </noscript>
+            <div class="js-only">
+              <BlogContent
+                client:only="solid-js"
+                hive_username={hiveUsername}
+                initial_tab={activeTab}
+                show_comments_tab={showCommentsTab}
+                posts_sort_order={postsSortOrder}
+                comments_sort_order={commentsSortOrder}
+                posts_per_page={postsLimit}
+                settings={settings}
+                dehydrated_state={dehydrated_state}
+                category_tag={activeCategoryTag}
+                navigation_tabs={settings.navigationTabs}
+                post_card_layout={settings.postCardLayout}
+              />
+            </div>
+          </>
+        )}
+        {(!hiveUsername || !dehydrated_state) && (
+          <SlotRenderer elementIds={getElementsInSlot('main')} context="main" {...slotRendererProps} />
+        )}
+      </>
     )}
 
     {/* Bottom sections - render elements in order */}

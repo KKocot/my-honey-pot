@@ -144,9 +144,9 @@ export const defaultLayoutSections: import('../admin/types/index').LayoutSection
 
 export const defaultPageLayout: import('../admin/types/index').PageLayout = {
   sections: [
-    { id: 'page-sec-1', slot: 'top', orientation: 'horizontal', elements: ['header'] },
-    { id: 'page-sec-2', slot: 'sidebar-left', orientation: 'vertical', elements: ['authorProfile'] },
-    { id: 'page-sec-3', slot: 'main', orientation: 'vertical', elements: ['posts', 'comments'] },
-    { id: 'page-sec-4', slot: 'bottom', orientation: 'horizontal', elements: ['footer'] },
+    { id: 'page-sec-1', slot: 'top', orientation: 'horizontal', elements: ['header'], active: true },
+    { id: 'page-sec-2', slot: 'sidebar-left', orientation: 'vertical', elements: ['authorProfile'], active: true },
+    { id: 'page-sec-3', slot: 'main', orientation: 'vertical', elements: ['posts', 'comments'], active: true },
+    { id: 'page-sec-4', slot: 'bottom', orientation: 'horizontal', elements: ['footer'], active: true },
   ],
 }

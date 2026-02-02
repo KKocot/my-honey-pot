@@ -8,6 +8,25 @@ import type { PostCardData, PostCardSettings, CardSection, CardSectionChild, Car
 import { getPostSummary, formatPayout } from './utils'
 
 /**
+ * Escape HTML to prevent XSS
+ */
+function escape_html(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;')
+}
+
+/**
+ * Validate URL (must start with http/https)
+ */
+function is_valid_url(url: string): boolean {
+  return url.startsWith('http://') || url.startsWith('https://')
+}
+
+/**
  * Collect all element IDs from a section (recursively)
  */
 function collectElementIds(section: CardSection): string[] {
@@ -48,17 +67,17 @@ function renderElement(
 
   switch (elementId) {
     case 'thumbnail':
-      if (!data.thumbnail) return ''
+      if (!data.thumbnail || !is_valid_url(data.thumbnail)) return ''
       if (isVertical) {
         return `<div class="rounded-lg overflow-hidden flex-shrink-0 bg-cover bg-center w-full h-40"><img src="${data.thumbnail}" alt="" class="w-full h-full object-cover" onerror="this.style.display='none'" /></div>`
       }
       return `<img src="${data.thumbnail}" alt="" style="width: ${settings.thumbnailSizePx}px; height: ${settings.thumbnailSizePx}px; object-fit: cover; border-radius: 8px; flex-shrink: 0;" onerror="this.style.display='none'" />`
 
     case 'title':
-      return `<h3 class="font-semibold text-text line-clamp-2" style="font-size: ${settings.titleSizePx}px;">${data.title}</h3>`
+      return `<h3 class="font-semibold text-text line-clamp-2" style="font-size: ${settings.titleSizePx}px;">${escape_html(data.title)}</h3>`
 
     case 'summary':
-      return `<p class="text-text-muted text-sm line-clamp-3">${getPostSummary(data.body, settings.summaryMaxLength)}</p>`
+      return `<p class="text-text-muted text-sm line-clamp-3">${escape_html(getPostSummary(data.body, settings.summaryMaxLength))}</p>`
 
     case 'date':
       return `<span class="text-xs text-text-muted">${data.publishedAt.toLocaleDateString()}</span>`
@@ -76,7 +95,7 @@ function renderElement(
       if (data.tags.length === 0) return ''
       const tagsHtml = data.tags
         .slice(0, settings.maxTags)
-        .map(tag => `<span class="px-2 py-0.5 text-xs bg-bg-secondary text-text-muted rounded">#${tag}</span>`)
+        .map(tag => `<span class="px-2 py-0.5 text-xs bg-bg-secondary text-text-muted rounded">#${escape_html(tag)}</span>`)
         .join('')
       return `<div class="flex flex-wrap gap-1">${tagsHtml}</div>`
 
@@ -165,7 +184,11 @@ export function renderPostCard(
   linkHref?: string,
   extraStyle?: string
 ): string {
-  const href = linkHref ?? `/${data.permlink}`
+  // Validate href before using it
+  let href = linkHref ?? `/${data.permlink}`
+  if (linkHref && !is_valid_url(linkHref) && !linkHref.startsWith('/')) {
+    href = `/${data.permlink}` // Fallback to permlink
+  }
   const borderStyle = settings.cardBorder ? 'border: 1px solid var(--color-border);' : ''
 
   // Build hover effect CSS classes
