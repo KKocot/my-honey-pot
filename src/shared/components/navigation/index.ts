@@ -22,4 +22,6 @@ export {
   getNavigationItemClasses,
   renderNavigation,
   renderNavigationItems,
+  renderNavigationButton,
+  renderNavigationButtons,
 } from './render'
