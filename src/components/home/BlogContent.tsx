@@ -29,7 +29,7 @@ interface BlogContentProps {
   comments_sort_order: CommentSortOption;
   posts_per_page: number;
   settings: SiteSettings;
-  dehydrated_state?: DehydratedState;
+  dehydrated_state?: string;
   category_tag?: string | null;
   navigation_tabs?: Array<{ id: string; label: string; tag?: string }>;
   post_card_layout?: CardLayout;
@@ -385,10 +385,11 @@ export const BlogContent: Component<BlogContentProps> = (props) => {
   // SAFE: client:load means browser-only execution, no cross-request sharing
   const [query_client] = createSignal(create_query_client());
 
-  // Hydrate dehydrated state if provided
+  // Hydrate dehydrated state if provided (arrives as JSON string to avoid cyclic reference issues)
   createEffect(() => {
     if (props.dehydrated_state) {
-      hydrate(query_client(), props.dehydrated_state);
+      const parsed: DehydratedState = JSON.parse(props.dehydrated_state);
+      hydrate(query_client(), parsed);
     }
   });
 
