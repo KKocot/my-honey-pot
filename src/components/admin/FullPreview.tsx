@@ -320,7 +320,15 @@ export function FullPreview(props: FullPreviewProps) {
   // Render footer element
   const renderFooter = () => (
     <footer class="text-center py-6 text-text-muted text-sm border-t border-border mt-6">
-      <p>Powered by Hive Blockchain</p>
+      <div class="flex items-center justify-center gap-3 flex-wrap">
+        <span>Built by <a href="https://bard-dev.com" target="_blank" rel="noopener noreferrer" class="text-primary hover:text-primary-hover transition-colors font-medium">BardDev</a></span>
+        <span class="text-border">|</span>
+        <a href="https://ko-fi.com/K3K713SMAY" target="_blank" rel="noopener noreferrer" class="inline-flex hover:opacity-90 transition-opacity">
+          <img src="https://storage.ko-fi.com/cdn/kofi6.png?v=6" alt="Buy Me a Coffee at ko-fi.com" height="24" width="120" loading="lazy" />
+        </a>
+        <span class="text-border">|</span>
+        <span>Powered by Hive Blockchain</span>
+      </div>
     </footer>
   )
 
