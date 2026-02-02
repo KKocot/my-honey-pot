@@ -127,6 +127,33 @@ export function getOnlineClient(): Promise<OnlineClient> {
 }
 
 /**
+ * Interface for the internal structure of OnlineClient
+ * Used to access hiveChain.api.endpointUrl property
+ */
+interface OnlineClientWithHiveChain {
+  hiveChain: {
+    api: {
+      endpointUrl: string;
+    };
+  };
+}
+
+/**
+ * Type guard to check if an object has the hiveChain structure
+ */
+function hasHiveChainApi(client: unknown): client is OnlineClientWithHiveChain {
+  return (
+    typeof client === 'object' &&
+    client !== null &&
+    'hiveChain' in client &&
+    typeof (client as Record<string, unknown>).hiveChain === 'object' &&
+    (client as Record<string, unknown>).hiveChain !== null &&
+    'api' in ((client as Record<string, unknown>).hiveChain as Record<string, unknown>) &&
+    typeof ((client as Record<string, unknown>).hiveChain as Record<string, unknown>).api === 'object'
+  );
+}
+
+/**
  * Update the RPC endpoint for the OnlineClient
  * Requires the client to be initialized first
  */
@@ -135,9 +162,12 @@ export function setOnlineClientRpcEndpoint(newEndpoint: string): void {
     throw new Error('OnlineClient is not initialized yet. Call initOnlineClient() first.');
   }
 
+  if (!hasHiveChainApi(onlineClient)) {
+    throw new Error('OnlineClient does not have the expected hiveChain.api structure.');
+  }
+
   // Update the endpoint on the underlying hive chain
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (onlineClient as any).hiveChain.api.endpointUrl = newEndpoint;
+  onlineClient.hiveChain.api.endpointUrl = newEndpoint;
 }
 
 // ============================================================================

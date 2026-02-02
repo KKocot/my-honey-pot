@@ -58,7 +58,7 @@ const markdownItSpoiler = (md: MarkdownIt, config: SpoilerConfig = {}) => {
     return null;
   };
 
-  md.renderer.rules.blockquote_open = (tokens: Token[], idx: number, options: Options, env: any, self: Renderer): string => {
+  md.renderer.rules.blockquote_open = (tokens: Token[], idx: number, options: Options, env: Record<string, unknown>, self: Renderer): string => {
     if (!spoilerMetadata) {
       spoilerMetadata = extractSpoilerMetadata(tokens, idx) ?? undefined;
       if (spoilerMetadata) {
@@ -72,7 +72,7 @@ const markdownItSpoiler = (md: MarkdownIt, config: SpoilerConfig = {}) => {
     return self.renderToken(tokens, idx, options);
   };
 
-  md.renderer.rules.blockquote_close = (tokens: Token[], idx: number, options: Options, env: any, self: Renderer): string => {
+  md.renderer.rules.blockquote_close = (tokens: Token[], idx: number, options: Options, env: Record<string, unknown>, self: Renderer): string => {
     if (spoilerMetadata) {
       spoilerMetadata = undefined;
       return '</details>';
@@ -84,7 +84,7 @@ const markdownItSpoiler = (md: MarkdownIt, config: SpoilerConfig = {}) => {
     return self.renderToken(tokens, idx, options);
   };
 
-  md.renderer.rules.text = (tokens: Token[], idx: number, options: Options, env: any, self: Renderer): string => {
+  md.renderer.rules.text = (tokens: Token[], idx: number, options: Options, env: Record<string, unknown>, self: Renderer): string => {
     if (spoilerMetadata && tokens[idx].content) {
       const prefixPattern = prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       const revealTextPattern = spoilerMetadata.revealText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');

@@ -117,6 +117,18 @@ export class HtmlDOMParser {
     }
 
     /**
+     * Type guard to check if a node is an Element with a tagName
+     */
+    private isElementNode(node: unknown): node is Element {
+        return (
+            typeof node === 'object' &&
+            node !== null &&
+            'tagName' in node &&
+            typeof (node as Element).tagName === 'string'
+        );
+    }
+
+    /**
      * Recursively traverses the DOM tree and processes nodes based on their types.
      *
      * This method performs the following operations:
@@ -135,7 +147,7 @@ export class HtmlDOMParser {
         }
 
         Array.from(node.childNodes).forEach((child) => {
-            const tag = (child as any).tagName ? (child as any).tagName.toLowerCase() : null;
+            const tag = this.isElementNode(child) ? child.tagName.toLowerCase() : null;
             if (tag) {
                 this.state.htmltags.add(tag);
             }
@@ -229,8 +241,9 @@ export class HtmlDOMParser {
             return;
         }
 
-        const tag = (child as any).parentNode.tagName ? (child as any).parentNode.tagName.toLowerCase() : (child as any).parentNode.tagName;
-        if (tag === 'div' && (child as any).parentNode.getAttribute('class') === 'videoWrapper') {
+        const parentNode = child.parentNode;
+        const tag = this.isElementNode(parentNode) ? parentNode.tagName.toLowerCase() : null;
+        if (tag === 'div' && this.isElementNode(parentNode) && parentNode.getAttribute('class') === 'videoWrapper') {
             return;
         }
         const html = this.xmlSerializer.serializeToString(child);
@@ -316,7 +329,8 @@ export class HtmlDOMParser {
      */
     private processTextNode(child: HTMLObjectElement) {
         try {
-            const tag = (child.parentNode as any).tagName ? (child.parentNode as any).tagName.toLowerCase() : (child.parentNode as any).tagName;
+            const parentNode = child.parentNode;
+            const tag = this.isElementNode(parentNode) ? parentNode.tagName.toLowerCase() : null;
             if (tag === 'code') {
                 return;
             }
@@ -578,13 +592,16 @@ export class HtmlDOMParser {
      * normalizeUrl('ipfs://QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG')
      * // Returns: 'https://ipfs.io/QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG'
      */
-    private normalizeUrl(url: any) {
+    private normalizeUrl(url: string): string {
         if (this.options.ipfsPrefix) {
             // Convert //ipfs/xxx  or /ipfs/xxx or ipfs://xxx into  ${ipfsPrefix}/xxx
             if (linksRe.ipfsProtocol.test(url)) {
-                const [protocol] = url.match(linksRe.ipfsProtocol);
-                const cid = url.replace(protocol, '');
-                return `${this.options.ipfsPrefix.replace(/\/+$/, '')}/${cid}`;
+                const match = url.match(linksRe.ipfsProtocol);
+                if (match && match[0]) {
+                    const protocol = match[0];
+                    const cid = url.replace(protocol, '');
+                    return `${this.options.ipfsPrefix.replace(/\/+$/, '')}/${cid}`;
+                }
             }
         }
         return url;
