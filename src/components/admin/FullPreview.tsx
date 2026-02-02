@@ -28,8 +28,18 @@ import {
   renderCommentCardContent,
 } from '../../shared/components/comment-card'
 import {
-  getNavigationItemClasses,
+  renderNavigationButtons,
+  createNavigationSettings,
+  type NavigationSettings,
 } from '../../shared/components/navigation'
+import {
+  createHeaderData,
+  createHeaderSettings,
+  renderHeader as renderHeaderHtml,
+} from '../../shared/components/header'
+import {
+  renderFooter as renderFooterHtml,
+} from '../../shared/components/footer'
 
 // ============================================
 // Full Preview Dialog Component
@@ -93,16 +103,17 @@ export function FullPreview(props: FullPreviewProps) {
   const hasLeftSidebar = createMemo(() => leftSidebarSections().length > 0)
   const hasRightSidebar = createMemo(() => rightSidebarSections().length > 0)
 
-  // Render header element
-  const renderHeader = () => (
-    <header
-      class="bg-bg-card rounded-xl shadow-sm border border-border p-6 mb-6"
-      style={`max-width: ${settings.headerMaxWidthPx || 1280}px; margin-left: auto; margin-right: auto;`}
-    >
-      <h1 class="text-2xl font-bold text-text">{settings.siteName || 'Hive Blog'}</h1>
-      <p class="text-text-muted mt-1">{settings.siteDescription || 'Posts from Hive blockchain'}</p>
-    </header>
-  )
+  // Render header element using shared component
+  const renderHeader = () => {
+    const data = createHeaderData(
+      settings.siteName || 'Hive Blog',
+      settings.siteDescription || 'Posts from Hive blockchain'
+    )
+    const header_settings = createHeaderSettings({
+      headerMaxWidthPx: settings.headerMaxWidthPx,
+    })
+    return <header innerHTML={renderHeaderHtml(data, header_settings)} />
+  }
 
   // Render author profile element using shared components
   const renderAuthorProfile = (_layout: 'horizontal' | 'vertical' = 'horizontal') => {
@@ -149,8 +160,15 @@ export function FullPreview(props: FullPreviewProps) {
   }
 
   // Posts component - reactive
+  // Note: Uses inline layout logic (not renderPostsGrid) because PostCard is a SolidJS component with animations
   const PostsSection = () => {
     const posts = () => data()?.posts || []
+
+    const gridSettings = createMemo(() => ({
+      layout: settings.postsLayout || 'grid',
+      columns: settings.gridColumns || 2,
+      gap_px: settings.cardGapPx || 24,
+    }))
 
     return (
       <div>
@@ -159,26 +177,29 @@ export function FullPreview(props: FullPreviewProps) {
             <p class="text-text-muted">No posts found</p>
           </div>
         }>
-          <Show when={settings.postsLayout === 'list'}>
-            <div class="flex flex-col" style={`gap: ${settings.cardGapPx || 24}px;`}>
+          {/* List layout */}
+          <Show when={gridSettings().layout === 'list'}>
+            <div style={`display: flex; flex-direction: column; gap: ${gridSettings().gap_px}px;`}>
               <For each={posts()}>
                 {(post, index) => <PostCard post={post} forceVertical={false} index={index()} />}
               </For>
             </div>
           </Show>
-          <Show when={settings.postsLayout === 'masonry'}>
-            <div style={`column-count: ${settings.gridColumns || 2}; column-gap: ${settings.cardGapPx || 24}px;`}>
+          {/* Masonry layout */}
+          <Show when={gridSettings().layout === 'masonry'}>
+            <div style={`column-count: ${gridSettings().columns}; column-gap: ${gridSettings().gap_px}px;`}>
               <For each={posts()}>
                 {(post, index) => (
-                  <div class="break-inside-avoid" style={`margin-bottom: ${settings.cardGapPx || 24}px;`}>
+                  <div style={`break-inside: avoid; margin-bottom: ${gridSettings().gap_px}px;`}>
                     <PostCard post={post} forceVertical={true} index={index()} />
                   </div>
                 )}
               </For>
             </div>
           </Show>
-          <Show when={settings.postsLayout === 'grid'}>
-            <div style={`display: grid; grid-template-columns: repeat(${settings.gridColumns || 2}, 1fr); gap: ${settings.cardGapPx || 24}px;`}>
+          {/* Grid layout */}
+          <Show when={gridSettings().layout === 'grid'}>
+            <div style={`display: grid; grid-template-columns: repeat(${gridSettings().columns}, 1fr); gap: ${gridSettings().gap_px}px;`}>
               <For each={posts()}>
                 {(post, index) => <PostCard post={post} forceVertical={true} index={index()} />}
               </For>
@@ -317,53 +338,39 @@ export function FullPreview(props: FullPreviewProps) {
     )
   }
 
-  // Render footer element
+  // Render footer element using shared component
   const renderFooter = () => (
-    <footer class="text-center py-6 text-text-muted text-sm border-t border-border mt-6">
-      <div class="flex items-center justify-center gap-3 flex-wrap">
-        <span>Built by <a href="https://bard-dev.com" target="_blank" rel="noopener noreferrer" class="text-primary hover:text-primary-hover transition-colors font-medium">BardDev</a></span>
-        <span class="text-border">|</span>
-        <a href="https://ko-fi.com/K3K713SMAY" target="_blank" rel="noopener noreferrer" class="inline-flex hover:opacity-90 transition-opacity">
-          <img src="https://storage.ko-fi.com/cdn/kofi6.png?v=6" alt="Buy Me a Coffee at ko-fi.com" height="24" width="120" loading="lazy" />
-        </a>
-        <span class="text-border">|</span>
-        <span>Powered by Hive Blockchain</span>
-      </div>
-    </footer>
+    <div innerHTML={renderFooterHtml()} />
   )
 
   // Navigation preview component - uses settings.navigationTabs with shared utilities
   // Note: Count badges are disabled - navigation shows only labels
   const NavigationPreview = () => {
-    const enabledTabs = createMemo(() => settings.navigationTabs?.filter(t => t.enabled) || [])
+    const navSettings = createMemo((): NavigationSettings => ({
+      tabs: (settings.navigationTabs || []).filter(t => t.enabled).map(t => ({
+        id: t.id,
+        label: t.label,
+        enabled: t.enabled,
+        showCount: false,
+        tooltip: t.tooltip,
+      })),
+      activeTab: activeTab(),
+      postsCount: 0,
+      commentsCount: 0,
+    }))
 
-    return (
-      <nav class="border-b border-border mb-6">
-        <div class="flex flex-wrap">
-          <For each={enabledTabs()}>
-            {(tab) => {
-              const isActive = () => activeTab() === tab.id
+    const navHtml = createMemo(() => renderNavigationButtons(navSettings()))
 
-              return (
-                <button
-                  type="button"
-                  onClick={() => setActiveTab(tab.id)}
-                  class={getNavigationItemClasses(isActive())}
-                  title={tab.tooltip}
-                >
-                  <span class="flex items-center gap-2">
-                    {tab.label}
-                  </span>
-                  {isActive() && (
-                    <span class="absolute bottom-0 left-0 right-0 h-1 bg-primary rounded-t-full" />
-                  )}
-                </button>
-              )
-            }}
-          </For>
-        </div>
-      </nav>
-    )
+    // Event delegation for tab clicks
+    const handleNavClick = (e: MouseEvent) => {
+      const target = (e.target as HTMLElement).closest('[data-tab]')
+      if (target) {
+        const tab = (target as HTMLElement).dataset.tab
+        if (tab) setActiveTab(tab)
+      }
+    }
+
+    return <div onClick={handleNavClick} innerHTML={navHtml()} />
   }
 
   // Section renderer - renders a section with proper orientation
