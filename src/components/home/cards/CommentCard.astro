@@ -2,7 +2,6 @@
 /**
  * CommentCard - uses shared utilities
  */
-import type { BridgeComment } from '../../lib/blog-logic'
 import type { SiteSettings } from '../types'
 import {
   createCommentCardData,
@@ -10,6 +9,7 @@ import {
   renderCommentCard,
 } from '../../../shared/components/comment-card'
 import { SHADOW_MAP } from '../../../shared/constants'
+import type { BridgeComment } from '../../../lib/blog-logic'
 
 interface Props {
   comment: BridgeComment
