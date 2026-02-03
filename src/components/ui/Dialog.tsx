@@ -83,17 +83,6 @@ function useFocusTrap(containerRef: () => HTMLElement | undefined, isActive: () 
 // Dialog Context Types
 // ============================================
 
-export interface DialogProps {
-  open: Accessor<boolean>
-  onOpenChange: (open: boolean) => void
-  children: JSX.Element
-}
-
-export interface DialogTriggerProps {
-  children: JSX.Element
-  onClick?: () => void
-}
-
 export interface DialogContentProps {
   children: JSX.Element
   class?: string
@@ -119,10 +108,6 @@ export interface DialogFooterProps {
   class?: string
 }
 
-export interface DialogCloseProps {
-  children: JSX.Element
-  class?: string
-}
 
 // ============================================
 // Dialog Hook
@@ -141,21 +126,6 @@ export function createDialog(defaultOpen = false) {
 // ============================================
 // Dialog Components
 // ============================================
-
-export function Dialog(props: DialogProps) {
-  return <>{props.children}</>
-}
-
-export function DialogTrigger(props: DialogTriggerProps & { onOpen: () => void }) {
-  return (
-    <div
-      onClick={() => props.onOpen()}
-      class="contents"
-    >
-      {props.children}
-    </div>
-  )
-}
 
 export function DialogContent(props: DialogContentProps & { open: Accessor<boolean>; onClose: () => void }) {
   let dialogRef: HTMLDivElement | undefined
@@ -281,10 +251,3 @@ export function DialogFooter(props: DialogFooterProps) {
   )
 }
 
-export function DialogClose(props: DialogCloseProps & { onClose: () => void }) {
-  return (
-    <div onClick={props.onClose} class={`contents ${props.class || ''}`}>
-      {props.children}
-    </div>
-  )
-}
