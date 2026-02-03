@@ -63,8 +63,9 @@ if (hiveUsername) {
     if (hiveConfig) {
       settings = hiveConfig as SiteSettings
     }
-  } catch (e) {
-    console.error('Failed to load config from Hive:', e)
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error'
+    console.error('Failed to load config from Hive:', message)
   }
 }
 
@@ -191,8 +192,9 @@ try {
       return value
     })
   }
-} catch (e) {
-  console.error('Error fetching Hive data:', e)
+} catch (error) {
+  const message = error instanceof Error ? error.message : 'Unknown error'
+  console.error('Error fetching Hive data:', message)
   error = 'Error fetching data from Hive blockchain.'
 }
 

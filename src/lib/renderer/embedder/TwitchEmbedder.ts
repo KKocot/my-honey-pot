@@ -33,8 +33,8 @@ export class TwitchEmbedder extends AbstractEmbedder {
         return `<div class="videoWrapper"><iframe src=${url} width=${size.width} height=${size.height} frameBorder="0" allowFullScreen></iframe></div>`;
     }
 
-    private twitchId(data: any) {
-        if (!data) {
+    private twitchId(data: unknown): { id: string; url: string; canonical: string } | null {
+        if (typeof data !== 'string') {
             return null;
         }
         const m = data.match(linksRe.twitch);

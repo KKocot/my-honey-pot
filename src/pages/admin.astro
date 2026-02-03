@@ -15,8 +15,9 @@ if (hiveUsername) {
     if (config) {
       initialSettings = config as SettingsData
     }
-  } catch (e) {
-    console.error('Admin: Failed to load config from Hive:', e)
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error'
+    console.error('Admin: Failed to load config from Hive:', message)
   }
 }
 ---

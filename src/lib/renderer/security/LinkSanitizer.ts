@@ -60,6 +60,10 @@ export class LinkSanitizer {
    */
   private prependUnknownProtocolLink(url: string): string {
     if (!/^((#)|(\/(?!\/))|(((hive|https?):)?\/\/))/.test(url)) {
+      // Reject URLs with @ before first / (user credentials pattern)
+      if (url.includes('@') && !url.includes('/')) {
+        return '';
+      }
       url = 'https://' + url;
     }
     return url;

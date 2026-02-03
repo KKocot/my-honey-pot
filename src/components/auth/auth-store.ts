@@ -9,8 +9,8 @@ export interface AuthUser {
 // Session storage key - only stores username, NEVER the private key
 const SESSION_KEY = 'hbauth-session'
 
-// Session timeout in milliseconds (5 hours of inactivity)
-const SESSION_TIMEOUT_MS = 5 * 60 * 60 * 1000
+// Session timeout in milliseconds (30 minutes of inactivity)
+const SESSION_TIMEOUT_MS = 30 * 60 * 1000
 
 // Create signals for auth state
 const [currentUser, setCurrentUser] = createSignal<AuthUser | null>(null)
@@ -107,6 +107,16 @@ export function needsReauth(): StoredSession | null {
 
 // Login - store user in memory, only username in sessionStorage
 export function login(user: AuthUser) {
+  if (!user || typeof user !== 'object') {
+    throw new Error('Invalid user object');
+  }
+  if (!user.username || typeof user.username !== 'string') {
+    throw new Error('Invalid username');
+  }
+  if (!user.keyType || !['posting', 'active'].includes(user.keyType)) {
+    throw new Error('Invalid keyType');
+  }
+
   setCurrentUser(user)
   setIsAuthenticated(true)
   lastActivityTimestamp = Date.now()

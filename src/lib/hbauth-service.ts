@@ -92,7 +92,12 @@ function setOnlineClient(options: Partial<ClientOptions> = {}): Promise<OnlineCl
     ...getDefaultClientOptions(),
     ...options,
   };
-  console.info('Creating instance of HB-Auth OnlineClient with options:', clientOptions);
+
+  const sanitized_options = {
+    ...clientOptions,
+    node: clientOptions.node ? '[REDACTED]' : undefined
+  };
+  console.info('Creating instance of HB-Auth OnlineClient with options:', sanitized_options);
 
   onlineClientPromise = new OnlineClient(clientOptions).initialize();
 
@@ -183,7 +188,12 @@ function setOfflineClient(options: Partial<ClientOptions> = {}): Promise<Offline
     ...getDefaultClientOptions(),
     ...options,
   };
-  console.info('Creating instance of HB-Auth OfflineClient with options:', clientOptions);
+
+  const sanitized_options = {
+    ...clientOptions,
+    node: clientOptions.node ? '[REDACTED]' : undefined
+  };
+  console.info('Creating instance of HB-Auth OfflineClient with options:', sanitized_options);
 
   offlineClientPromise = new OfflineClient(clientOptions).initialize();
 

@@ -573,7 +573,7 @@ export class Phishing {
    */
   public static looksPhishy = (questionableUrl: string) => {
     for (const domain of domains) {
-      if (questionableUrl.toLocaleLowerCase().indexOf(domain) > -1) return true;
+      if (questionableUrl.toLowerCase().indexOf(domain) > -1) return true;
     }
 
     return false;

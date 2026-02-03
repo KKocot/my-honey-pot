@@ -129,6 +129,17 @@ export class HtmlDOMParser {
     }
 
     /**
+     * Type guard to check if a node has getAttribute method
+     */
+    private hasGetAttribute(node: unknown): node is Element {
+        return (
+            typeof node === 'object' &&
+            node !== null &&
+            'getAttribute' in node
+        );
+    }
+
+    /**
      * Recursively traverses the DOM tree and processes nodes based on their types.
      *
      * This method performs the following operations:
@@ -152,11 +163,11 @@ export class HtmlDOMParser {
                 this.state.htmltags.add(tag);
             }
 
-            if (tag === 'img') {
+            if (tag === 'img' && this.hasGetAttribute(child)) {
                 this.processImgTag(child as HTMLObjectElement);
-            } else if (tag === 'iframe') {
+            } else if (tag === 'iframe' && this.hasGetAttribute(child)) {
                 this.processIframeTag(child as HTMLObjectElement);
-            } else if (tag === 'a') {
+            } else if (tag === 'a' && this.hasGetAttribute(child)) {
                 this.processLinkTag(child as HTMLObjectElement);
             } else if (child.nodeName === '#text') {
                 this.processTextNode(child as HTMLObjectElement);
@@ -415,64 +426,69 @@ export class HtmlDOMParser {
      * // Returns: 'Hello <a href="/@user">@user</a>'
      */
     private linkify(content: string) {
-        // plaintext links
-        content = content.replace(linksAny('gi'), (ln) => {
-            if (linksRe.image.test(ln)) {
-                this.state.images.add(ln);
-                return `<img src="${this.normalizeUrl(ln)}" alt="Embedded Image" />`;
-            }
+        try {
+            // plaintext links
+            content = content.replace(linksAny('gi'), (ln) => {
+                if (linksRe.image.test(ln)) {
+                    this.state.images.add(ln);
+                    return `<img src="${this.normalizeUrl(ln)}" alt="Embedded Image" />`;
+                }
 
-            // do not linkify .exe or .zip urls
-            if (/\.(zip|exe)$/i.test(ln)) {
-                return ln;
-            }
+                // do not linkify .exe or .zip urls
+                if (/\.(zip|exe)$/i.test(ln)) {
+                    return ln;
+                }
 
-            // do not linkify phishy links
-            const sanitizedLink = this.linkSanitizer.sanitizeLink(ln, ln);
-            if (sanitizedLink === false) {
-                return `<div title='${this.localization.phishingWarning}' class='phishy'>${ln}</div>`;
-            }
+                // do not linkify phishy links
+                const sanitizedLink = this.linkSanitizer.sanitizeLink(ln, ln);
+                if (sanitizedLink === false) {
+                    return `<div title='${this.localization.phishingWarning}' class='phishy'>${ln}</div>`;
+                }
 
-            this.state.links.add(sanitizedLink);
-            return `<a href="${this.normalizeUrl(ln)}">${sanitizedLink}</a>`;
-        });
+                this.state.links.add(sanitizedLink);
+                return `<a href="${this.normalizeUrl(ln)}">${sanitizedLink}</a>`;
+            });
 
-        // hashtag
-        content = content.replace(/(^|\s)(#[-a-z\d]+)/gi, (tag) => {
-            if (/#[\d]+$/.test(tag)) {
-                return tag;
-            } // Don't allow numbers to be tags
-            const space = /^\s/.test(tag) ? tag[0] : '';
-            const tag2 = tag.trim().substring(1);
-            const tagLower = tag2.toLowerCase();
-            this.state.hashtags.add(tagLower);
-            if (!this.mutate) {
-                return tag;
-            }
-            const tagUrl = this.options.hashtagUrlFn(tagLower);
-            return space + `<a href="${tagUrl}">${tag.trim()}</a>`;
-        });
+            // hashtag
+            content = content.replace(/(^|\s)(#[-a-z\d]+)/gi, (tag) => {
+                if (/#[\d]+$/.test(tag)) {
+                    return tag;
+                } // Don't allow numbers to be tags
+                const space = /^\s/.test(tag) ? tag[0] : '';
+                const tag2 = tag.trim().substring(1);
+                const tagLower = tag2.toLowerCase();
+                this.state.hashtags.add(tagLower);
+                if (!this.mutate) {
+                    return tag;
+                }
+                const tagUrl = this.options.hashtagUrlFn(tagLower);
+                return space + `<a href="${tagUrl}">${tag.trim()}</a>`;
+            });
 
-        // usertag (mention)
-        // Cribbed from https://github.com/twitter/twitter-text/blob/v1.14.7/js/twitter-text.js#L90
-        content = content.replace(/(^|[^a-zA-Z0-9_!#$%&*@＠/]|(^|[^a-zA-Z0-9_+~.-/#]))[@＠]([a-z][-.a-z\d]+[a-z\d])/gi, (_match, preceeding1, preceeding2, user) => {
-            const userLower = user.toLowerCase();
-            const valid = AccountNameValidator.validateAccountName(userLower, this.localization) == null;
+            // usertag (mention)
+            // Cribbed from https://github.com/twitter/twitter-text/blob/v1.14.7/js/twitter-text.js#L90
+            content = content.replace(/(^|[^a-zA-Z0-9_!#$%&*@＠/]|(^|[^a-zA-Z0-9_+~.-/#]))[@＠]([a-z][-.a-z\d]+[a-z\d])/gi, (_match, preceeding1, preceeding2, user) => {
+                const userLower = user.toLowerCase();
+                const valid = AccountNameValidator.validateAccountName(userLower, this.localization) == null;
 
-            if (valid && this.state.usertags) {
-                this.state.usertags.add(userLower);
-            }
+                if (valid && this.state.usertags) {
+                    this.state.usertags.add(userLower);
+                }
 
-            // include the preceeding matches if they exist
-            const preceedings = (preceeding1 || '') + (preceeding2 || '');
+                // include the preceeding matches if they exist
+                const preceedings = (preceeding1 || '') + (preceeding2 || '');
 
-            if (!this.mutate) {
-                return `${preceedings}${user}`;
-            }
+                if (!this.mutate) {
+                    return `${preceedings}${user}`;
+                }
 
-            const userTagUrl = this.options.usertagUrlFn(userLower);
-            return valid ? `${preceedings}<a href="${userTagUrl}">@${user}</a>` : `${preceedings}@${user}`;
-        });
+                const userTagUrl = this.options.usertagUrlFn(userLower);
+                return valid ? `${preceedings}<a href="${userTagUrl}">@${user}</a>` : `${preceedings}@${user}`;
+            });
+        } catch (error) {
+            console.error('[HtmlDOMParser] Regex error in linkify:', error);
+            return content;
+        }
         return content;
     }
 

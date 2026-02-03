@@ -31,6 +31,8 @@ export { hasUnsavedChanges }
 // Re-export from queries.ts for backward compatibility
 // NOTE: These imports must come AFTER the exports above
 // to avoid circular dependency issues
+// TODO: Consider extracting hasUnsavedChanges to separate file (unsaved-state.ts)
+// if circular dependency becomes problematic in future
 // ============================================
 
 export {

@@ -18,7 +18,10 @@ export default defineConfig({
 
   server: {
     host: '0.0.0.0',
-    port: 4326
+    port: 4326,
+    headers: {
+      'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' https: data:; frame-src https://www.youtube.com https://player.vimeo.com https://player.twitch.tv https://w.soundcloud.com https://3speak.tv https://open.spotify.com; connect-src 'self' https://api.openhive.network https://api.hive.blog https://api.deathwing.me https://hive-api.arcange.eu https://images.hive.blog;"
+    }
   },
 
   vite: {

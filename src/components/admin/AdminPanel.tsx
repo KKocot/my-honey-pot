@@ -1,4 +1,4 @@
-import { createEffect, createSignal, Show, For, onMount, onCleanup, ErrorBoundary } from 'solid-js'
+import { createEffect, createSignal, Show, For, onMount, onCleanup, ErrorBoundary, on } from 'solid-js'
 import { QueryClientProvider } from '@tanstack/solid-query'
 import { Toast, showToast, Button } from '../ui'
 import { HBAuthLogin, currentUser, isAuthenticated, login, logout, needsReauth, type AuthUser } from '../auth'
@@ -90,13 +90,12 @@ function AdminPanelContent(props: AdminPanelContentProps) {
   })
 
   // Sync query data to store when it changes
-  createEffect(() => {
-    const data = settingsQuery.data
+  createEffect(on(() => settingsQuery.data, (data) => {
     if (data) {
       // Pass fromServer=true to indicate data came from query (not default init)
       syncSettingsToStore(data, true)
     }
-  })
+  }))
 
   const handleLoginSuccess = async (user: AuthUser) => {
     login(user)

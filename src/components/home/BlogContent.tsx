@@ -161,6 +161,11 @@ const PostCardItem: Component<{
   // Scroll animation visibility state
   const [is_visible, set_is_visible] = createSignal(false);
 
+  // Extract onClick handler to prevent re-render
+  const handle_post_click = (permlink: string) => {
+    window.location.href = `/posts/${permlink}`
+  }
+
   // Trigger scroll animation on mount with staggered delay
   onMount(() => {
     if (props.settings.scrollAnimationType !== 'none' && props.settings.scrollAnimationEnabled) {
@@ -248,7 +253,7 @@ const PostCardItem: Component<{
         style={card_style_string()}
         onMouseEnter={() => set_is_hovered(true)}
         onMouseLeave={() => set_is_hovered(false)}
-        onClick={() => window.location.href = `/posts/${props.post.permlink}`}
+        onClick={() => handle_post_click(props.post.permlink)}
         innerHTML={content_html()}
       />
     </Show>
@@ -442,6 +447,11 @@ const BlogContentInner: Component<BlogContentProps> = (props) => {
 export const BlogContent: Component<BlogContentProps> = (props) => {
   // SAFE: client:load means browser-only execution, no cross-request sharing
   const [query_client] = createSignal(create_query_client());
+
+  // Cleanup QueryClient on unmount
+  onCleanup(() => {
+    query_client().clear();
+  });
 
   // Hydrate dehydrated state if provided (arrives as JSON string to avoid cyclic reference issues)
   createEffect(() => {

@@ -205,9 +205,13 @@ export class DataProvider {
     });
     if (!result.accounts || result.accounts.length === 0)
       throw new Error("Account not found");
+    const account = result.accounts[0];
+    if (!account || typeof account.name !== 'string') {
+        throw new Error('Invalid account structure from API');
+    }
     // Store the account data - note: this is DatabaseApiAccount format, not HafbeTypesAccount
     // but they share the same essential fields we use (name, posting_json_metadata, created)
-    this.accounts.set(accountName, result.accounts[0] as unknown as HafbeTypesAccount);
+    this.accounts.set(accountName, account as HafbeTypesAccount);
   }
 
   public getCommunity(communityName: string): CommunityData | null {

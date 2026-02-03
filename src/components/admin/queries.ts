@@ -1,6 +1,6 @@
 import { QueryClient, createQuery, createMutation, useQueryClient } from '@tanstack/solid-query'
 import { createStore, produce } from 'solid-js/store'
-import { createSignal, createEffect } from 'solid-js'
+import { createSignal, createEffect, onCleanup } from 'solid-js'
 import { defaultSettings, migrateCardLayout, themePresets, ALL_PAGE_ELEMENT_IDS, settingsToRecord, type SettingsData, type LayoutSection, type ThemeColors, type PageLayout } from './types/index'
 import { loadConfigFromHive } from './hive-broadcast'
 
@@ -471,6 +471,10 @@ export function useHivePreviewQuery(
     debounceTimer = setTimeout(() => {
       setDebouncedUsername(newUsername)
     }, 500) // 500ms debounce
+
+    onCleanup(() => {
+      if (debounceTimer) clearTimeout(debounceTimer)
+    })
   })
 
   return createQuery(() => ({

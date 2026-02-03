@@ -1,4 +1,9 @@
 /**
+ * Bad Actor List - known malicious Hive accounts
+ * Last updated: 2026-02-03
+ * Source: https://github.com/openhive-network/condenser
+ * WARNING: Verify this list is up-to-date before deploying
+ *
  * Based on: https://raw.githubusercontent.com/openhive-network/condenser/master/src/app/utils/BadActorList.js
  */
 

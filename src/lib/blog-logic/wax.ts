@@ -17,6 +17,8 @@ class WaxChainManager {
   private chain_promise: Promise<WaxExtendedChain> | null = null;
   private current_endpoint_index = 0;
   private chain_version = 0;
+  private last_reset_time = 0;
+  private readonly RESET_COOLDOWN_MS = 1000;
 
   /**
    * Creates a new chain instance with automatic endpoint fallback.
@@ -59,8 +61,15 @@ class WaxChainManager {
   /**
    * Reset chain to force reconnection (useful after timeout errors).
    * Thread-safe: increments version to invalidate any pending operations.
+   * Rate-limited to prevent abuse.
    */
   public reset(): void {
+    const now = Date.now();
+    if (now - this.last_reset_time < this.RESET_COOLDOWN_MS) {
+        return;
+    }
+    this.last_reset_time = now;
+
     // Increment version to signal that old chain is stale
     this.chain_version++;
     // Clear the promise so next get_chain() creates a new chain

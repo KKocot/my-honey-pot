@@ -17,13 +17,19 @@ export class SecurityChecker {
   }
 
   /**
-   * Tests if the input text contains any script tags.
+   * Tests if the input text contains any script tags or event handlers.
    * @param text - The text to check for script tags
    * @returns true if script tags are found, false otherwise
    * @private
    */
   private static containsScriptTag(text: string): boolean {
-    return /<\s*script/gi.test(text);
+    const patterns = [
+      /<\s*script/gi,
+      /<script[\s\S]*?>/gi,
+      /javascript:/gi,
+      /on\w+\s*=/gi  // onclick, onerror, etc.
+    ];
+    return patterns.some(pattern => pattern.test(text));
   }
 }
 
