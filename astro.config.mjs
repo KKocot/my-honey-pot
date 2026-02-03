@@ -1,18 +1,28 @@
 // @ts-check
 import { defineConfig } from 'astro/config';
 import node from '@astrojs/node';
+import vercel from '@astrojs/vercel';
 
 import tailwindcss from '@tailwindcss/vite';
 
 import solidJs from '@astrojs/solid-js';
 
+const is_vercel = Boolean(process.env.VERCEL || process.env.VERCEL_ENV);
+
+const adapter = is_vercel
+  ? vercel({
+      webAnalytics: { enabled: false },
+      functionPerRoute: false
+    })
+  : node({
+      mode: 'standalone'
+    });
+
 // https://astro.build/config
 export default defineConfig({
   output: 'server',
 
-  adapter: node({
-    mode: 'standalone'
-  }),
+  adapter,
 
   site: process.env.PUBLIC_SITE_URL?.trim() || undefined,
 
