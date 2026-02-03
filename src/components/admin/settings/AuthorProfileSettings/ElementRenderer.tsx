@@ -6,9 +6,25 @@ import { settings } from '../../store'
 // Renders individual author profile elements
 // ============================================
 
+interface ProfileData {
+  displayName: string
+  about: string
+  location: string
+  website: string
+  coverImage: string
+  reputation: number
+  followers: number | string
+  following: number | string
+  postCount: number | string
+  hivePower: number
+  hiveBalance: number
+  hbdBalance: number
+  joinDate: string
+}
+
 interface ElementRendererProps {
   id: string
-  profileData: any
+  profileData: ProfileData
   avatarSize: () => number
   usernameSize: () => number
   displayNameSize: () => number
