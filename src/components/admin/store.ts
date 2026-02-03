@@ -45,10 +45,7 @@ export {
   queryClient,
   queryKeys,
   useSettingsQuery,
-  useSaveSettingsMutation,
   syncSettingsToStore,
-  isSettingsLoaded,
   setCurrentUsername,
   getLastFetchError,
-  clearFetchError,
 } from './queries'

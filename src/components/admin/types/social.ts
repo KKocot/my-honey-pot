@@ -81,9 +81,6 @@ export interface SocialLink {
   url?: string // Deprecated: kept for backward compatibility with old data
 }
 
-// Default social platforms for author profile
-export const defaultSocialLinks: SocialLink[] = []
-
 /**
  * Safe protocols whitelist for URL validation
  */

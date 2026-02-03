@@ -238,5 +238,3 @@ export const themePresets: ThemePreset[] = [
   },
 ]
 
-// themeOptions replaced by themePresets - kept for reference
-export const themeOptions = themePresets.map((p) => ({ value: p.id, label: p.name }))

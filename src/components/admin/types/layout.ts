@@ -43,14 +43,6 @@ export interface PageLayout {
   sections: PageLayoutSection[]
 }
 
-// Page elements that can be placed in slots
-export type PageElementId = 'header' | 'navigation' | 'authorProfile' | 'posts' | 'footer'
-
-// Card element that can be reordered
-export interface CardElement {
-  id: string
-  enabled: boolean
-}
 
 // ============================================
 // Recursive nested sections system
@@ -139,82 +131,6 @@ export function collectAllElementIds(layout: CardLayout): string[] {
   }
   return ids
 }
-
-// Post card elements
-export type PostCardElementId =
-  | 'thumbnail'
-  | 'title'
-  | 'summary'
-  | 'date'
-  | 'votes'
-  | 'comments'
-  | 'payout'
-  | 'tags'
-
-// Comment card elements
-export type CommentCardElementId =
-  | 'replyContext'
-  | 'avatar'
-  | 'author'
-  | 'timestamp'
-  | 'body'
-  | 'replies'
-  | 'votes'
-  | 'payout'
-  | 'viewLink'
-
-// Author profile elements
-export type AuthorProfileElementId =
-  | 'coverImage'
-  | 'avatar'
-  | 'username'
-  | 'displayName'
-  | 'reputation'
-  | 'about'
-  | 'location'
-  | 'website'
-  | 'joinDate'
-  | 'followers'
-  | 'following'
-  | 'postCount'
-  | 'hpEarned'
-  | 'votingPower'
-  | 'hiveBalance'
-  | 'hbdBalance'
-
-export const sectionLabels: Record<string, string> = {
-  header: 'Header',
-  authorProfile: 'Author Profile',
-  posts: 'Posts List',
-  footer: 'Footer',
-}
-
-export const sectionColors: Record<string, string> = {
-  header: 'bg-primary text-primary-text',
-  authorProfile: 'bg-accent text-primary-text',
-  posts: 'bg-success text-primary-text',
-  footer: 'bg-text-muted text-primary-text',
-}
-
-export const cardLayoutOptions = [
-  { value: 'horizontal', label: 'Horizontal' },
-  { value: 'vertical', label: 'Vertical' },
-]
-
-export const thumbnailPositionOptions = [
-  { value: 'left', label: 'Left' },
-  { value: 'right', label: 'Right' },
-]
-
-export const authorProfileLayoutOptions = [
-  { value: 'horizontal', label: 'Horizontal' },
-  { value: 'vertical', label: 'Vertical' },
-]
-
-export const postsSortOptions = [
-  { value: 'blog', label: 'Blog (chronological)' },
-  { value: 'posts', label: 'Posts only (no reblogs)' },
-]
 
 // Card hover effect options
 export const cardHoverEffectOptions = [

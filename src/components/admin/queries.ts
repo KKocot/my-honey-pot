@@ -224,7 +224,7 @@ export function getLastFetchError(): string | null {
   return lastFetchError
 }
 
-export function clearFetchError(): void {
+function clearFetchError(): void {
   lastFetchError = null
 }
 
@@ -317,16 +317,6 @@ export function useSettingsQuery() {
   }))
 }
 
-export function useSaveSettingsMutation() {
-  const client = useQueryClient()
-
-  return createMutation(() => ({
-    mutationFn: saveSettingsToServer,
-    onSuccess: () => {
-      client.invalidateQueries({ queryKey: queryKeys.settings })
-    },
-  }))
-}
 
 // ============================================
 // Sync settings to store when query succeeds
@@ -348,9 +338,6 @@ export function syncSettingsToStore(data: SettingsData, fromServer: boolean = fa
   }
 }
 
-export function isSettingsLoaded(): boolean {
-  return settingsLoadedFromServer
-}
 
 // ============================================
 // Hive Preview Data Types (using blog-logic)
