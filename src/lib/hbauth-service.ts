@@ -147,15 +147,15 @@ interface OnlineClientWithHiveChain {
  * Type guard to check if an object has the hiveChain structure
  */
 function hasHiveChainApi(client: unknown): client is OnlineClientWithHiveChain {
-  return (
-    typeof client === 'object' &&
-    client !== null &&
-    'hiveChain' in client &&
-    typeof (client as Record<string, unknown>).hiveChain === 'object' &&
-    (client as Record<string, unknown>).hiveChain !== null &&
-    'api' in ((client as Record<string, unknown>).hiveChain as Record<string, unknown>) &&
-    typeof ((client as Record<string, unknown>).hiveChain as Record<string, unknown>).api === 'object'
-  );
+  if (typeof client !== 'object' || client === null) return false;
+  if (!('hiveChain' in client)) return false;
+
+  const hiveChain = (client as { hiveChain: unknown }).hiveChain;
+  if (typeof hiveChain !== 'object' || hiveChain === null) return false;
+  if (!('api' in hiveChain)) return false;
+
+  const api = (hiveChain as { api: unknown }).api;
+  return typeof api === 'object' && api !== null;
 }
 
 /**
