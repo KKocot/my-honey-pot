@@ -6,7 +6,6 @@ import type { SiteSettings, CardLayout } from "../types";
 import {
   createPostCardDataFromPost,
   renderPostCardContent,
-  renderPostsGrid,
   type PostCardSettings,
   type PostCardData,
   type PostsGridSettings,
