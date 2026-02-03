@@ -38,7 +38,3 @@ export function renderPostBody(body: string): string {
     return `<p>${body}</p>`;
   }
 }
-
-export function renderCommentBody(body: string): string {
-  return renderPostBody(body);
-}

@@ -86,11 +86,10 @@ class WaxChainManager {
   }
 }
 
-// Export singleton instance
-export const wax_chain_manager = new WaxChainManager();
+// Internal singleton instance
+const wax_chain_manager = new WaxChainManager();
 
 // Backward-compatible exports
 export const getWax = (): Promise<WaxExtendedChain> => wax_chain_manager.get_chain();
 export const resetWax = (): void => wax_chain_manager.reset();
-export const getChainVersion = (): number => wax_chain_manager.get_chain_version();
 
