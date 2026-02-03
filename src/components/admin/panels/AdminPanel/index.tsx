@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 Krzysztof Kocot
+
 import { createEffect, createSignal, Show, onMount, onCleanup, ErrorBoundary, on } from 'solid-js'
 import { QueryClientProvider } from '@tanstack/solid-query'
 import { Toast, showToast, Button } from '../../../ui'

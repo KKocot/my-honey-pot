@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 Krzysztof Kocot
+
 import { For, Show } from 'solid-js'
 import type { CardLayout, CardSection } from '../../types/index'
 import { collectAllElementIds } from '../../types/index'

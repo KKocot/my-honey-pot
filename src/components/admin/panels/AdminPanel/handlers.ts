@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 Krzysztof Kocot
+
 import type { Accessor } from 'solid-js'
 import type { AuthUser } from '../../../auth'
 import { showToast } from '../../../ui'

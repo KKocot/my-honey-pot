@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 Krzysztof Kocot
+
 import { createSignal, For, Show } from 'solid-js'
 import { useClickOutside } from '../../hooks/use_click_outside'
 

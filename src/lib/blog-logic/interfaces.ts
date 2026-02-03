@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 Krzysztof Kocot
+
 // WORK IN PROGRESS
 import type { TAccountName, IOnlineSignatureProvider, NaiAsset } from "@hiveio/wax";
 

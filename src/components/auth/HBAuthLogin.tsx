@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 Krzysztof Kocot
+
 import { createSignal, Show, onMount } from 'solid-js'
 import { getOnlineClient } from '../../lib/hbauth-service'
 import type { OnlineClient, AuthUser as HBAuthUser } from '@hiveio/hb-auth'

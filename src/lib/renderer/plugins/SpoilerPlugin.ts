@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 Krzysztof Kocot
+
 import type MarkdownIt from 'markdown-it';
 import type {Options} from 'markdown-it';
 import type Token from 'markdown-it/lib/token.mjs';

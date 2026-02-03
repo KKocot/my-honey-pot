@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 Krzysztof Kocot
+
 import { Show, For, createMemo, type Accessor } from 'solid-js'
 import { settings } from '../../store'
 import type { HiveData } from '../../queries'

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 Krzysztof Kocot
+
 import { DefaultRenderer, TablePlugin } from './renderer/index';
 
 const HIVE_IMAGES_ENDPOINT = 'https://images.hive.blog';

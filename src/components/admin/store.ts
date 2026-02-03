@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 Krzysztof Kocot
+
 // ============================================
 // Shared state that needs to be imported by both
 // AdminPanel and queries to avoid circular dependencies

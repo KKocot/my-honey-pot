@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 Krzysztof Kocot
+
 // Blog Logic - Hive blockchain blogging library
 // See readme.md for usage instructions
 

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 Krzysztof Kocot
+
 /**
  * Bad Actor List - known malicious Hive accounts
  * Last updated: 2026-02-03

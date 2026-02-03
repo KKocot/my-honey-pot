@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 Krzysztof Kocot
+
 /**
  * Performs preliminary text sanitization operations before main processing.
  * This class handles basic cleanup tasks like removing HTML comments.

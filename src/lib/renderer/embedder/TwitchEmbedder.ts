@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 Krzysztof Kocot
+
 import type {AssetEmbedderOptions} from './AssetEmbedder';
 import linksRe from './Links';
 import {AbstractEmbedder, type EmbedMetadata} from './AbstractEmbedder';

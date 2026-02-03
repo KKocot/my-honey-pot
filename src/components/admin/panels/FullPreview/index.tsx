@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 Krzysztof Kocot
+
 import { Show, For, createMemo, createSignal, type Accessor } from 'solid-js'
 import { Portal } from 'solid-js/web'
 import { settings } from '../../store'

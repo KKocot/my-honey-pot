@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 Krzysztof Kocot
+
 import { For, createMemo } from 'solid-js'
 import { settings, setCustomColors } from '../../store'
 import { themePresets, type ThemeColors } from '../../types/index'

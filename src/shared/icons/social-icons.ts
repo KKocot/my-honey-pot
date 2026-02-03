@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 Krzysztof Kocot
+
 /**
  * Social media icons as HTML strings (white fill for colored backgrounds)
  * Used by both Astro (set:html) and SolidJS (innerHTML) components

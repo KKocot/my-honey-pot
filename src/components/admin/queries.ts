@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 Krzysztof Kocot
+
 import { QueryClient, createQuery, createMutation, useQueryClient } from '@tanstack/solid-query'
 import { createStore, produce } from 'solid-js/store'
 import { createSignal, createEffect, onCleanup } from 'solid-js'

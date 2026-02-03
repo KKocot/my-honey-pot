@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 Krzysztof Kocot
+
 import type { BridgePost, IDatabaseAccount, AccountPostsSortOption, CommentSortOption } from '../../lib/blog-logic'
 import type { SettingsData } from '../admin/types'
 

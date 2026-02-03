@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 Krzysztof Kocot
+
 /**
  * Based on: https://github.com/openhive-network/condenser/blob/master/src/shared/HtmlReady.js
  */

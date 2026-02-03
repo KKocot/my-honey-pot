@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 Krzysztof Kocot
+
 import type { TAccountName, IOnlineSignatureProvider, ITransaction } from "@hiveio/wax";
 import type { OnlineClient, AuthStatus, AuthUser } from "@hiveio/hb-auth";
 import type { IAuthenticationProvider, ILoginSession } from "./interfaces";

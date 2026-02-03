@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 Krzysztof Kocot
+
 import { For, Show, createSignal, type JSX } from 'solid-js'
 import { settings, updateSettingsImmediate } from '../store'
 import type { SocialLink, SocialPlatform } from '../types/index'

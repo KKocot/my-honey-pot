@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 Krzysztof Kocot
+
 import { createSignal, createEffect, createMemo, Show, For, ErrorBoundary, onCleanup, onMount, type Component } from "solid-js";
 import { QueryClient, QueryClientProvider, createQuery, type DehydratedState, hydrate } from "@tanstack/solid-query";
 import { query_keys, fetch_posts, fetch_comments, create_query_client } from "../../../lib/queries";

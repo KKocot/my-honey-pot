@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 Krzysztof Kocot
+
 import { DataProvider } from "./DataProvider";
 import type { IComment, IPagination, IPostCommentIdentity, IVote, IVotesFilters } from "./interfaces";
 import { Vote } from "./Vote";

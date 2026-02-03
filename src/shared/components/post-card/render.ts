@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 Krzysztof Kocot
+
 /**
  * PostCard render functions - HTML string output
  * Used by both Astro (set:html) and SolidJS (innerHTML)

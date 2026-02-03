@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 Krzysztof Kocot
+
 import { For, createSignal, createEffect, on } from 'solid-js'
 import { settings, updateSettings, setCustomColors } from '../../store'
 import { applyThemeColors } from '../../queries'
