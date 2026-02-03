@@ -2,8 +2,10 @@ import { DefaultRenderer, TablePlugin } from './renderer/index';
 
 const HIVE_IMAGES_ENDPOINT = 'https://images.hive.blog';
 
+const HIVE_BLOG_URL = 'https://blog.openhive.network';
+
 const renderer = new DefaultRenderer({
-  baseUrl: 'https://hive.blog/',
+  baseUrl: `${HIVE_BLOG_URL}/`,
   breaks: true,
   skipSanitization: false,
   allowInsecureScriptTags: false,
@@ -17,8 +19,8 @@ const renderer = new DefaultRenderer({
   assetsHeight: 480,
   plugins: [new TablePlugin()],
   imageProxyFn: (url: string) => `${HIVE_IMAGES_ENDPOINT}/768x0/${url}`,
-  usertagUrlFn: (account: string) => `https://hive.blog/@${account}`,
-  hashtagUrlFn: (hashtag: string) => `https://hive.blog/trending/${hashtag}`,
+  usertagUrlFn: (account: string) => `${HIVE_BLOG_URL}/@${account}`,
+  hashtagUrlFn: (hashtag: string) => `${HIVE_BLOG_URL}/trending/${hashtag}`,
   isLinkSafeFn: (url: string) =>
     !!url.match(`^(/(?!/)|${HIVE_IMAGES_ENDPOINT})`) ||
     !!url.match(`^(/(?!/)|#)`),
