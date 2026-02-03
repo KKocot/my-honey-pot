@@ -144,15 +144,6 @@ export function logout() {
   }
 }
 
-// Export getters
-export function getUser() {
-  return currentUser()
-}
-
-export function getIsAuthenticated() {
-  return isAuthenticated()
-}
-
 // Export signals for reactive use in components
 export { currentUser, isAuthenticated }
 

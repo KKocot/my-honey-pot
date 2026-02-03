@@ -5,7 +5,6 @@ import type { OnlineClient, AuthUser as HBAuthUser } from '@hiveio/hb-auth'
 interface HBAuthLoginProps {
   onSuccess?: (user: { username: string; privateKey: string; keyType: 'posting' | 'active' }) => void
   onError?: (error: Error) => void
-  onLogout?: () => void
   class?: string
 }
 
