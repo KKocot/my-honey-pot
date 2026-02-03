@@ -23,6 +23,12 @@ public/media/
 .DS_Store
 Thumbs.db
 
+# Claude Code
+CLAUDE.md
+
+# Vercel
+.vercel/
+
 # Logs
 *.log
 npm-debug.log*
