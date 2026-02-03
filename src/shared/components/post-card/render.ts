@@ -6,18 +6,7 @@
 
 import type { PostCardData, PostCardSettings, CardSection, CardSectionChild, CardLayout, PostsGridSettings } from './types'
 import { getPostSummary, formatPayout } from './utils'
-
-/**
- * Escape HTML to prevent XSS
- */
-function escape_html(text: string): string {
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;')
-}
+import { escape_html } from '../../formatters'
 
 /**
  * Validate URL (must start with http/https)

@@ -5,15 +5,7 @@
 
 import type { FooterData, FooterSettings } from './types'
 import { DEFAULT_FOOTER_DATA, DEFAULT_FOOTER_SETTINGS } from './types'
-
-function escape_html(str: string): string {
-  return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;')
-}
+import { escape_html } from '../../formatters'
 
 function escape_url(url: string): string {
   try {

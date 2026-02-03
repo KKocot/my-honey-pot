@@ -4,15 +4,7 @@
  */
 
 import type { HeaderData, HeaderSettings } from './types'
-
-function escape_html(text: string): string {
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;')
-}
+import { escape_html } from '../../formatters'
 
 /**
  * Render main header - card style (top slot, FullPreview)

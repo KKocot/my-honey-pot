@@ -21,3 +21,5 @@ export {
   normalizeUrl,
   getDisplayUrl,
 } from './text'
+
+export { escape_html } from './html'

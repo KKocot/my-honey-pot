@@ -4,15 +4,7 @@
 
 import type { NavigationItem, NavigationSettings } from './types'
 import { buildNavigationItems } from './utils'
-
-function escape_html(str: string): string {
-  return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;')
-}
+import { escape_html } from '../../formatters'
 
 /**
  * Render a single navigation item
