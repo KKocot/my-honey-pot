@@ -11,8 +11,8 @@ export class ThreeSpeakEmbedder extends AbstractEmbedder {
      */
     private static readonly linkRegex = /(?:https?:\/\/)?(?:3[sS]peak\.(?:tv|online|co)\/(?:watch|embed)\?v=)([a-z0-9][a-z0-9.-]{1,15}\/[a-z0-9][a-z0-9-]*)/;
 
-    public getEmbedMetadata(input: string | HTMLObjectElement): EmbedMetadata | undefined {
-        const url = typeof input === 'string' ? input : input.data;
+    public getEmbedMetadata(input: Text): EmbedMetadata | undefined {
+        const url = input.data;
         try {
             // Clean the URL by trimming whitespace and removing leading newlines
             const cleanUrl = url.trim().replace(/^\n+/, '');

@@ -66,7 +66,7 @@ export class AssetEmbedder {
         return AbstractEmbedder.insertAllEmbeds(this.embedders, input, size);
     }
 
-    public processTextNodeAndInsertEmbeds(node: HTMLObjectElement): {links: string[]; images: string[]} {
+    public processTextNodeAndInsertEmbeds(node: Text): {links: string[]; images: string[]} {
         const out: {links: string[]; images: string[]} = {links: [], images: []};
 
         for (const embedder of this.embedders) {

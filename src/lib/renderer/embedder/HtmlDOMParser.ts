@@ -8,7 +8,7 @@ import {Localization, type LocalizationOptions} from '../Localization';
 import {AssetEmbedder, type AssetEmbedderOptions} from './AssetEmbedder';
 import {YoutubeEmbedder} from './YoutubeEmbedder';
 import {AccountNameValidator} from '../security/AccountNameValidator';
-import linksRe, {any as linksAny} from './Links';
+import linksRe, {any_link as linksAny} from './Links';
 
 export class HtmlDOMParser {
     private options: AssetEmbedderOptions;
@@ -97,7 +97,8 @@ export class HtmlDOMParser {
 
             this.parsedDocument = doc;
         } catch (error) {
-            throw new HtmlDOMParserError('Parsing error', error as Error);
+            const err = error instanceof Error ? error : new Error(String(error));
+            throw new HtmlDOMParserError('Parsing error', err);
         }
         return this;
     }
@@ -129,13 +130,48 @@ export class HtmlDOMParser {
     }
 
     /**
-     * Type guard to check if a node has getAttribute method
+     * Type guard to check if a node is an HTMLImageElement
      */
-    private hasGetAttribute(node: unknown): node is Element {
+    private isHTMLImageElement(node: unknown): node is HTMLImageElement {
+        return (
+            this.isElementNode(node) &&
+            node.tagName.toLowerCase() === 'img' &&
+            'src' in node
+        );
+    }
+
+    /**
+     * Type guard to check if a node is an HTMLIFrameElement
+     */
+    private isHTMLIFrameElement(node: unknown): node is HTMLIFrameElement {
+        return (
+            this.isElementNode(node) &&
+            node.tagName.toLowerCase() === 'iframe' &&
+            'src' in node
+        );
+    }
+
+    /**
+     * Type guard to check if a node is an HTMLAnchorElement
+     */
+    private isHTMLAnchorElement(node: unknown): node is HTMLAnchorElement {
+        return (
+            this.isElementNode(node) &&
+            node.tagName.toLowerCase() === 'a' &&
+            'href' in node
+        );
+    }
+
+    /**
+     * Type guard to check if a node is a Text node
+     */
+    private isTextNode(node: unknown): node is Text {
         return (
             typeof node === 'object' &&
             node !== null &&
-            'getAttribute' in node
+            'nodeName' in node &&
+            (node as { nodeName: string }).nodeName === '#text' &&
+            'data' in node
         );
     }
 
@@ -163,14 +199,14 @@ export class HtmlDOMParser {
                 this.state.htmltags.add(tag);
             }
 
-            if (tag === 'img' && this.hasGetAttribute(child)) {
-                this.processImgTag(child as HTMLObjectElement);
-            } else if (tag === 'iframe' && this.hasGetAttribute(child)) {
-                this.processIframeTag(child as HTMLObjectElement);
-            } else if (tag === 'a' && this.hasGetAttribute(child)) {
-                this.processLinkTag(child as HTMLObjectElement);
-            } else if (child.nodeName === '#text') {
-                this.processTextNode(child as HTMLObjectElement);
+            if (this.isHTMLImageElement(child)) {
+                this.processImgTag(child);
+            } else if (this.isHTMLIFrameElement(child)) {
+                this.processIframeTag(child);
+            } else if (this.isHTMLAnchorElement(child)) {
+                this.processLinkTag(child);
+            } else if (this.isTextNode(child)) {
+                this.processTextNode(child);
             }
 
             this.traverseDOMNode(child, depth + 1);
@@ -203,7 +239,7 @@ export class HtmlDOMParser {
      * // Input:  <a href="http://suspicious-site.com">Link</a>
      * // Output: <div class="phishy" title="[phishing warning]">Link / http://suspicious-site.com</div>
      */
-    private processLinkTag(child: HTMLObjectElement) {
+    private processLinkTag(child: HTMLAnchorElement) {
         const parent = child.parentNode;
         if (!parent) return;
 
@@ -214,7 +250,9 @@ export class HtmlDOMParser {
                 const urlTitle = child.textContent || '';
                 const sanitizedLink = this.linkSanitizer.sanitizeLink(url, urlTitle);
                 if (sanitizedLink === false) {
-                    const phishyDiv = (child.ownerDocument as Document).createElement('div');
+                    const doc = child.ownerDocument;
+                    if (!doc) return;
+                    const phishyDiv = doc.createElement('div');
                     phishyDiv.textContent = `${child.textContent} / ${url}`;
                     phishyDiv.setAttribute('title', this.localization.phishingWarning);
                     phishyDiv.setAttribute('class', 'phishy');
@@ -244,7 +282,7 @@ export class HtmlDOMParser {
      * // Input:  <iframe src="https://youtube.com/embed/123"></iframe>
      * // Output: <div class="videoWrapper"><iframe src="https://youtube.com/embed/123"></iframe></div>
      */
-    private processIframeTag(child: HTMLObjectElement) {
+    private processIframeTag(child: HTMLIFrameElement) {
         const url = child.getAttribute('src');
         if (url) this.reportIframeLink(url);
 
@@ -300,7 +338,7 @@ export class HtmlDOMParser {
      * @param child - The img element to process
      * @private
      */
-    private processImgTag(child: HTMLObjectElement) {
+    private processImgTag(child: HTMLImageElement) {
         const url = child.getAttribute('src');
         if (url) {
             this.state.images.add(url);
@@ -330,7 +368,7 @@ export class HtmlDOMParser {
      * - Creates a new span element with the processed content
      * - Replaces the original text node with the new span
      *
-     * @param child - The text node to process (as HTMLObjectElement)
+     * @param child - The text node to process
      * @returns The new node if content was mutated, undefined otherwise
      * @throws Logs error if processing fails but continues execution
      *
@@ -338,7 +376,7 @@ export class HtmlDOMParser {
      * // Input text node: "Check out #hive and @user"
      * // Output: <span>Check out <a href="/tag/hive">#hive</a> and <a href="/@user">@user</a></span>
      */
-    private processTextNode(child: HTMLObjectElement) {
+    private processTextNode(child: Text) {
         try {
             const parentNode = child.parentNode;
             const tag = this.isElementNode(parentNode) ? parentNode.tagName.toLowerCase() : null;
@@ -365,9 +403,9 @@ export class HtmlDOMParser {
                     // Parse linkified content and insert children directly (without span wrapper)
                     // This fixes issue #632 where span wrappers could break table cell rendering
                     const tempDoc = this.domParser.parseFromString(`<span>${content}</span>`);
-                    const wrapper = tempDoc.childNodes[0] as Element;
-                    if (wrapper && wrapper.childNodes) {
-                        Array.from(wrapper.childNodes).forEach((newChild) => {
+                    const firstChild = tempDoc.childNodes[0];
+                    if (this.isElementNode(firstChild) && firstChild.childNodes) {
+                        Array.from(firstChild.childNodes).forEach((newChild) => {
                             parent.insertBefore(newChild.cloneNode(true), child);
                         });
                     }

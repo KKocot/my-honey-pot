@@ -11,7 +11,7 @@ export class TwitchEmbedder extends AbstractEmbedder {
         this.domain = new URL(options.baseUrl).hostname;
     }
 
-    public getEmbedMetadata(child: HTMLObjectElement): EmbedMetadata | undefined {
+    public getEmbedMetadata(child: Text): EmbedMetadata | undefined {
         try {
             const data = child.data;
             const twitch = this.twitchId(data);

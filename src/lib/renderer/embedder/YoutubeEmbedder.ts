@@ -30,7 +30,7 @@ export class YoutubeEmbedder extends AbstractEmbedder {
         };
     }
 
-    public getEmbedMetadata(child: HTMLObjectElement): EmbedMetadata | undefined {
+    public getEmbedMetadata(child: Text): EmbedMetadata | undefined {
         try {
             const metadata = YoutubeEmbedder.getYoutubeMetadataFromLink(child.data);
             if (!metadata) {

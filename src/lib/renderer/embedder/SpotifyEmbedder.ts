@@ -33,7 +33,7 @@ export class SpotifyEmbedder extends AbstractEmbedder {
         };
     }
 
-    public getEmbedMetadata(child: HTMLObjectElement): EmbedMetadata | undefined {
+    public getEmbedMetadata(child: Text): EmbedMetadata | undefined {
         try {
             const metadata = SpotifyEmbedder.extractMetadata(child.data);
             if (!metadata) {

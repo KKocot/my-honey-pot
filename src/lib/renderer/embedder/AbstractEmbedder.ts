@@ -18,15 +18,15 @@ export abstract class AbstractEmbedder {
     public abstract type: string;
 
     /**
-     * Extracts metadata from an HTML object element that represents an embed.
-     * This method should analyze the provided element and return the necessary
+     * Extracts metadata from a text node that represents an embed.
+     * This method should analyze the provided text node and return the necessary
      * information to create an embed marker and process the embed later.
      *
-     * @param textNode - The HTML object element containing embed information
+     * @param textNode - The text node containing embed information
      * @returns EmbedMetadata object containing id, url, and optional image/link,
-     *          or undefined if the element is not a valid embed for this embedder
+     *          or undefined if the node is not a valid embed for this embedder
      */
-    public abstract getEmbedMetadata(textNode: HTMLObjectElement): EmbedMetadata | undefined;
+    public abstract getEmbedMetadata(textNode: Text): EmbedMetadata | undefined;
 
     /**
      * Process an embed with the given ID and size constraints.

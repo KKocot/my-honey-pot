@@ -5,7 +5,7 @@ export class VimeoEmbedder extends AbstractEmbedder {
 
     private static readonly regex = /https?:\/\/(?:vimeo.com\/|player.vimeo.com\/video\/)([0-9]+)\/*/;
 
-    public getEmbedMetadata(child: HTMLObjectElement): EmbedMetadata | undefined {
+    public getEmbedMetadata(child: Text): EmbedMetadata | undefined {
         try {
             const data = child.data;
             const metadata = this.extractMetadata(data);
