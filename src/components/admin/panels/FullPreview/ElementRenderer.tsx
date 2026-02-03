@@ -1,8 +1,6 @@
-import { Show, For, createMemo, createSignal, type Accessor } from 'solid-js'
+import { Show, For, createMemo, type Accessor } from 'solid-js'
 import { settings } from '../../store'
-import {
-  useHivePreviewQuery,
-} from '../../queries'
+import type { HiveData } from '../../queries'
 import {
   createAuthorProfileData,
   createAuthorProfileSettings,
@@ -38,7 +36,7 @@ interface ElementRendererProps {
   inSidebar?: boolean
   activeTab?: Accessor<string>
   setActiveTab?: (tab: string) => void
-  data?: Accessor<ReturnType<typeof useHivePreviewQuery>['data']>
+  data?: Accessor<HiveData | null>
 }
 
 // Render header element using shared component
@@ -54,7 +52,7 @@ function renderHeader() {
 }
 
 // Render author profile element using shared components
-function renderAuthorProfile(_layout: 'horizontal' | 'vertical' = 'horizontal', data: Accessor<any>) {
+function renderAuthorProfile(_layout: 'horizontal' | 'vertical' = 'horizontal', data: Accessor<HiveData | null>) {
   const currentData = data()
   const profile = currentData?.profile
   const dbAccount = currentData?.dbAccount
@@ -103,7 +101,7 @@ function renderFooter() {
 }
 
 // Posts component - reactive
-function PostsSection(props: { data: Accessor<any> }) {
+function PostsSection(props: { data: Accessor<HiveData | null> }) {
   const posts = () => props.data()?.posts || []
 
   const gridSettings = createMemo(() => ({
@@ -153,7 +151,7 @@ function PostsSection(props: { data: Accessor<any> }) {
 }
 
 // Comments section - displays user's comments from Hive
-function CommentsSection(props: { data: Accessor<any> }) {
+function CommentsSection(props: { data: Accessor<HiveData | null> }) {
   const comments = () => props.data()?.comments || []
 
   // Create comment settings from current settings
@@ -213,7 +211,7 @@ function ThreadsSection() {
 }
 
 // Main content section that switches based on active tab
-function MainContentSection(props: { activeTab: Accessor<string>; data: Accessor<any> }) {
+function MainContentSection(props: { activeTab: Accessor<string>; data: Accessor<HiveData | null> }) {
   return (
     <>
       <Show when={props.activeTab() === 'posts'}>

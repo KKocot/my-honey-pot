@@ -1,5 +1,6 @@
 import { For, type Accessor } from 'solid-js'
 import type { PageLayoutSection } from '../../types/index'
+import type { HiveData } from '../../queries'
 import { ElementRenderer } from './ElementRenderer'
 
 // ============================================
@@ -12,7 +13,7 @@ interface SectionRendererProps {
   inSidebar?: boolean
   activeTab: Accessor<string>
   setActiveTab: (tab: string) => void
-  data: Accessor<any>
+  data: Accessor<HiveData | null>
 }
 
 export function SectionRenderer(props: SectionRendererProps) {
