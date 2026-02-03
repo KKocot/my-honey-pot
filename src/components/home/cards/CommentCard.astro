@@ -1,0 +1,81 @@
+---
+/**
+ * CommentCard - uses shared utilities
+ */
+import type { BridgeComment } from '../../lib/blog-logic'
+import type { SiteSettings } from '../types'
+import {
+  createCommentCardData,
+  createCommentCardSettings,
+  renderCommentCard,
+} from '../../../shared/components/comment-card'
+import { SHADOW_MAP } from '../../../shared/constants'
+
+interface Props {
+  comment: BridgeComment
+  settings?: SiteSettings
+  layout?: 'list' | 'grid' | 'masonry'
+}
+
+const { comment, settings = {}, layout = 'list' } = Astro.props
+
+// Create normalized comment data using shared utility
+const commentData = createCommentCardData(comment)
+
+// Create settings using shared utility
+const cardSettings = createCommentCardSettings({
+  commentShowAuthor: settings.commentShowAuthor,
+  commentShowAvatar: settings.commentShowAvatar,
+  commentAvatarSizePx: settings.commentAvatarSizePx,
+  commentShowReplyContext: settings.commentShowReplyContext,
+  commentShowTimestamp: settings.commentShowTimestamp,
+  commentShowRepliesCount: settings.commentShowRepliesCount,
+  commentShowVotes: settings.commentShowVotes,
+  commentShowPayout: settings.commentShowPayout,
+  commentShowViewLink: settings.commentShowViewLink,
+  commentMaxLength: settings.commentMaxLength,
+  commentPaddingPx: settings.commentPaddingPx,
+})
+
+// Animation settings (for CSS)
+const cardHoverEffect = settings.cardHoverEffect || 'shadow'
+const cardTransitionDuration = settings.cardTransitionDuration ?? 200
+const cardHoverScale = settings.cardHoverScale ?? 1.02
+const cardHoverShadow = settings.cardHoverShadow || 'md'
+const cardHoverBrightness = settings.cardHoverBrightness ?? 1.0
+
+// Generate hover CSS based on effect type
+let hoverTransform = ''
+let hoverBoxShadow = ''
+let hoverFilter = ''
+
+if (cardHoverEffect === 'shadow') {
+  hoverBoxShadow = SHADOW_MAP[cardHoverShadow] || SHADOW_MAP.md
+} else if (cardHoverEffect === 'scale') {
+  hoverTransform = `scale(${cardHoverScale})`
+} else if (cardHoverEffect === 'lift') {
+  hoverTransform = `scale(${cardHoverScale}) translateY(-4px)`
+  hoverBoxShadow = SHADOW_MAP[cardHoverShadow] || SHADOW_MAP.lg
+} else if (cardHoverEffect === 'glow') {
+  hoverFilter = `brightness(${cardHoverBrightness})`
+  hoverBoxShadow = '0 0 20px var(--color-primary)'
+}
+
+// Render using shared function
+const commentCardHtml = renderCommentCard(commentData, cardSettings, layout)
+---
+
+<style define:vars={{ hoverTransform, hoverBoxShadow, hoverFilter, transitionDuration: `${cardTransitionDuration}ms` }}>
+  .comment-card-wrapper :global(article) {
+    transition: all var(--transitionDuration) ease-out;
+  }
+  .comment-card-wrapper :global(article:hover) {
+    transform: var(--hoverTransform);
+    box-shadow: var(--hoverBoxShadow);
+    filter: var(--hoverFilter);
+  }
+</style>
+
+<div class={`comment-card-wrapper ${cardHoverEffect === 'none' ? '' : 'cursor-pointer'}`}>
+  <Fragment set:html={commentCardHtml} />
+</div>

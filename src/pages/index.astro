@@ -21,10 +21,10 @@ import {
 // TanStack Query imports for SSR prefetching
 import { dehydrate } from '@tanstack/solid-query'
 import { create_query_client, query_keys, fetch_profile, fetch_database_account, fetch_global_properties, fetch_manabars, fetch_posts, fetch_comments, type FetchPostsResult, type FetchCommentsResult } from '../lib/queries'
-import { BlogContent } from '../components/home/BlogContent'
+import { BlogContent } from '../components/home/blog/BlogContent'
 
-import SlotRenderer from '../components/home/SlotRenderer.astro'
-import NoscriptFallback from '../components/home/NoscriptFallback.astro'
+import SlotRenderer from '../components/home/blog/SlotRenderer.astro'
+import NoscriptFallback from '../components/home/blog/NoscriptFallback.astro'
 import { type SiteSettings, type PageLayout, type PageSlotPosition, defaultPageLayout } from '../components/home/types'
 
 // ============================================

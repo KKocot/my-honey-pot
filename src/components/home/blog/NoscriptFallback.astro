@@ -1,0 +1,45 @@
+---
+/**
+ * SSR fallback content for no-JS users
+ * Renders posts or comments based on activeTab
+ */
+import type { Post, BridgeComment } from '../../../lib/blog-logic'
+
+interface Props {
+  active_tab: string
+  blog_logic_posts: readonly Post[]
+  hive_comments: readonly BridgeComment[]
+}
+
+const { active_tab, blog_logic_posts, hive_comments } = Astro.props
+---
+
+{/* Static fallback for no-JS - render posts directly without interactive components */}
+{active_tab !== 'comments' && blog_logic_posts.length > 0 && (
+  <div class="flex flex-col gap-4">
+    {blog_logic_posts.map((post) => (
+      <article class="bg-bg-card border border-border p-6 rounded-2xl">
+        <h2 class="font-bold text-text mb-2 text-xl">
+          <a href={`/posts/${post.permlink}`} class="hover:text-primary transition-colors">
+            {post.title}
+          </a>
+        </h2>
+        <div class="text-text-muted text-sm">
+          by {post.author} • {post.publishedAt.toLocaleDateString()}
+        </div>
+      </article>
+    ))}
+  </div>
+)}
+{active_tab === 'comments' && hive_comments.length > 0 && (
+  <div class="flex flex-col gap-4">
+    {hive_comments.map((comment) => (
+      <article class="bg-bg-card border border-border p-4 rounded-xl">
+        <div class="text-text-muted text-sm mb-2">
+          @{comment.author} • {new Date(comment.created).toLocaleDateString()}
+        </div>
+        <div class="text-text">{(comment.body ?? '').replace(/<[^>]*>/g, '').substring(0, 200)}...</div>
+      </article>
+    ))}
+  </div>
+)}

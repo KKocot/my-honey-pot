@@ -1,0 +1,16 @@
+---
+import { createHeaderData, createHeaderSettings, renderHeader } from '../../../shared/components/header'
+
+interface Props {
+  siteName: string
+  siteDescription: string
+  headerMaxWidthPx?: number
+}
+
+const { siteName, siteDescription, headerMaxWidthPx } = Astro.props
+const data = createHeaderData(siteName, siteDescription)
+const settings = createHeaderSettings({ headerMaxWidthPx })
+const html = renderHeader(data, settings)
+---
+
+<Fragment set:html={html} />

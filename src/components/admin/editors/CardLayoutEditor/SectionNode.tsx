@@ -1,0 +1,298 @@
+import { For, Show } from 'solid-js'
+import type { CardSection } from '../../types/index'
+import { ElementPicker } from './ElementPicker'
+
+// ============================================
+// Depth colors for visual distinction
+// ============================================
+
+const depthColors = [
+  'border-primary',
+  'border-accent',
+  'border-success',
+  'border-warning',
+  'border-info',
+] as const
+
+const depthBgColors = [
+  'bg-primary/5',
+  'bg-accent/5',
+  'bg-success/5',
+  'bg-warning/5',
+  'bg-info/5',
+] as const
+
+// ============================================
+// Section Node Props Interface
+// ============================================
+
+interface SectionNodeProps {
+  section: CardSection
+  path: number[]
+  depth: number
+  index: number
+  totalSiblings: number
+  elementLabels: Record<string, string>
+  unusedElements: string[]
+  onMoveUp?: () => void
+  onMoveDown?: () => void
+  onToggleOrientation: (path: number[]) => void
+  onAddSubsection: (path: number[]) => void
+  onRemoveSection: (path: number[]) => void
+  onMoveChild: (parentPath: number[], childIndex: number, direction: 'up' | 'down') => void
+  onRemoveChild: (path: number[]) => void
+  onAddElement: (path: number[], elementId: string) => void
+}
+
+// ============================================
+// Section Node Component
+// ============================================
+
+export function SectionNode(props: SectionNodeProps) {
+  const borderColor = depthColors[props.depth % depthColors.length]
+  const bgColor = depthBgColors[props.depth % depthBgColors.length]
+
+  return (
+    <div class={`rounded-lg border-2 p-3 transition-all ${bgColor} ${borderColor}`}>
+      {/* Section header */}
+      <div class="flex items-center gap-2 mb-2">
+        {/* Move buttons */}
+        <div class="flex flex-col">
+          <button
+            type="button"
+            onClick={props.onMoveUp}
+            disabled={props.index === 0}
+            class="p-0.5 rounded text-text-muted hover:text-text hover:bg-bg disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            title="Move section up"
+            aria-label="Move section up"
+          >
+            <ChevronUpIcon />
+          </button>
+          <button
+            type="button"
+            onClick={props.onMoveDown}
+            disabled={props.index >= props.totalSiblings - 1}
+            class="p-0.5 rounded text-text-muted hover:text-text hover:bg-bg disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            title="Move section down"
+            aria-label="Move section down"
+          >
+            <ChevronDownIcon />
+          </button>
+        </div>
+
+        {/* Section label with depth indicator */}
+        <span class="text-xs font-medium text-text-muted">
+          Section {props.depth > 0 ? `(depth ${props.depth})` : ''}
+        </span>
+
+        {/* Orientation toggle */}
+        <button
+          type="button"
+          onClick={() => props.onToggleOrientation(props.path)}
+          class={`
+            flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-colors
+            ${props.section.orientation === 'horizontal'
+              ? 'bg-accent/20 text-accent'
+              : 'bg-primary/20 text-primary'}
+          `}
+          title={`Currently ${props.section.orientation}, click to toggle`}
+          aria-label={`Toggle orientation (currently ${props.section.orientation})`}
+        >
+          {props.section.orientation === 'horizontal' ? (
+            <>
+              <VerticalIcon />
+              <span>V</span>
+            </>
+          ) : (
+            <>
+              <HorizontalIcon />
+              <span>H</span>
+            </>
+          )}
+        </button>
+
+        {/* Add subsection button */}
+        <button
+          type="button"
+          onClick={() => props.onAddSubsection(props.path)}
+          class="px-2 py-1 rounded text-xs font-medium bg-bg-secondary text-text-muted hover:text-text hover:bg-bg transition-colors"
+          title="Add nested section"
+          aria-label="Add nested section"
+        >
+          + Section
+        </button>
+
+        {/* Remove section */}
+        <button
+          type="button"
+          onClick={() => props.onRemoveSection(props.path)}
+          class="ml-auto p-1 rounded text-text-muted hover:text-error hover:bg-error/10 transition-colors"
+          title="Remove section"
+          aria-label="Remove section"
+        >
+          <XIcon />
+        </button>
+      </div>
+
+      {/* Children container */}
+      <div
+        class={`
+          min-h-[40px] rounded border border-dashed border-border p-2
+          ${props.section.orientation === 'horizontal' ? 'flex flex-wrap gap-2' : 'flex flex-col gap-2'}
+        `}
+      >
+        <Show when={props.section.children.length === 0}>
+          <span class="text-xs text-text-muted italic">No elements</span>
+        </Show>
+
+        <For each={props.section.children}>
+          {(child, childIndex) => {
+            const childPath = [...props.path, childIndex()]
+
+            if (child.type === 'element') {
+              return (
+                <div class="flex items-center gap-1 px-2 py-1.5 rounded bg-bg border border-border">
+                  {/* Move buttons for element */}
+                  <div class={`flex ${props.section.orientation === 'horizontal' ? 'flex-col' : 'flex-row'} -ml-1`}>
+                    <button
+                      type="button"
+                      onClick={() => props.onMoveChild(props.path, childIndex(), 'up')}
+                      disabled={childIndex() === 0}
+                      class="p-0.5 rounded text-text-muted hover:text-text hover:bg-bg-secondary disabled:opacity-30 disabled:cursor-not-allowed"
+                      title={props.section.orientation === 'horizontal' ? 'Move left' : 'Move up'}
+                      aria-label={props.section.orientation === 'horizontal' ? 'Move element left' : 'Move element up'}
+                    >
+                      {props.section.orientation === 'horizontal' ? (
+                        <ChevronLeftIcon />
+                      ) : (
+                        <ChevronUpIcon />
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => props.onMoveChild(props.path, childIndex(), 'down')}
+                      disabled={childIndex() >= props.section.children.length - 1}
+                      class="p-0.5 rounded text-text-muted hover:text-text hover:bg-bg-secondary disabled:opacity-30 disabled:cursor-not-allowed"
+                      title={props.section.orientation === 'horizontal' ? 'Move right' : 'Move down'}
+                      aria-label={props.section.orientation === 'horizontal' ? 'Move element right' : 'Move element down'}
+                    >
+                      {props.section.orientation === 'horizontal' ? (
+                        <ChevronRightIcon />
+                      ) : (
+                        <ChevronDownIcon />
+                      )}
+                    </button>
+                  </div>
+
+                  <span class="text-sm text-text">{props.elementLabels[child.id] || child.id}</span>
+
+                  <button
+                    type="button"
+                    onClick={() => props.onRemoveChild(childPath)}
+                    class="ml-1 p-0.5 rounded text-text-muted hover:text-error hover:bg-error/10"
+                    title="Remove element"
+                    aria-label="Remove element"
+                  >
+                    <XIcon class="w-3 h-3" />
+                  </button>
+                </div>
+              )
+            } else {
+              // Nested section - recursive call
+              return (
+                <SectionNode
+                  section={child.section}
+                  path={childPath}
+                  depth={props.depth + 1}
+                  index={childIndex()}
+                  totalSiblings={props.section.children.length}
+                  elementLabels={props.elementLabels}
+                  unusedElements={props.unusedElements}
+                  onMoveUp={() => props.onMoveChild(props.path, childIndex(), 'up')}
+                  onMoveDown={() => props.onMoveChild(props.path, childIndex(), 'down')}
+                  onToggleOrientation={props.onToggleOrientation}
+                  onAddSubsection={props.onAddSubsection}
+                  onRemoveSection={props.onRemoveSection}
+                  onMoveChild={props.onMoveChild}
+                  onRemoveChild={props.onRemoveChild}
+                  onAddElement={props.onAddElement}
+                />
+              )
+            }
+          }}
+        </For>
+
+        {/* Add element button */}
+        <ElementPicker
+          unusedElements={props.unusedElements}
+          elementLabels={props.elementLabels}
+          onSelect={(elementId) => props.onAddElement(props.path, elementId)}
+        />
+      </div>
+    </div>
+  )
+}
+
+// ============================================
+// Icons
+// ============================================
+
+function HorizontalIcon() {
+  return (
+    <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+      <rect x="2" y="8" width="5" height="8" rx="1" />
+      <rect x="9" y="8" width="5" height="8" rx="1" />
+      <rect x="16" y="8" width="5" height="8" rx="1" />
+    </svg>
+  )
+}
+
+function VerticalIcon() {
+  return (
+    <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+      <rect x="6" y="2" width="12" height="5" rx="1" />
+      <rect x="6" y="9" width="12" height="5" rx="1" />
+      <rect x="6" y="16" width="12" height="5" rx="1" />
+    </svg>
+  )
+}
+
+function XIcon(props: { class?: string }) {
+  return (
+    <svg class={props.class || 'w-4 h-4'} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+    </svg>
+  )
+}
+
+function ChevronUpIcon() {
+  return (
+    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
+    </svg>
+  )
+}
+
+function ChevronDownIcon() {
+  return (
+    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+    </svg>
+  )
+}
+
+function ChevronLeftIcon() {
+  return (
+    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+    </svg>
+  )
+}
+
+function ChevronRightIcon() {
+  return (
+    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+    </svg>
+  )
+}

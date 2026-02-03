@@ -1,0 +1,30 @@
+---
+/**
+ * Navigation component using shared utilities
+ */
+import type { NavigationTabConfig } from '../../../shared/components/navigation'
+import {
+  createNavigationSettings,
+  renderNavigation,
+} from '../../../shared/components/navigation'
+
+interface Props {
+  activeTab?: string
+  postsCount?: number
+  commentsCount?: number
+  navigationTabs?: NavigationTabConfig[]
+}
+
+const { activeTab = 'posts', postsCount = 0, commentsCount = 0, navigationTabs } = Astro.props
+
+const settings = createNavigationSettings({
+  navigationTabs,
+  activeTab,
+  postsCount,
+  commentsCount,
+})
+
+const navigationHtml = renderNavigation(settings)
+---
+
+<Fragment set:html={navigationHtml} />
