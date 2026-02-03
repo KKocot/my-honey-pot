@@ -214,7 +214,6 @@ export const authorProfileLayoutOptions = [
 export const postsSortOptions = [
   { value: 'blog', label: 'Blog (chronological)' },
   { value: 'posts', label: 'Posts only (no reblogs)' },
-  { value: 'payout', label: 'By payout' },
 ]
 
 // Card hover effect options

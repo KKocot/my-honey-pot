@@ -89,7 +89,7 @@ export interface SettingsData {
   // Page layout with sections (drag & drop)
   pageLayout: PageLayout
   // Sorting settings
-  postsSortOrder: 'blog' | 'posts' | 'payout'
+  postsSortOrder: 'blog' | 'posts'
   includeReblogs: boolean
   // Card Hover Animation settings
   cardHoverEffect: 'none' | 'shadow' | 'lift' | 'scale' | 'glow'

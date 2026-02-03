@@ -251,7 +251,7 @@ export function TemplateSelector() {
       gridColumns,
       cardGapPx: randomInt(8, 32),
       postsPerPage: randomChoice([10, 15, 20, 25, 30]),
-      postsSortOrder: randomChoice(['blog', 'posts', 'payout'] as const),
+      postsSortOrder: randomChoice(['blog', 'posts'] as const),
       includeReblogs: randomBool(0.3),
 
       // Post Card Appearance
