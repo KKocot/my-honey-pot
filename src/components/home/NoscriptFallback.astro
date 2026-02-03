@@ -3,11 +3,11 @@
  * SSR fallback content for no-JS users
  * Renders posts or comments based on activeTab
  */
-import type { BridgePost, BridgeComment } from '../../lib/blog-logic'
+import type { Post, BridgeComment } from '../../lib/blog-logic'
 
 interface Props {
   active_tab: string
-  blog_logic_posts: readonly BridgePost[]
+  blog_logic_posts: readonly Post[]
   hive_comments: readonly BridgeComment[]
 }
 
