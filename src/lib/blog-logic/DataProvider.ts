@@ -211,7 +211,7 @@ export class DataProvider {
     }
     // Store the account data - note: this is DatabaseApiAccount format, not HafbeTypesAccount
     // but they share the same essential fields we use (name, posting_json_metadata, created)
-    this.accounts.set(accountName, account as HafbeTypesAccount);
+    this.accounts.set(accountName, account as unknown as HafbeTypesAccount);
   }
 
   public getCommunity(communityName: string): CommunityData | null {
