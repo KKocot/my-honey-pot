@@ -24,11 +24,23 @@ interface TabItemProps {
 export function TabItem(props: TabItemProps) {
   const [localLabel, setLocalLabel, commitLabel] = createLocalInput(
     () => props.tab.label,
-    (val) => props.onUpdate(props.tab.id, { label: val })
+    (val) => {
+      // Prevent empty label for custom tabs
+      if (!isBuiltIn(props.tab.id) && !val.trim()) {
+        return false
+      }
+      props.onUpdate(props.tab.id, { label: val })
+    }
   )
   const [localTag, setLocalTag, commitTag] = createLocalInput(
     () => props.tab.tag || '',
-    (val) => props.onUpdate(props.tab.id, { tag: val })
+    (val) => {
+      // Prevent empty tag for custom tabs
+      if (!isBuiltIn(props.tab.id) && !val.trim()) {
+        return false
+      }
+      props.onUpdate(props.tab.id, { tag: val })
+    }
   )
 
   return (
