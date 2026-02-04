@@ -2,7 +2,7 @@
 // Copyright (C) 2026 Krzysztof Kocot
 
 import { ReplyOperation } from '@hiveio/wax'
-import { DataProvider, getWax } from '../../lib/blog-logic'
+import { DataProvider, getWax } from '@hiveio/workerbee/blog-logic'
 import { CONFIG_PARENT_AUTHOR, CONFIG_PARENT_PERMLINK } from '../../lib/config'
 import { getOnlineClient } from '../../lib/hbauth-service'
 import type { SettingsData } from './types/index'

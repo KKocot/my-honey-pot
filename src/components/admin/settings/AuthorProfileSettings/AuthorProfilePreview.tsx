@@ -10,7 +10,7 @@ import {
   formatJoinDate,
   calculateEffectiveHivePower,
 } from '../../queries'
-import { parseFormattedAsset } from '../../../../lib/blog-logic'
+import { parseFormattedAsset } from '@hiveio/workerbee/blog-logic'
 import { PlatformIcon } from '../SocialLinksSettings'
 import { ElementRenderer } from './ElementRenderer'
 

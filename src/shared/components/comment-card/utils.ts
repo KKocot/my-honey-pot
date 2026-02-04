@@ -6,7 +6,7 @@
  */
 
 import type { CommentCardData, CommentCardSettings } from './types'
-import type { BridgePost } from '../../../lib/blog-logic'
+import type { BridgePost } from '@hiveio/workerbee/blog-logic'
 import { formatTimeAgo } from '../../formatters'
 import { defaultCommentCardSettings } from './types'
 

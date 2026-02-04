@@ -6,7 +6,7 @@ import Layout from '../layouts/Layout.astro'
 import { loadConfigFromHive } from '../components/admin/hive-broadcast'
 import { HIVE_USERNAME } from '../lib/config'
 
-// Blog Logic imports - all data goes through blog-logic
+// Blog Logic imports - all data goes through workerbee/blog-logic
 import {
   DataProvider,
   getWax,
@@ -19,7 +19,7 @@ import {
   type CommentSortOption,
   type IPaginationCursor,
   type BridgeComment,
-} from '../lib/blog-logic'
+} from '@hiveio/workerbee/blog-logic'
 
 // TanStack Query imports for SSR prefetching
 import { dehydrate } from '@tanstack/solid-query'

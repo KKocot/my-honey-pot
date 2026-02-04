@@ -6,7 +6,7 @@
  */
 
 import type { PostCardData, PostCardSettings } from './types'
-import type { BridgePost } from '../../../lib/blog-logic'
+import type { BridgePost } from '@hiveio/workerbee/blog-logic'
 import { getSummary, stripMarkdownSimple } from '../../formatters'
 
 /**
@@ -93,7 +93,8 @@ export function getThumbnailUrl(imageUrl: string | undefined, thumbnailSizePx: n
 }
 
 /**
- * Post interface (from blog-logic)
+ * Post interface (from workerbee/blog-logic)
+ * Note: pendingPayoutValue is optional as workerbee's Post doesn't include it
  */
 interface BlogLogicPost {
   permlink: string
@@ -102,9 +103,9 @@ interface BlogLogicPost {
   tags: string[]
   publishedAt: Date
   votesCount: number
-  pendingPayoutValue: string
+  pendingPayoutValue?: string
   images: readonly string[]
-  getTitleImage: () => string | undefined
+  getTitleImage: () => string
   getContent: () => Promise<string>
   getCommentsCount: () => Promise<number>
 }
@@ -146,6 +147,6 @@ export async function createPostCardDataFromPost(
     publishedAt: post.publishedAt,
     votesCount: post.votesCount,
     commentsCount,
-    pendingPayout: post.pendingPayoutValue,
+    pendingPayout: post.pendingPayoutValue ?? '0.000 HBD',
   }
 }

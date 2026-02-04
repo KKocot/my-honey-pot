@@ -14,7 +14,7 @@ import {
   type AccountPostsSortOption,
   type CommentSortOption,
   type IPaginationCursor,
-} from "./blog-logic";
+} from "@hiveio/workerbee/blog-logic";
 
 // ============================================
 // Query Client Factory (per-request on server)

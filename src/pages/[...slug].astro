@@ -4,7 +4,7 @@
 
 import Layout from '../layouts/Layout.astro'
 import Footer from '../components/home/layout/Footer.astro'
-import { DataProvider, getWax, stripAssetSuffix, type Post as BlogLogicPost } from '../lib/blog-logic'
+import { DataProvider, getWax, stripAssetSuffix, Post, type BridgePost } from '@hiveio/workerbee/blog-logic'
 import { HIVE_USERNAME } from '../lib/config'
 import { renderPostBody } from '../lib/renderer'
 
@@ -12,7 +12,8 @@ const { slug } = Astro.params
 const author = HIVE_USERNAME
 const permlink = slug ?? ''
 
-let post: BlogLogicPost | null = null
+let post: Post | null = null
+let rawPost: BridgePost | null = null
 let postContent: string = ''
 let error: string | null = null
 
@@ -23,13 +24,11 @@ if (!author || !permlink) {
     const chain = await getWax()
     const dataProvider = new DataProvider(chain)
     await dataProvider.fetchPost({ author, permlink })
-    const rawPost = dataProvider.getComment({ author, permlink })
+    rawPost = dataProvider.getComment({ author, permlink })
 
     if (!rawPost || !rawPost.author) {
       error = 'Post not found.'
     } else {
-      // Import Post class to create the object
-      const { Post } = await import('../lib/blog-logic')
       post = new Post({ author, permlink }, dataProvider)
       postContent = await post.getContent()
     }
@@ -120,7 +119,7 @@ if (post) {
             {commentsCount} comments
           </span>
           <span class="text-success font-medium">
-            ${stripAssetSuffix(post.pendingPayoutValue)} payout
+            ${stripAssetSuffix(rawPost?.pending_payout_value ?? '0.000 HBD')} payout
           </span>
         </div>
 

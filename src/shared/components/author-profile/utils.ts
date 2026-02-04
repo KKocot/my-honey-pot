@@ -5,8 +5,8 @@
  * AuthorProfile utilities - data transformation functions
  */
 
-import type { IProfile, IDatabaseAccount, IGlobalProperties, IAccountManabars } from '../../../lib/blog-logic'
-import { calculateEffectiveHP, parseFormattedAsset } from '../../../lib/blog-logic'
+import type { IProfile, IDatabaseAccount, IGlobalProperties, IAccountManabars } from '@hiveio/workerbee/blog-logic'
+import { calculateEffectiveHP, parseFormattedAsset } from '@hiveio/workerbee/blog-logic'
 import { formatJoinDate } from '../../formatters'
 import type { AuthorProfileData, AuthorProfileSettings } from './types'
 import type { CardLayout, SocialLink } from '../../../components/home/types'

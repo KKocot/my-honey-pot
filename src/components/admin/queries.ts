@@ -20,7 +20,7 @@ import {
   type IGlobalProperties,
   type BridgePost,
   type NaiAsset,
-} from '../../lib/blog-logic'
+} from '@hiveio/workerbee/blog-logic'
 import { formatCompactNumber } from '../../shared/formatters'
 
 // ============================================

@@ -4,7 +4,7 @@
 import { createSignal, createEffect, createMemo, Show, For, ErrorBoundary, onCleanup, onMount, type Component } from "solid-js";
 import { QueryClient, QueryClientProvider, createQuery, type DehydratedState, hydrate } from "@tanstack/solid-query";
 import { query_keys, fetch_posts, fetch_comments, create_query_client } from "../../../lib/queries";
-import type { Post, BridgeComment, AccountPostsSortOption, CommentSortOption, IPaginationCursor } from "../../../lib/blog-logic";
+import type { Post, BridgeComment, AccountPostsSortOption, CommentSortOption, IPaginationCursor } from "@hiveio/workerbee/blog-logic";
 import type { SiteSettings, CardLayout } from "../types";
 import {
   createPostCardDataFromPost,
