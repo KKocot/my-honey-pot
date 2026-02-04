@@ -23,6 +23,7 @@
     "@hiveio/wax-api-hafbe": "^1.27.12",
     "@hiveio/wax-api-jsonrpc": "^1.28.4",
     "@hiveio/wax-signers-beekeeper": "^1.28.4-rc0",
+    "@hiveio/workerbee": "^1.28.4-rc0-stable.260203140905",
     "@tailwindcss/typography": "^0.5.19",
     "@tailwindcss/vite": "^4.1.18",
     "@tanstack/solid-query": "^5.90.20",
