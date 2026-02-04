@@ -8,6 +8,7 @@ import { HIVE_USERNAME } from '../lib/config'
 
 // Blog Logic imports - all data goes through workerbee/blog-logic
 import {
+  configureEndpoints,
   DataProvider,
   getWax,
   Post,
@@ -20,6 +21,10 @@ import {
   type IPaginationCursor,
   type BridgeComment,
 } from '@hiveio/workerbee/blog-logic'
+import { HIVE_API_ENDPOINTS } from '../lib/config'
+
+// Configure workerbee to use our custom Hive API endpoints
+configureEndpoints(HIVE_API_ENDPOINTS)
 
 // TanStack Query imports for SSR prefetching
 import { dehydrate } from '@tanstack/solid-query'

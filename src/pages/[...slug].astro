@@ -4,8 +4,11 @@
 
 import Layout from '../layouts/Layout.astro'
 import Footer from '../components/home/layout/Footer.astro'
-import { DataProvider, getWax, stripAssetSuffix, Post, type BridgePost } from '@hiveio/workerbee/blog-logic'
-import { HIVE_USERNAME } from '../lib/config'
+import { configureEndpoints, DataProvider, getWax, stripAssetSuffix, Post, type BridgePost } from '@hiveio/workerbee/blog-logic'
+import { HIVE_USERNAME, HIVE_API_ENDPOINTS } from '../lib/config'
+
+// Configure workerbee to use our custom Hive API endpoints
+configureEndpoints(HIVE_API_ENDPOINTS)
 import { renderPostBody } from '../lib/renderer'
 
 const { slug } = Astro.params

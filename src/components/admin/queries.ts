@@ -11,6 +11,7 @@ import { loadConfigFromHive } from './hive-broadcast'
 // Note: setHasUnsavedChanges is defined in store.ts and re-exported here
 import { setHasUnsavedChanges } from './store'
 import {
+  configureEndpoints,
   DataProvider,
   getWax,
   formatJoinDate,
@@ -21,6 +22,10 @@ import {
   type BridgePost,
   type NaiAsset,
 } from '@hiveio/workerbee/blog-logic'
+import { HIVE_API_ENDPOINTS } from '../../lib/config'
+
+// Configure workerbee to use our custom Hive API endpoints
+configureEndpoints(HIVE_API_ENDPOINTS)
 import { formatCompactNumber } from '../../shared/formatters'
 
 // ============================================

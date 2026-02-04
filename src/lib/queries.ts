@@ -3,6 +3,7 @@
 
 import { QueryClient } from "@tanstack/solid-query";
 import {
+  configureEndpoints,
   DataProvider,
   getWax,
   Post,
@@ -15,6 +16,11 @@ import {
   type CommentSortOption,
   type IPaginationCursor,
 } from "@hiveio/workerbee/blog-logic";
+import { HIVE_API_ENDPOINTS } from "./config";
+
+// Configure workerbee to use our custom Hive API endpoints
+// This must be called before the first getWax() call
+configureEndpoints(HIVE_API_ENDPOINTS);
 
 // ============================================
 // Query Client Factory (per-request on server)

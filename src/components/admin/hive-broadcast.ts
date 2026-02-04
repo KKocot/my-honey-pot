@@ -2,8 +2,11 @@
 // Copyright (C) 2026 Krzysztof Kocot
 
 import { ReplyOperation } from '@hiveio/wax'
-import { DataProvider, getWax } from '@hiveio/workerbee/blog-logic'
-import { CONFIG_PARENT_AUTHOR, CONFIG_PARENT_PERMLINK } from '../../lib/config'
+import { configureEndpoints, DataProvider, getWax } from '@hiveio/workerbee/blog-logic'
+import { CONFIG_PARENT_AUTHOR, CONFIG_PARENT_PERMLINK, HIVE_API_ENDPOINTS } from '../../lib/config'
+
+// Configure workerbee to use our custom Hive API endpoints
+configureEndpoints(HIVE_API_ENDPOINTS)
 import { getOnlineClient } from '../../lib/hbauth-service'
 import type { SettingsData } from './types/index'
 
