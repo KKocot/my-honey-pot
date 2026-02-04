@@ -79,6 +79,7 @@ export const platformInfos: Record<SocialPlatform, PlatformInfo> = {
  * Stores username instead of full URL (except for custom links)
  */
 export interface SocialLink {
+  id: string // Unique identifier for the link (allows duplicates of same platform)
   platform: SocialPlatform
   username: string // Username/handle for the platform (or full URL for custom)
   url?: string // Deprecated: kept for backward compatibility with old data
