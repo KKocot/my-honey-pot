@@ -92,7 +92,11 @@ function AdminPanelContent(props: AdminPanelContentProps) {
     setReauthSession(null)
     showToast(`Welcome, @${user.username}!`, 'success')
     setCurrentUsername(user.username)
-    await queryClient.invalidateQueries({ queryKey: ['settings'] })
+
+    // Only refetch if there are no unsaved changes to prevent data loss
+    if (!getHasUnsavedChanges()) {
+      await queryClient.invalidateQueries({ queryKey: ['settings'] })
+    }
   }
 
   const handleLogout = () => {
