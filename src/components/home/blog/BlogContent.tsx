@@ -20,6 +20,7 @@ import {
   type CommentCardSettings,
 } from "../../../shared/components/comment-card";
 import { SHADOW_MAP } from "../../../shared/constants";
+import { get_initial_scroll_style, get_visible_scroll_style } from "../../../shared/utils/animations";
 
 // ============================================
 // Types
@@ -37,34 +38,6 @@ interface BlogContentProps {
   category_tag?: string | null;
   navigation_tabs?: Array<{ id: string; label: string; tag?: string }>;
   post_card_layout?: CardLayout;
-}
-
-// ============================================
-// Animation helpers (same as FullPreview)
-// ============================================
-
-// Get initial scroll animation style based on type
-const getInitialScrollStyle = (type: string): Record<string, string> => {
-  const base: Record<string, string> = { opacity: '0' }
-  switch (type) {
-    case 'fade':
-      return base
-    case 'slide-up':
-      return { ...base, transform: 'translateY(20px)' }
-    case 'slide-left':
-      return { ...base, transform: 'translateX(-20px)' }
-    case 'zoom':
-      return { ...base, transform: 'scale(0.9)' }
-    case 'flip':
-      return { ...base, transform: 'perspective(600px) rotateX(-10deg)' }
-    default:
-      return {}
-  }
-}
-
-// Get visible scroll animation style
-const getVisibleScrollStyle = (): Record<string, string> => {
-  return { opacity: '1', transform: 'none' }
 }
 
 // ============================================
@@ -211,9 +184,9 @@ const PostCardItem: Component<{
 
     // Apply scroll animation initial state if not visible
     if (!is_visible() && scroll_type !== 'none') {
-      Object.assign(styles, getInitialScrollStyle(scroll_type));
+      Object.assign(styles, get_initial_scroll_style(scroll_type));
     } else if (is_visible()) {
-      Object.assign(styles, getVisibleScrollStyle());
+      Object.assign(styles, get_visible_scroll_style());
     }
 
     // Apply hover effects when hovered (override scroll transform)

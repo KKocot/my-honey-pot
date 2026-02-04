@@ -15,6 +15,14 @@ import BlogLogicPostsGrid from './BlogLogicPostsGrid.astro'
 import CommentCard from '../cards/CommentCard.astro'
 import Footer from '../layout/Footer.astro'
 import { createHeaderData, renderHeaderCompact, renderHeaderBottom } from '../../../shared/components/header'
+import {
+  get_section_wrapper_class,
+  get_element_wrapper_class,
+  get_slot_container_class,
+  is_sidebar,
+  is_main_posts_view,
+  is_main_comments_view,
+} from '../../../shared/components/page-layout'
 
 import type { SiteSettings, CardLayout, SocialLink, PageLayoutSection } from '../types'
 import type { Post, BridgeComment, IDatabaseAccount, IProfile, IGlobalProperties, IAccountManabars } from '../../../lib/blog-logic'
@@ -96,30 +104,8 @@ const {
   nextCommentsPageUrl,
 } = Astro.props
 
-// Determine wrapper classes based on context
-function getWrapperClass(ctx: string): string {
-  if (ctx === 'top') return 'mb-6'
-  if (ctx === 'bottom') return 'mt-6'
-  if (ctx === 'sidebar-left' || ctx === 'sidebar-right') return 'mb-4'
-  return 'mb-6' // main
-}
-
-// Helper to determine if context is a sidebar
-function isSidebar(ctx: string): boolean {
-  return ctx === 'sidebar-left' || ctx === 'sidebar-right'
-}
-
-// Helper to determine if context is main with posts tab
-function isMainPostsView(ctx: string, tab: string): boolean {
-  return ctx === 'main' && tab !== 'comments'
-}
-
-// Helper to determine if context is main with comments tab
-function isMainCommentsView(ctx: string, tab: string, hasComments: boolean): boolean {
-  return ctx === 'main' && tab === 'comments' && hasComments
-}
-
-const wrapperClass = getWrapperClass(context)
+// Use shared utilities for CSS classes
+const wrapperClass = get_section_wrapper_class(context)
 
 // Prepare header data for sidebar/bottom variants
 const headerData = createHeaderData(siteName, siteDescription)
@@ -130,18 +116,18 @@ const activeSections = sections.filter(s => s.active !== false && s.elements.len
 
 {activeSections.map(section => (
   <div class={wrapperClass}>
-    <div class={section.orientation === 'horizontal' ? 'flex flex-wrap items-start gap-4' : 'flex flex-col gap-4'}>
+    <div class={get_slot_container_class(context, section.orientation)}>
       {section.elements.map(elementId => (
-        <div class={section.orientation === 'horizontal' ? 'flex-shrink-0' : 'w-full'}>
-          {elementId === 'header' && showHeader && (
+        <div class={get_element_wrapper_class(section.orientation)}>
+          {elementId === 'header' && (
       <>
-        {isSidebar(context) && (
+        {is_sidebar(context) && (
           <Fragment set:html={renderHeaderCompact(headerData)} />
         )}
         {context === 'bottom' && (
           <Fragment set:html={renderHeaderBottom(headerData)} />
         )}
-        {!isSidebar(context) && context !== 'bottom' && (
+        {!is_sidebar(context) && context !== 'bottom' && (
           <Header siteName={siteName} siteDescription={siteDescription} headerMaxWidthPx={settings.headerMaxWidthPx} />
         )}
       </>
@@ -151,13 +137,13 @@ const activeSections = sections.filter(s => s.active !== false && s.elements.len
       <Navigation activeTab={activeTab} postsCount={blogLogicPosts.length} commentsCount={hiveComments.length} navigationTabs={settings.navigationTabs} />
     )}
 
-    {elementId === 'authorProfile' && showAuthorProfile && hiveUsername && hiveAccount && (
+    {elementId === 'authorProfile' && (
       <AuthorProfile {...authorProfileBaseProps} />
     )}
 
     {elementId === 'posts' && hiveUsername && (
       <>
-        {isSidebar(context) && (
+        {is_sidebar(context) && (
           <div class="bg-bg-card rounded-lg p-3 border border-border">
             {blogLogicPosts.length > 0 ? (
               <BlogLogicPostsGrid posts={blogLogicPosts} settings={settings} />
@@ -166,7 +152,7 @@ const activeSections = sections.filter(s => s.active !== false && s.elements.len
             )}
           </div>
         )}
-        {isMainPostsView(context, activeTab) && (
+        {is_main_posts_view(context, activeTab) && (
           <>
             {blogLogicPosts.length > 0 ? (
               <>
@@ -198,7 +184,7 @@ const activeSections = sections.filter(s => s.active !== false && s.elements.len
             )}
           </>
         )}
-        {isMainCommentsView(context, activeTab, hiveComments.length > 0) && (
+        {is_main_comments_view(context, activeTab, hiveComments.length > 0) && (
           <>
             {settings.commentsLayout === 'list' ? (
               <div class="divide-y divide-border bg-bg-card rounded-xl shadow-sm border border-border overflow-hidden">
@@ -235,7 +221,7 @@ const activeSections = sections.filter(s => s.active !== false && s.elements.len
             </div>
           </>
         )}
-        {!isSidebar(context) && !isMainPostsView(context, activeTab) && !isMainCommentsView(context, activeTab, hiveComments.length > 0) && (
+        {!is_sidebar(context) && !is_main_posts_view(context, activeTab) && !is_main_comments_view(context, activeTab, hiveComments.length > 0) && (
           <>
             {blogLogicPosts.length > 0 ? (
               <BlogLogicPostsGrid posts={blogLogicPosts} settings={settings} />
@@ -249,9 +235,9 @@ const activeSections = sections.filter(s => s.active !== false && s.elements.len
       </>
     )}
 
-    {elementId === 'comments' && hiveUsername && showCommentsTab && (
+    {elementId === 'comments' && hiveUsername && (
       <>
-        {isSidebar(context) && (
+        {is_sidebar(context) && (
           <div class="bg-bg-card rounded-lg p-3 border border-border">
             {hiveComments.length > 0 ? (
               <div class="space-y-2">
@@ -264,14 +250,14 @@ const activeSections = sections.filter(s => s.active !== false && s.elements.len
             )}
           </div>
         )}
-        {!isSidebar(context) && activeTab !== 'comments' && hiveComments.length > 0 && (
+        {!is_sidebar(context) && activeTab !== 'comments' && hiveComments.length > 0 && (
           <div class="space-y-4">
             {hiveComments.map(comment => (
               <CommentCard comment={comment} settings={settings} layout="list" />
             ))}
           </div>
         )}
-        {!isSidebar(context) && activeTab === 'comments' && hiveComments.length > 0 && (
+        {!is_sidebar(context) && activeTab === 'comments' && hiveComments.length > 0 && (
           <div class="space-y-4">
             {hiveComments.map(comment => (
               <CommentCard comment={comment} settings={settings} layout="list" />

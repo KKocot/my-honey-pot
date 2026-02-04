@@ -359,6 +359,20 @@ const slotRendererProps = {
 
         {/* Main Content - always in the center */}
         <main class="main-content">
+          {/* Render non-content elements from main slot (like navigation) */}
+          {hiveUsername && dehydrated_state && hasElementInSlot('main', 'navigation') && (
+            <SlotRenderer
+              sections={sectionsBySlot['main']
+                .filter(section => section.elements.includes('navigation'))
+                .map(section => ({
+                  ...section,
+                  elements: section.elements.filter(el => el === 'navigation')
+                }))}
+              context="main"
+              {...slotRendererProps}
+            />
+          )}
+
           {/* Progressive enhancement: Use SolidJS island for interactive content with TanStack Query */}
           {/* Falls back to SSR content if JS is disabled */}
           {hiveUsername && dehydrated_state && (
@@ -399,6 +413,20 @@ const slotRendererProps = {
     ) : (
       /* No sidebars - render main content directly */
       <>
+        {/* Render non-content elements from main slot (like navigation) */}
+        {hiveUsername && dehydrated_state && hasElementInSlot('main', 'navigation') && (
+          <SlotRenderer
+            sections={sectionsBySlot['main']
+              .filter(section => section.elements.includes('navigation'))
+              .map(section => ({
+                ...section,
+                elements: section.elements.filter(el => el === 'navigation')
+              }))}
+            context="main"
+            {...slotRendererProps}
+          />
+        )}
+
         {hiveUsername && dehydrated_state && (
           <>
             <noscript>
