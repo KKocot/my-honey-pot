@@ -106,11 +106,6 @@ function TemplateCard(props: TemplateCardProps) {
 
 export function TemplateSelector() {
   const applyTemplate = (template: WebsiteTemplate) => {
-    // Confirmation dialog before applying
-    if (!confirm(`Apply "${template.name}" template? This will replace all your current settings.`)) {
-      return
-    }
-
     // Apply all template settings
     const newSettings: Partial<SettingsData> = {
       ...template.settings,
@@ -132,11 +127,6 @@ export function TemplateSelector() {
   }
 
   const randomizeTemplate = () => {
-    // Confirmation dialog before randomizing
-    if (!confirm('Randomize all settings? This will replace your current configuration.')) {
-      return
-    }
-
     // Helper functions for random values
     const randomInt = (min: number, max: number) => Math.floor(Math.random() * (max - min + 1)) + min
     const randomFloat = (min: number, max: number, decimals: number = 2) =>
