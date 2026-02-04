@@ -5,7 +5,8 @@ import { Show, For, createMemo, createSignal, type Accessor } from 'solid-js'
 import { Portal } from 'solid-js/web'
 import { settings } from '../../store'
 import { useHivePreviewQuery } from '../../queries'
-import { SectionRenderer } from './SectionRenderer'
+import { get_section_wrapper_class } from '../../../../shared/components/page-layout'
+import { SectionRenderer } from '../../../../shared/components/solid/SectionRenderer'
 
 // ============================================
 // Full Preview Dialog Component
@@ -130,7 +131,7 @@ export function FullPreview(props: FullPreviewProps) {
               {/* Top slot - full width on all screens */}
               <For each={topSections()}>
                 {(section) => (
-                  <div class="mb-6">
+                  <div class={get_section_wrapper_class('top')}>
                     <SectionRenderer
                       section={section}
                       activeTab={activeTab}
@@ -153,7 +154,7 @@ export function FullPreview(props: FullPreviewProps) {
                     >
                       <For each={leftSidebarSections()}>
                         {(section) => (
-                          <div class="mb-4">
+                          <div class={get_section_wrapper_class('sidebar-left')}>
                             <SectionRenderer
                               section={section}
                               inSidebar={true}
@@ -175,7 +176,7 @@ export function FullPreview(props: FullPreviewProps) {
                     >
                       <For each={rightSidebarSections()}>
                         {(section) => (
-                          <div class="mb-4">
+                          <div class={get_section_wrapper_class('sidebar-right')}>
                             <SectionRenderer
                               section={section}
                               inSidebar={true}
@@ -193,7 +194,7 @@ export function FullPreview(props: FullPreviewProps) {
                   <main class="main-content">
                     <For each={mainSections()}>
                       {(section) => (
-                        <div class="mb-6">
+                        <div class={get_section_wrapper_class('main')}>
                           <SectionRenderer
                             section={section}
                             activeTab={activeTab}
@@ -211,7 +212,7 @@ export function FullPreview(props: FullPreviewProps) {
               <Show when={!hasLeftSidebar() && !hasRightSidebar()}>
                 <For each={mainSections()}>
                   {(section) => (
-                    <div class="mb-6">
+                    <div class={get_section_wrapper_class('main')}>
                       <SectionRenderer
                         section={section}
                         activeTab={activeTab}
@@ -226,7 +227,7 @@ export function FullPreview(props: FullPreviewProps) {
               {/* Bottom slot - full width on all screens */}
               <For each={bottomSections()}>
                 {(section) => (
-                  <div class="mt-6">
+                  <div class={get_section_wrapper_class('bottom')}>
                     <SectionRenderer
                       section={section}
                       activeTab={activeTab}
