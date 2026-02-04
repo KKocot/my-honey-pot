@@ -98,12 +98,14 @@
   .sidebar-layout {
     flex-direction: row;
     gap: 2rem;
+    align-items: flex-start; /* Sidebars don't stretch to full height */
   }
 
   .sidebar-layout .sidebar-left,
   .sidebar-layout .sidebar-right {
-    /* Width is set via inline style --sidebar-width */
-    width: var(--sidebar-width, 280px);
+    /* Sidebar takes exact width of its content - no min, no max */
+    flex: 0 0 auto;
+    width: auto;
   }
 
   .sidebar-layout .sidebar-left {
@@ -116,6 +118,8 @@
 
   .sidebar-layout .main-content {
     order: 2; /* Main content in center on desktop */
+    flex: 1 1 0%;
+    min-width: 0; /* Allow shrinking below content size */
   }
 }
 
