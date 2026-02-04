@@ -146,6 +146,7 @@ function renderSection(
 /**
  * Render post card content as HTML string (without article wrapper)
  * Uses sections-based layout
+ * @returns Sanitized HTML string (uses escape_html for all user content)
  */
 export function renderPostCardContent(
   data: PostCardData,
@@ -168,6 +169,7 @@ export function renderPostCardContent(
  * Render complete post card as HTML string (with article wrapper)
  * For static rendering in Astro - uses CSS classes for hover effects
  * Entire card is wrapped in anchor for full clickability
+ * @returns Sanitized HTML string (uses escape_html for all user content)
  */
 export function renderPostCard(
   data: PostCardData,

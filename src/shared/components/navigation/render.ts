@@ -135,6 +135,7 @@ export function renderNavigationButton(item: NavigationItem, isActive: boolean):
 /**
  * Render navigation as buttons (for client-side SolidJS usage)
  * Buttons have data-tab attribute for event delegation
+ * @returns Sanitized HTML string (uses escape_html for all user content)
  */
 export function renderNavigationButtons(settings: NavigationSettings): string {
   const items = buildNavigationItems(settings)

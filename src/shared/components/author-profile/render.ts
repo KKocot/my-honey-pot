@@ -139,6 +139,7 @@ export function renderProfileSection(
 
 /**
  * Render all profile sections as HTML string
+ * @returns Sanitized HTML string (uses escape_html for all user content)
  */
 export function renderAuthorProfileSections(
   data: AuthorProfileData,
@@ -151,6 +152,7 @@ export function renderAuthorProfileSections(
 
 /**
  * Render social links as HTML string
+ * @returns Sanitized HTML string (URLs validated, no user-provided HTML)
  */
 export function renderSocialLinks(socialLinks: AuthorProfileSettings['socialLinks']): string {
   const validLinks = socialLinks.filter(l => l.username || l.url)

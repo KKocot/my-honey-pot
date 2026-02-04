@@ -11,6 +11,7 @@ import { escape_html } from '../../formatters'
 
 /**
  * Render main header - card style (top slot, FullPreview)
+ * @returns Sanitized HTML string (uses escape_html for all user content)
  */
 export function renderHeader(data: HeaderData, settings: HeaderSettings): string {
   const site_name = escape_html(data.site_name)
@@ -25,6 +26,7 @@ export function renderHeader(data: HeaderData, settings: HeaderSettings): string
 
 /**
  * Render compact header - sidebar variant (smaller text)
+ * @returns Sanitized HTML string (uses escape_html for all user content)
  */
 export function renderHeaderCompact(data: HeaderData): string {
   const site_name = escape_html(data.site_name)
@@ -38,6 +40,7 @@ export function renderHeaderCompact(data: HeaderData): string {
 
 /**
  * Render bottom header - bottom slot variant
+ * @returns Sanitized HTML string (uses escape_html for all user content)
  */
 export function renderHeaderBottom(data: HeaderData): string {
   const site_name = escape_html(data.site_name)

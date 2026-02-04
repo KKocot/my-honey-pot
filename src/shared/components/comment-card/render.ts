@@ -147,6 +147,7 @@ function renderActionBar(data: CommentCardData, settings: CommentCardSettings): 
 
 /**
  * Render comment card content (without article wrapper)
+ * @returns Sanitized HTML string (uses escape_html for all user content)
  */
 export function renderCommentCardContent(
   data: CommentCardData,

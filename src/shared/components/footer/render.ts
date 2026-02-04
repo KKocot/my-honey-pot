@@ -22,6 +22,7 @@ function escape_url(url: string): string {
 
 /**
  * Render footer as HTML string
+ * @returns Sanitized HTML string (uses escape_html and escape_url for all user content)
  */
 export function renderFooter(
   data?: FooterData,
