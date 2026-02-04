@@ -50,7 +50,8 @@ function useFocusTrap(containerRef: () => HTMLElement | undefined, isActive: () 
 
   onCleanup(() => {
     document.removeEventListener('keydown', handleKeyDown)
-    // Restore focus to previous element on cleanup
+    // Restore overflow and focus on cleanup
+    document.body.style.overflow = ''
     if (previousActiveElement) {
       previousActiveElement.focus()
     }
@@ -152,7 +153,6 @@ export function DialogContent(props: DialogContentProps & { open: Accessor<boole
   }
 
   const handleClose = () => {
-    focusTrap.deactivate()
     props.onClose()
   }
 
