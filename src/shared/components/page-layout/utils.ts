@@ -28,13 +28,18 @@ export function get_section_wrapper_class(slot: PageSlotPosition): string {
 }
 
 /**
- * Get CSS classes for element wrapper based on section orientation
+ * Get CSS classes for element wrapper based on section orientation and slot
  * Controls how elements are laid out within a section
  */
-export function get_element_wrapper_class(orientation: SectionOrientation): string {
+export function get_element_wrapper_class(orientation: SectionOrientation, slot?: PageSlotPosition): string {
   if (orientation === 'horizontal') {
     return 'flex-shrink-0'
   }
+  // In sidebars, don't force w-full - let content determine width
+  if (slot && is_sidebar(slot)) {
+    return ''
+  }
+  // In main/top/bottom slots, use full width
   return 'w-full'
 }
 

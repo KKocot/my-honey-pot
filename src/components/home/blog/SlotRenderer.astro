@@ -118,7 +118,7 @@ const activeSections = sections.filter(s => s.active !== false && s.elements.len
   <div class={wrapperClass}>
     <div class={get_slot_container_class(context, section.orientation)}>
       {section.elements.map(elementId => (
-        <div class={get_element_wrapper_class(section.orientation)}>
+        <div class={get_element_wrapper_class(section.orientation, context)}>
           {elementId === 'header' && (
       <>
         {is_sidebar(context) && (

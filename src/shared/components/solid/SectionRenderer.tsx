@@ -25,7 +25,7 @@ export function SectionRenderer(props: SectionRendererProps) {
     <div class={get_slot_container_class(props.section.slot, props.section.orientation)}>
       <For each={props.section.elements}>
         {(elementId) => (
-          <div class={get_element_wrapper_class(props.section.orientation)}>
+          <div class={get_element_wrapper_class(props.section.orientation, props.section.slot)}>
             <ElementRenderer
               elementId={elementId}
               inSidebar={props.inSidebar}
