@@ -8,6 +8,18 @@ import { platformInfos, extract_username_from_url, is_valid_username } from '../
 import { createLocalInput } from '../hooks'
 
 // ============================================
+// Constants
+// ============================================
+
+const CHAR_WIDTH_PX = 7
+const BASE_PADDING_PX = 16
+
+const VALIDATION_ERRORS = {
+  INVALID_URL: 'Invalid URL format. Must start with http:// or https://',
+  INVALID_USERNAME: 'Invalid username. Cannot contain URLs, spaces, or path traversal (..)',
+} as const
+
+// ============================================
 // Social Platform Icons
 // ============================================
 
@@ -149,9 +161,9 @@ function SocialLinkItem(props: SocialLinkItemProps) {
     const val = localUsername()
     if (val && !is_valid_username(val, props.link.platform)) {
       if (props.link.platform === 'custom') {
-        setValidationError('Invalid URL format. Must start with http:// or https://')
+        setValidationError(VALIDATION_ERRORS.INVALID_URL)
       } else {
-        setValidationError('Invalid username. Cannot contain URLs, spaces, or path traversal (..)')
+        setValidationError(VALIDATION_ERRORS.INVALID_USERNAME)
       }
     }
     commitUsername()
@@ -167,15 +179,14 @@ function SocialLinkItem(props: SocialLinkItemProps) {
         <Show
           when={props.link.platform !== 'custom'}
           fallback={
-            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="white" stroke="white">
+            <svg class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
             </svg>
           }
         >
           <PlatformIcon
             platform={props.link.platform}
-            class="w-5 h-5"
-            style={{ color: '#ffffff' }}
+            class="w-5 h-5 text-white"
           />
         </Show>
       </div>
@@ -202,10 +213,13 @@ function SocialLinkItem(props: SocialLinkItemProps) {
               'border-error': !!validationError()
             }}
             style={{
-              'padding-left': !is_custom && info.baseUrl ? `${(info.baseUrl.replace('https://', '').length * 7) + 16}px` : '1rem'
+              'padding-left': !is_custom && info.baseUrl ? `${(info.baseUrl.replace('https://', '').length * CHAR_WIDTH_PX) + BASE_PADDING_PX}px` : '1rem'
             }}
           />
         </div>
+        <Show when={!is_custom}>
+          <p class="text-xs text-text-muted mt-1">Enter username only</p>
+        </Show>
         <Show when={validationError()}>
           <p class="text-xs text-error mt-1">{validationError()}</p>
         </Show>
@@ -293,27 +307,24 @@ export function SocialLinksSettings() {
 
       {/* Add new link */}
       <Show when={availablePlatforms().length > 0}>
-        <div class="flex items-center gap-3 p-3 bg-bg-secondary/50 rounded-lg border-2 border-dashed border-border">
+        <div class="p-3 bg-bg-secondary/50 rounded-lg border-2 border-dashed border-border">
           <select
             value={newPlatform()}
-            onChange={(e) => setNewPlatform(e.currentTarget.value as SocialPlatform | '')}
-            class="flex-1 px-3 py-2 text-sm bg-bg border border-border rounded-lg text-text focus:outline-none focus:ring-2 focus:ring-primary/50"
+            onChange={(e) => {
+              const selected = e.currentTarget.value as SocialPlatform | ''
+              if (selected !== '') {
+                addLink(selected)
+              }
+            }}
+            class="w-full px-3 py-2 text-sm bg-bg border border-border rounded-lg text-text focus:outline-none focus:ring-2 focus:ring-primary/50"
           >
-            <option value="">Select platform...</option>
+            <option value="">Select platform to add...</option>
             <For each={availablePlatforms()}>
               {(platform) => (
                 <option value={platform}>{platformInfos[platform].name}</option>
               )}
             </For>
           </select>
-          <button
-            type="button"
-            onClick={() => newPlatform() && addLink(newPlatform() as SocialPlatform)}
-            disabled={!newPlatform()}
-            class="px-4 py-2 text-sm font-medium bg-primary text-primary-text rounded-lg hover:bg-primary-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            Add
-          </button>
         </div>
       </Show>
 
@@ -335,15 +346,14 @@ export function SocialLinksSettings() {
                     <Show
                       when={link.platform !== 'custom'}
                       fallback={
-                        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="white" stroke="white">
+                        <svg class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
                         </svg>
                       }
                     >
                       <PlatformIcon
                         platform={link.platform}
-                        class="w-5 h-5"
-                        style={{ color: '#ffffff' }}
+                        class="w-5 h-5 text-white"
                       />
                     </Show>
                   </div>
