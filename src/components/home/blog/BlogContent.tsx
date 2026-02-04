@@ -130,7 +130,7 @@ const PostCardItem: Component<{
 
   // Extract onClick handler to prevent re-render
   const handle_post_click = (permlink: string) => {
-    window.location.href = `/posts/${permlink}`
+    window.location.href = `/${permlink}`
   }
 
   // Trigger scroll animation on mount with staggered delay

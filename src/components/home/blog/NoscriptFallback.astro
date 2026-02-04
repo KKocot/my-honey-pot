@@ -23,7 +23,7 @@ const { active_tab, blog_logic_posts, hive_comments } = Astro.props
     {blog_logic_posts.map((post) => (
       <article class="bg-bg-card border border-border p-6 rounded-2xl">
         <h2 class="font-bold text-text mb-2 text-xl">
-          <a href={`/posts/${post.permlink}`} class="hover:text-primary transition-colors">
+          <a href={`/${post.permlink}`} class="hover:text-primary transition-colors">
             {post.title}
           </a>
         </h2>
