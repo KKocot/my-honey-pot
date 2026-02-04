@@ -123,14 +123,7 @@ export function NavigationSettings() {
                           ${isFirst() ? 'text-text' : 'text-text-muted'}
                         `}
                       >
-                        <span class="flex items-center gap-1">
-                          {tab.label}
-                          <Show when={isCategoryTab(tab) && tab.tag}>
-                            <span class="text-[9px] px-1 py-0.5 bg-primary/20 text-primary rounded">
-                              #{tab.tag}
-                            </span>
-                          </Show>
-                        </span>
+                        <span>{tab.label}</span>
                         <Show when={isFirst()}>
                           <span class="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-t-full" />
                         </Show>
