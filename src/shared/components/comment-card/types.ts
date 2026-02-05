@@ -34,7 +34,6 @@ export interface CommentCardSettings {
   showRepliesCount: boolean
   showVotes: boolean
   showPayout: boolean
-  showViewLink: boolean
   maxLength: number
   padding: number
 }
@@ -51,7 +50,6 @@ export const defaultCommentCardSettings: CommentCardSettings = {
   showRepliesCount: true,
   showVotes: true,
   showPayout: true,
-  showViewLink: true,
   maxLength: 0,
   padding: 16,
 }

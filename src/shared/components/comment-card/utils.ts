@@ -86,7 +86,6 @@ export function createCommentCardSettings(settings: Partial<{
   commentShowRepliesCount: boolean
   commentShowVotes: boolean
   commentShowPayout: boolean
-  commentShowViewLink: boolean
   commentMaxLength: number
   commentPaddingPx: number
 }>): CommentCardSettings {
@@ -99,7 +98,6 @@ export function createCommentCardSettings(settings: Partial<{
     showRepliesCount: settings.commentShowRepliesCount ?? defaultCommentCardSettings.showRepliesCount,
     showVotes: settings.commentShowVotes ?? defaultCommentCardSettings.showVotes,
     showPayout: settings.commentShowPayout ?? defaultCommentCardSettings.showPayout,
-    showViewLink: settings.commentShowViewLink ?? defaultCommentCardSettings.showViewLink,
     maxLength: settings.commentMaxLength ?? defaultCommentCardSettings.maxLength,
     padding: settings.commentPaddingPx ?? defaultCommentCardSettings.padding,
   }

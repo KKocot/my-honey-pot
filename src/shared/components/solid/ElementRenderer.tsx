@@ -167,7 +167,6 @@ function CommentsSection(props: { data: Accessor<HiveData | null> }) {
     commentShowRepliesCount: settings.commentShowRepliesCount,
     commentShowVotes: settings.commentShowVotes,
     commentShowPayout: settings.commentShowPayout,
-    commentShowViewLink: settings.commentShowViewLink,
     commentMaxLength: settings.commentMaxLength,
     commentPaddingPx: settings.commentPaddingPx,
   }))

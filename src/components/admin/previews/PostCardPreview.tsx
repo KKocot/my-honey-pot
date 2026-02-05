@@ -323,7 +323,7 @@ export function LayoutPreview(props: LayoutPreviewProps) {
           Preview ({layoutLabel()}) - scaled {Math.round(scale * 100)}%
         </p>
         <div
-          class="overflow-auto"
+          class="overflow-y-auto overflow-x-hidden"
           style={{ 'max-height': `calc(${props.maxHeight ?? '500px'} - 40px)` }}
         >
           <div

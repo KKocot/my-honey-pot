@@ -244,7 +244,6 @@ const CommentCard: Component<{ comment: BridgeComment; settings: SiteSettings }>
     commentShowRepliesCount: props.settings.commentShowRepliesCount,
     commentShowVotes: props.settings.commentShowVotes,
     commentShowPayout: props.settings.commentShowPayout,
-    commentShowViewLink: props.settings.commentShowViewLink,
     commentMaxLength: props.settings.commentMaxLength,
     commentPaddingPx: props.settings.commentPaddingPx,
   });
