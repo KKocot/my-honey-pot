@@ -180,7 +180,6 @@ export function TemplateSelector() {
     // Random layout settings
     const postsLayout = randomChoice(['list', 'grid', 'masonry'] as const)
     const gridColumns = randomInt(1, 4)
-    // Comments are always list layout (grid/masonry removed)
 
     // Random hover effect
     const hoverEffects = ['none', 'shadow', 'lift', 'scale', 'glow'] as const
@@ -231,6 +230,7 @@ export function TemplateSelector() {
 
     // Element IDs for card layouts (avatar removed from post cards, votingPower removed from author profile)
     const postCardElements = ['thumbnail', 'title', 'summary', 'date', 'votes', 'comments', 'payout', 'tags']
+    const commentCardElements = ['replyContext', 'avatar', 'author', 'timestamp', 'body', 'replies', 'votes', 'payout', 'viewLink']
     const authorProfileElements = ['coverImage', 'avatar', 'username', 'displayName', 'reputation', 'about', 'location', 'website', 'joinDate', 'followers', 'following', 'postCount', 'hivePower', 'hpEarned', 'hiveBalance', 'hbdBalance']
 
     // Generate random settings
@@ -283,8 +283,7 @@ export function TemplateSelector() {
 
       // Comments Tab Settings
       showCommentsTab: randomBool(0.8),
-      commentsLayout: 'list', // Only list layout for comments
-      commentsGapPx: randomInt(8, 24),
+      commentCardLayout: generateRandomCardLayout(commentCardElements),
       commentAvatarSizePx: randomChoice([32, 40, 48]),
       commentMaxLength: randomChoice([0, 200, 300, 500]),
       commentPaddingPx: randomInt(12, 24),
