@@ -6,6 +6,7 @@ import { settings, updateSettingsImmediate } from '../store'
 import type { SocialLink, SocialPlatform } from '../types/index'
 import { platformInfos, extract_username_from_url, is_valid_username } from '../types/index'
 import { createLocalInput } from '../hooks'
+import { get_domain_from_url, is_valid_url_for_favicon } from '../../../shared/utils/url_helpers'
 
 // ============================================
 // Constants
@@ -126,29 +127,6 @@ const auto_extract_username = (input: string, platform: SocialPlatform): string 
 }
 
 // ============================================
-// Favicon Helper Functions
-// ============================================
-
-const get_domain_from_url = (url: string): string => {
-  try {
-    const full_url = url.startsWith('http') ? url : `https://${url}`
-    return new URL(full_url).hostname
-  } catch {
-    return ''
-  }
-}
-
-const is_valid_url_for_favicon = (url: string): boolean => {
-  try {
-    const full_url = url.startsWith('http') ? url : `https://${url}`
-    const parsed = new URL(full_url)
-    return ['http:', 'https:'].includes(parsed.protocol) && parsed.hostname.includes('.')
-  } catch {
-    return false
-  }
-}
-
-// ============================================
 // Social Link Item Component with local state
 // ============================================
 
@@ -218,7 +196,7 @@ function SocialLinkItem(props: SocialLinkItemProps) {
               }
             >
               <img
-                src={`https://www.google.com/s2/favicons?domain=${get_domain_from_url(localUsername())}&sz=64`}
+                src={`https://www.google.com/s2/favicons?domain=${encodeURIComponent(get_domain_from_url(localUsername()))}&sz=64`}
                 alt="Site favicon"
                 class="w-9 h-9 rounded-lg"
                 onError={(e) => { e.currentTarget.classList.add('hidden') }}
@@ -409,7 +387,7 @@ export function SocialLinksSettings() {
                           }
                         >
                           <img
-                            src={`https://www.google.com/s2/favicons?domain=${get_domain_from_url(display_value)}&sz=64`}
+                            src={`https://www.google.com/s2/favicons?domain=${encodeURIComponent(get_domain_from_url(display_value))}&sz=64`}
                             alt="Site favicon"
                             class="w-9 h-9 rounded-lg"
                             onError={(e) => { e.currentTarget.classList.add('hidden') }}
