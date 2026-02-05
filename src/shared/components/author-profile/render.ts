@@ -12,6 +12,7 @@ import { formatCompactNumber, normalizeUrl, getDisplayUrl } from '../../formatte
 import { locationIcon, websiteIcon, calendarIcon, getSocialIcon, platformColors } from '../../icons'
 import { build_social_url } from '../../../components/admin/types/social'
 import type { SocialLink } from '../../../components/admin/types/social'
+import { get_domain_from_url, is_valid_url_for_favicon, escape_html_attr } from '../../utils/url_helpers'
 
 /**
  * Render a single profile element as HTML string
@@ -162,17 +163,30 @@ export function renderSocialLinks(socialLinks: AuthorProfileSettings['socialLink
     const url = build_social_url(link)
     if (!url) return ''
 
+    const is_custom = link.platform === 'custom'
+    const display_value = link.username || link.url || ''
+    const has_favicon = is_custom && is_valid_url_for_favicon(display_value)
+
     const color = platformColors[link.platform] || '#6B7280'
-    const iconSvg = link.platform === 'custom'
-      ? `<svg class="w-5 h-5" viewBox="0 0 24 24" fill="white" stroke="white"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>`
-      : getSocialIcon(link.platform)
+    const bgStyle = has_favicon ? 'transparent' : color
 
-    // Add data attribute for custom links to enable external navigation warning via event delegation
-    const dataAttr = link.platform === 'custom'
-      ? ` data-custom-link="${url.replace(/"/g, '&quot;')}"`
-      : ''
+    let iconHtml: string
+    if (is_custom && has_favicon) {
+      const domain = get_domain_from_url(display_value)
+      const safe_domain = encodeURIComponent(domain)
+      const fallbackSvg = `<svg class="w-5 h-5" viewBox="0 0 24 24" fill="white" stroke="white"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>`
+      const fallbackDataUri = `data:image/svg+xml,${encodeURIComponent(fallbackSvg)}`
+      iconHtml = `<img src="https://www.google.com/s2/favicons?domain=${safe_domain}&sz=64" alt="" class="w-7 h-7 rounded" onerror="this.src='${fallbackDataUri}'" />`
+    } else if (is_custom) {
+      iconHtml = `<svg class="w-5 h-5" viewBox="0 0 24 24" fill="white" stroke="white"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>`
+    } else {
+      iconHtml = getSocialIcon(link.platform)
+    }
 
-    return `<a href="${url}" target="_blank" rel="noopener noreferrer" class="p-2 rounded-lg transition-opacity hover:opacity-80" style="background: ${color};" title="${link.platform}"${dataAttr}>${iconSvg}</a>`
+    const dataAttr = is_custom ? ` data-custom-link="${escape_html_attr(url)}"` : ''
+    const paddingClass = has_favicon ? 'p-1' : 'p-2'
+
+    return `<a href="${url}" target="_blank" rel="noopener noreferrer" class="${paddingClass} rounded-lg transition-opacity hover:opacity-80 overflow-hidden" style="background: ${bgStyle};" title="${link.platform}"${dataAttr}>${iconHtml}</a>`
   }).filter(html => html.length > 0).join('')
 
   if (!linksHtml) return ''
