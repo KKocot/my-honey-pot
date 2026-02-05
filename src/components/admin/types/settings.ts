@@ -70,8 +70,6 @@ export interface SettingsData {
   authorReputationSizePx: number
   // Comments Tab settings
   showCommentsTab: boolean
-  commentsLayout: 'list' // Only list layout for comments (grid/masonry removed)
-  commentsGapPx: number
   // Comment Card settings
   commentShowAuthor: boolean
   commentShowAvatar: boolean
@@ -81,10 +79,12 @@ export interface SettingsData {
   commentShowRepliesCount: boolean
   commentShowVotes: boolean
   commentShowPayout: boolean
+  commentShowViewLink: boolean
   commentMaxLength: number
   commentPaddingPx: number
   // Card layout with sections (drag & drop)
   postCardLayout: CardLayout
+  commentCardLayout: CardLayout
   authorProfileLayout2: CardLayout
   // Page layout with sections (drag & drop)
   pageLayout: PageLayout
@@ -169,8 +169,6 @@ export const defaultSettings: SettingsData = {
   authorReputationSizePx: 12,
   // Comments Tab defaults
   showCommentsTab: true,
-  commentsLayout: 'list',
-  commentsGapPx: 16,
   // Comment Card defaults
   commentShowAuthor: true,
   commentShowAvatar: true,
@@ -180,6 +178,7 @@ export const defaultSettings: SettingsData = {
   commentShowRepliesCount: true,
   commentShowVotes: true,
   commentShowPayout: true,
+  commentShowViewLink: true,
   commentMaxLength: 0,
   commentPaddingPx: 16,
   // Default card layouts with sections (using new recursive children format)
@@ -218,6 +217,14 @@ export const defaultSettings: SettingsData = {
           },
         ],
       },
+    ],
+  },
+  commentCardLayout: {
+    sections: [
+      { id: 'sec-1', orientation: 'horizontal', children: [{ type: 'element', id: 'replyContext' }] },
+      { id: 'sec-2', orientation: 'horizontal', children: [{ type: 'element', id: 'avatar' }, { type: 'element', id: 'author' }, { type: 'element', id: 'timestamp' }] },
+      { id: 'sec-3', orientation: 'vertical', children: [{ type: 'element', id: 'body' }] },
+      { id: 'sec-4', orientation: 'horizontal', children: [{ type: 'element', id: 'replies' }, { type: 'element', id: 'votes' }, { type: 'element', id: 'payout' }, { type: 'element', id: 'viewLink' }] },
     ],
   },
   authorProfileLayout2: {
