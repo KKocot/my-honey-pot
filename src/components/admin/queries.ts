@@ -186,6 +186,11 @@ function migrateSettingsLayouts(data: Partial<SettingsData>): Partial<SettingsDa
     result.postCardLayout = migratedPost
   }
 
+  const migratedComment = migrateCardLayout(data.commentCardLayout)
+  if (migratedComment) {
+    result.commentCardLayout = migratedComment
+  }
+
   const migratedAuthorProfile = migrateCardLayout(data.authorProfileLayout2)
   if (migratedAuthorProfile) {
     result.authorProfileLayout2 = migratedAuthorProfile
@@ -274,6 +279,11 @@ async function fetchSettings(): Promise<SettingsData> {
         // Ensure postCardLayout has sections
         if (!finalSettings.postCardLayout?.sections?.length) {
           finalSettings.postCardLayout = defaultSettings.postCardLayout
+        }
+
+        // Ensure commentCardLayout has sections
+        if (!finalSettings.commentCardLayout?.sections?.length) {
+          finalSettings.commentCardLayout = defaultSettings.commentCardLayout
         }
 
         return finalSettings
