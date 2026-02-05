@@ -186,10 +186,7 @@ const activeSections = sections.filter(s => s.active !== false && s.elements.len
         )}
         {is_main_comments_view(context, activeTab, hiveComments.length > 0) && (
           <>
-            <div
-              class="flex flex-col bg-bg-card rounded-xl shadow-sm border border-border overflow-hidden"
-              style={`gap: ${settings.commentsGapPx}px; padding: ${settings.commentsGapPx}px;`}
-            >
+            <div class="flex flex-col gap-4 p-4 bg-bg-card rounded-xl shadow-sm border border-border overflow-hidden">
               {hiveComments.map(comment => (
                 <CommentCard comment={comment} settings={settings} layout="list" />
               ))}
@@ -237,14 +234,7 @@ const activeSections = sections.filter(s => s.active !== false && s.elements.len
             )}
           </div>
         )}
-        {!is_sidebar(context) && activeTab !== 'comments' && hiveComments.length > 0 && (
-          <div class="space-y-4">
-            {hiveComments.map(comment => (
-              <CommentCard comment={comment} settings={settings} layout="list" />
-            ))}
-          </div>
-        )}
-        {!is_sidebar(context) && activeTab === 'comments' && hiveComments.length > 0 && (
+        {!is_sidebar(context) && hiveComments.length > 0 && (
           <div class="space-y-4">
             {hiveComments.map(comment => (
               <CommentCard comment={comment} settings={settings} layout="list" />
