@@ -1,8 +1,8 @@
 {
+  "regions": ["fra1"],
   "functions": {
     "**/*.mjs": {
-      "runtime": "nodejs22.x",
-      "regions": ["fra1"]
+      "runtime": "nodejs22.x"
     }
   }
 }
