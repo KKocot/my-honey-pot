@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 Krzysztof Kocot
 
-import { For, Show, createSignal, type JSX } from 'solid-js'
+import { For, Show, createSignal, createEffect, type JSX } from 'solid-js'
 import { settings, updateSettingsImmediate } from '../store'
 import type { SocialLink, SocialPlatform } from '../types/index'
 import { platformInfos, extract_username_from_url, is_valid_username } from '../types/index'
@@ -149,6 +149,13 @@ function SocialLinkItem(props: SocialLinkItemProps) {
   )
 
   const [validationError, setValidationError] = createSignal<string>('')
+  const [favicon_loaded, set_favicon_loaded] = createSignal(true)
+
+  // Reset favicon state when URL changes
+  createEffect(() => {
+    localUsername()
+    set_favicon_loaded(true)
+  })
 
   const handleInput = (e: InputEvent) => {
     const input = (e.currentTarget as HTMLInputElement).value
@@ -178,17 +185,17 @@ function SocialLinkItem(props: SocialLinkItemProps) {
       <div
         class="rounded-lg flex-shrink-0 overflow-hidden"
         classList={{
-          'p-2': !(is_custom && is_valid_url_for_favicon(localUsername())),
+          'p-2': !(is_custom && is_valid_url_for_favicon(localUsername()) && favicon_loaded()),
         }}
         style={{
-          background: !(is_custom && is_valid_url_for_favicon(localUsername())) ? info.color : 'transparent'
+          background: !(is_custom && is_valid_url_for_favicon(localUsername()) && favicon_loaded()) ? info.color : 'transparent'
         }}
       >
         <Show
           when={props.link.platform !== 'custom'}
           fallback={
             <Show
-              when={localUsername() && is_valid_url_for_favicon(localUsername())}
+              when={localUsername() && is_valid_url_for_favicon(localUsername()) && favicon_loaded()}
               fallback={
                 <svg class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
@@ -199,7 +206,12 @@ function SocialLinkItem(props: SocialLinkItemProps) {
                 src={`https://www.google.com/s2/favicons?domain=${encodeURIComponent(get_domain_from_url(localUsername()))}&sz=64`}
                 alt="Site favicon"
                 class="w-9 h-9 rounded-lg"
-                onError={(e) => { e.currentTarget.classList.add('hidden') }}
+                onLoad={(e) => {
+                  if (e.currentTarget.naturalWidth <= 2 || e.currentTarget.naturalHeight <= 2) {
+                    set_favicon_loaded(false)
+                  }
+                }}
+                onError={() => set_favicon_loaded(false)}
               />
             </Show>
           }
@@ -363,15 +375,17 @@ export function SocialLinksSettings() {
               {(link) => {
                 const info = platformInfos[link.platform]
                 const display_value = link.username || link.url || ''
-                const is_custom_with_favicon = link.platform === 'custom' && is_valid_url_for_favicon(display_value)
+                const [preview_favicon_ok, set_preview_favicon_ok] = createSignal(true)
+                const is_custom_with_favicon = () =>
+                  link.platform === 'custom' && is_valid_url_for_favicon(display_value) && preview_favicon_ok()
                 return (
                   <div
                     class="rounded-lg transition-colors hover:opacity-80 cursor-pointer overflow-hidden"
                     classList={{
-                      'p-2': !is_custom_with_favicon,
+                      'p-2': !is_custom_with_favicon(),
                     }}
                     style={{
-                      background: !is_custom_with_favicon ? info.color : 'transparent'
+                      background: !is_custom_with_favicon() ? info.color : 'transparent'
                     }}
                     title={`${info.name}: ${display_value}`}
                   >
@@ -379,7 +393,7 @@ export function SocialLinksSettings() {
                       when={link.platform !== 'custom'}
                       fallback={
                         <Show
-                          when={display_value && is_valid_url_for_favicon(display_value)}
+                          when={display_value && is_valid_url_for_favicon(display_value) && preview_favicon_ok()}
                           fallback={
                             <svg class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor">
                               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
@@ -390,7 +404,12 @@ export function SocialLinksSettings() {
                             src={`https://www.google.com/s2/favicons?domain=${encodeURIComponent(get_domain_from_url(display_value))}&sz=64`}
                             alt="Site favicon"
                             class="w-9 h-9 rounded-lg"
-                            onError={(e) => { e.currentTarget.classList.add('hidden') }}
+                            onLoad={(e) => {
+                              if (e.currentTarget.naturalWidth <= 2 || e.currentTarget.naturalHeight <= 2) {
+                                set_preview_favicon_ok(false)
+                              }
+                            }}
+                            onError={() => set_preview_favicon_ok(false)}
                           />
                         </Show>
                       }

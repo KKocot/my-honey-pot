@@ -176,7 +176,7 @@ export function renderSocialLinks(socialLinks: AuthorProfileSettings['socialLink
       const safe_domain = encodeURIComponent(domain)
       const fallbackSvg = `<svg class="w-5 h-5" viewBox="0 0 24 24" fill="white" stroke="white"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>`
       const fallbackDataUri = `data:image/svg+xml,${encodeURIComponent(fallbackSvg)}`
-      iconHtml = `<img src="https://www.google.com/s2/favicons?domain=${safe_domain}&sz=64" alt="" class="w-7 h-7 rounded" onerror="this.src='${fallbackDataUri}'" />`
+      iconHtml = `<img src="https://www.google.com/s2/favicons?domain=${safe_domain}&sz=64" alt="" class="w-7 h-7 rounded" onload="if(!this.dataset.fallbackApplied&&(this.naturalWidth<=2||this.naturalHeight<=2)){this.dataset.fallbackApplied='1';this.src='${fallbackDataUri}';this.parentElement.style.background='${color}';this.parentElement.classList.remove('p-1');this.parentElement.classList.add('p-2')}" onerror="if(!this.dataset.fallbackApplied){this.dataset.fallbackApplied='1';this.src='${fallbackDataUri}';this.parentElement.style.background='${color}';this.parentElement.classList.remove('p-1');this.parentElement.classList.add('p-2')}" />`
     } else if (is_custom) {
       iconHtml = `<svg class="w-5 h-5" viewBox="0 0 24 24" fill="white" stroke="white"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>`
     } else {
