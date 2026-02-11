@@ -23,6 +23,7 @@ import {
   type NaiAsset,
 } from '@hiveio/workerbee/blog-logic'
 import { HIVE_API_ENDPOINTS } from '../../lib/config'
+import { is_dark_color } from '../../shared/utils/color'
 
 // Configure workerbee to use our custom Hive API endpoints
 configureEndpoints(HIVE_API_ENDPOINTS)
@@ -50,6 +51,9 @@ export function applyThemeColors(colors: ThemeColors) {
   root.style.setProperty('--theme-error', colors.error)
   root.style.setProperty('--theme-warning', colors.warning)
   root.style.setProperty('--theme-info', colors.info)
+
+  // Set data-theme-mode for CSS selectors (syntax highlighting, etc.)
+  root.dataset.themeMode = is_dark_color(colors.bg) ? "dark" : "light";
 }
 
 function getThemeColors(data: SettingsData): ThemeColors {

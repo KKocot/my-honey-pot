@@ -2,6 +2,7 @@
 // Copyright (C) 2026 Krzysztof Kocot
 
 import MarkdownIt from 'markdown-it';
+import hljs from "highlight.js/lib/common";
 import {SecurityChecker} from './security/SecurityChecker';
 import {HtmlDOMParser} from './embedder/HtmlDOMParser';
 import {Localization, type LocalizationOptions} from './Localization';
@@ -23,6 +24,7 @@ export class DefaultRenderer {
     private tagTransformingSanitizer: TagTransformingSanitizer;
     private domParser: HtmlDOMParser;
     private plugins: RendererPlugin[] = [];
+    private md: MarkdownIt;
 
     /**
      * Creates a new DefaultRenderer instance
@@ -65,6 +67,24 @@ export class DefaultRenderer {
         );
 
         this.plugins = options.plugins || [];
+
+        this.md = new MarkdownIt({
+            html: true,
+            breaks: this.options.breaks,
+            typographer: false,
+            quotes: "\"\"\'\'",
+            highlight: (str: string, lang: string): string => {
+                if (lang && hljs.getLanguage(lang)) {
+                    const result = hljs.highlight(str, {
+                        language: lang,
+                        ignoreIllegals: true,
+                    });
+                    return result.value;
+                }
+                return "";
+            },
+        });
+        this.md.use(markdownItSpoiler);
     }
 
     /**
@@ -138,15 +158,7 @@ export class DefaultRenderer {
      * - Smart quotes are set to ""''
      */
     private renderMarkdown(text: string): string {
-        const md = new MarkdownIt({
-            html: true,
-            breaks: this.options.breaks,
-            typographer: false,
-            quotes: "\"\"\'\'"
-        });
-        md.use(markdownItSpoiler);
-
-        return md.render(text);
+        return this.md.render(text);
     }
 
     /**

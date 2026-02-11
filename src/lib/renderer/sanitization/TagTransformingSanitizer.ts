@@ -8,6 +8,18 @@ import sanitize from 'sanitize-html';
 import {Localization, type LocalizationOptions} from '../Localization';
 import {StaticConfig} from '../StaticConfig';
 
+// Pre-computed constants for span class filtering (syntax highlighting).
+// Avoids recreating Set and RegExp on every sanitize call.
+const HLJS_PREFIX_PATTERN = /^hljs(-[a-z_]+)?$/;
+const HLJS_SUBSCOPE_WHITELIST = new Set([
+  "function_",
+  "class_",
+  "inherited__",
+  "invoke__",
+  "language_",
+  "constant_",
+]);
+
 export class TagTransformingSanitizer {
   private options: TagsSanitizerOptions;
   private localization: LocalizationOptions;
@@ -83,6 +95,9 @@ export class TagTransformingSanitizer {
 
         // title is only set in the case of an external link warning
         a: ['href', 'rel', 'title', 'class', 'target', 'id'],
+
+        // class is filtered to hljs-* prefix only (syntax highlighting)
+        span: ['class'],
 
         // start attribute allows ordered lists to continue numbering after interruption
         ol: ['start']
@@ -191,6 +206,23 @@ export class TagTransformingSanitizer {
             tagName,
             attribs: attys
           };
+          return retTag;
+        },
+        span: (tagName, attribs) => {
+          const attys: sanitize.Attributes = {};
+          if (attribs.class) {
+            const allowed_classes = attribs.class
+              .split(/\s+/)
+              .filter(
+                (cls: string) =>
+                  HLJS_PREFIX_PATTERN.test(cls) ||
+                  HLJS_SUBSCOPE_WHITELIST.has(cls)
+              );
+            if (allowed_classes.length > 0) {
+              attys.class = allowed_classes.join(" ");
+            }
+          }
+          const retTag: sanitize.Tag = { tagName, attribs: attys };
           return retTag;
         },
         a: (tagName, attribs) => {

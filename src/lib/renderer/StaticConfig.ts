@@ -127,7 +127,7 @@ export class StaticConfig {
     ],
     noImageText: '(Image not shown due to low ratings)',
     allowedTags: `
-    div, iframe, del,
+    div, iframe, del, span,
     a, p, b, i, q, br, ul, li, ol, img, h1, h2, h3, h4, h5, h6, hr,
     blockquote, pre, code, em, strong, center, table, thead, tbody, tr, th, td,
     strike, sup, sub, details, summary

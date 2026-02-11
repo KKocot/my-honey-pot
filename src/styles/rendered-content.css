@@ -218,3 +218,184 @@
   text-decoration: line-through;
   color: var(--theme-text-muted, #6b7280);
 }
+
+/* ============================================
+   Syntax Highlighting (highlight.js)
+   Colors use CSS variables for theme integration.
+   Override --hljs-* variables in your theme to customize.
+   ============================================ */
+
+:root {
+  --hljs-keyword: #af00db;
+  --hljs-string: #a31515;
+  --hljs-number: #098658;
+  --hljs-comment: #6a9955;
+  --hljs-function: #795e26;
+  --hljs-title: #267f99;
+  --hljs-built-in: #0070c1;
+  --hljs-type: #267f99;
+  --hljs-literal: #0000ff;
+  --hljs-variable: #001080;
+  --hljs-attr: #e50000;
+  --hljs-selector: #800000;
+  --hljs-meta: #808080;
+  --hljs-addition: #587c0c;
+  --hljs-addition-bg: #dbffd6;
+  --hljs-deletion: #a31515;
+  --hljs-deletion-bg: #ffd6d6;
+}
+
+/* Dark theme overrides (set via data-theme-mode attribute on <html>) */
+[data-theme-mode="dark"] {
+    --hljs-keyword: #c586c0;
+    --hljs-string: #ce9178;
+    --hljs-number: #b5cea8;
+    --hljs-comment: #6a9955;
+    --hljs-function: #dcdcaa;
+    --hljs-title: #4ec9b0;
+    --hljs-built-in: #4fc1ff;
+    --hljs-type: #4ec9b0;
+    --hljs-literal: #569cd6;
+    --hljs-variable: #9cdcfe;
+    --hljs-attr: #9cdcfe;
+    --hljs-selector: #d7ba7d;
+    --hljs-meta: #808080;
+    --hljs-addition: #b5cea8;
+    --hljs-addition-bg: rgba(87, 124, 12, 0.3);
+    --hljs-deletion: #ce9178;
+    --hljs-deletion-bg: rgba(163, 21, 21, 0.3);
+}
+
+/* Keywords: if, else, return, const, let, var, function, class, import, export */
+.rendered-content pre code .hljs-keyword,
+.rendered-content pre code .hljs-selector-tag {
+  color: var(--hljs-keyword);
+}
+
+/* Strings and template literals */
+.rendered-content pre code .hljs-string,
+.rendered-content pre code .hljs-template-tag,
+.rendered-content pre code .hljs-template-variable {
+  color: var(--hljs-string);
+}
+
+/* Numbers */
+.rendered-content pre code .hljs-number {
+  color: var(--hljs-number);
+}
+
+/* Comments */
+.rendered-content pre code .hljs-comment,
+.rendered-content pre code .hljs-quote {
+  color: var(--hljs-comment);
+  font-style: italic;
+}
+
+/* Function calls */
+.rendered-content pre code .hljs-function {
+  color: var(--hljs-function);
+}
+
+/* Class names, type names, titles */
+.rendered-content pre code .hljs-title {
+  color: var(--hljs-title);
+}
+
+/* Function names (hljs-title + function_ modifier) */
+.rendered-content pre code .hljs-title.function_ {
+  color: var(--hljs-function);
+}
+
+/* Class names (hljs-title + class_ modifier) */
+.rendered-content pre code .hljs-title.class_ {
+  color: var(--hljs-type);
+}
+
+/* Built-in objects and functions */
+.rendered-content pre code .hljs-built_in {
+  color: var(--hljs-built-in);
+}
+
+/* Type annotations */
+.rendered-content pre code .hljs-type {
+  color: var(--hljs-type);
+}
+
+/* Boolean, null, undefined */
+.rendered-content pre code .hljs-literal {
+  color: var(--hljs-literal);
+}
+
+/* Variables, params */
+.rendered-content pre code .hljs-variable,
+.rendered-content pre code .hljs-params {
+  color: var(--hljs-variable);
+}
+
+/* HTML/XML attributes */
+.rendered-content pre code .hljs-attr,
+.rendered-content pre code .hljs-attribute {
+  color: var(--hljs-attr);
+}
+
+/* CSS selectors, HTML tags in markup */
+.rendered-content pre code .hljs-selector-class,
+.rendered-content pre code .hljs-selector-id,
+.rendered-content pre code .hljs-selector-pseudo {
+  color: var(--hljs-selector);
+}
+
+/* Meta, preprocessor directives */
+.rendered-content pre code .hljs-meta,
+.rendered-content pre code .hljs-meta .hljs-keyword {
+  color: var(--hljs-meta);
+}
+
+/* Emphasis and strong in code */
+.rendered-content pre code .hljs-emphasis {
+  font-style: italic;
+}
+
+.rendered-content pre code .hljs-strong {
+  font-weight: 700;
+}
+
+/* Diff additions and deletions */
+.rendered-content pre code .hljs-addition {
+  color: var(--hljs-addition);
+  background-color: var(--hljs-addition-bg);
+}
+
+.rendered-content pre code .hljs-deletion {
+  color: var(--hljs-deletion);
+  background-color: var(--hljs-deletion-bg);
+}
+
+/* Section headers in diff */
+.rendered-content pre code .hljs-section {
+  color: var(--hljs-title);
+  font-weight: 700;
+}
+
+/* Symbols, bullets */
+.rendered-content pre code .hljs-symbol,
+.rendered-content pre code .hljs-bullet {
+  color: var(--hljs-keyword);
+}
+
+/* Link references in markdown */
+.rendered-content pre code .hljs-link {
+  color: var(--hljs-string);
+  text-decoration: underline;
+}
+
+/* Regular expressions */
+.rendered-content pre code .hljs-regexp {
+  color: var(--hljs-string);
+}
+
+/* Name tags (XML/HTML) */
+.rendered-content pre code .hljs-name,
+.rendered-content pre code .hljs-tag {
+  color: var(--hljs-selector);
+}

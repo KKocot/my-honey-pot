@@ -29,6 +29,7 @@
     "@tanstack/solid-query": "^5.90.20",
     "@xmldom/xmldom": "^0.8.11",
     "astro": "^5.16.15",
+    "highlight.js": "^11.11.1",
     "lucide-solid": "^0.563.0",
     "markdown-it": "^14.1.0",
     "sanitize-html": "^2.17.0",

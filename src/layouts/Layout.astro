@@ -6,6 +6,7 @@ import '../styles/global.css'
 import { loadConfigFromHive } from '../components/admin/hive-broadcast'
 import { themePresets, type ThemeColors } from '../components/admin/types'
 import { HIVE_USERNAME } from '../lib/config'
+import { is_dark_color } from '../shared/utils/color'
 
 interface SettingsWithTheme {
   siteTheme?: string
@@ -86,10 +87,11 @@ const themeStyle = `
   --theme-warning: ${themeColors.warning};
   --theme-info: ${themeColors.info};
 `
+const themeMode = is_dark_color(themeColors.bg) ? 'dark' : 'light'
 ---
 
 <!doctype html>
-<html lang="en" style={themeStyle}>
+<html lang="en" style={themeStyle} data-theme-mode={themeMode}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
