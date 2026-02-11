@@ -30,7 +30,7 @@ export class SecurityChecker {
       /<\s*script/gi,
       /<script[\s\S]*?>/gi,
       /javascript:/gi,
-      /on\w+\s*=/gi  // onclick, onerror, etc.
+      /<[a-z][^>]*[\s/]+on\w+\s*=/gi  // onclick, onerror, etc. — only inside HTML tags
     ];
     return patterns.some(pattern => pattern.test(text));
   }
