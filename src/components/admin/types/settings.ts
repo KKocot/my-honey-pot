@@ -10,6 +10,15 @@ import type { LayoutSection, CardLayout, PageLayout } from './layout'
 import type { NavigationTab } from './navigation'
 import type { SocialLink } from './social'
 
+/** Sort order options for community posts display */
+export type CommunityDisplaySortOrder = 'trending' | 'hot' | 'created' | 'payout'
+
+// Naming convention:
+// Legacy fields use camelCase (e.g. postsSortOrder, showAuthorProfile).
+// New community fields use snake_case (e.g. community_default_sort, community_show_rules)
+// per project coding rules. Migration of legacy fields is not worth the cost
+// as it would break configs already saved on blockchain.
+
 /**
  * Complete site settings data structure.
  * This is persisted to the database and controls all customizable aspects of the site.
@@ -106,6 +115,12 @@ export interface SettingsData {
   navigationTabs: NavigationTab[]
   // Social media links for author profile
   socialLinks: SocialLink[]
+  // Community-specific display settings
+  community_default_sort?: CommunityDisplaySortOrder
+  community_show_rules?: boolean
+  community_show_leadership?: boolean
+  community_show_subscribers?: boolean
+  community_show_description?: boolean
 }
 
 export const defaultSettings: SettingsData = {
@@ -147,7 +162,6 @@ export const defaultSettings: SettingsData = {
   postsPerPage: 20,
   sidebarWidthPx: 280,
   headerMaxWidthPx: 1280,
-  // Author Profile extended defaults
   authorProfileLayout: 'horizontal',
   showAuthorAbout: true,
   showAuthorLocation: true,
@@ -167,9 +181,7 @@ export const defaultSettings: SettingsData = {
   authorStatsSizePx: 14,
   authorMetaSizePx: 12,
   authorReputationSizePx: 12,
-  // Comments Tab defaults
   showCommentsTab: true,
-  // Comment Card defaults
   commentShowAuthor: true,
   commentShowAvatar: true,
   commentAvatarSizePx: 40,
@@ -181,8 +193,6 @@ export const defaultSettings: SettingsData = {
   commentShowViewLink: true,
   commentMaxLength: 0,
   commentPaddingPx: 16,
-  // Default card layouts with sections (using new recursive children format)
-  // Main section is horizontal: thumbnail on left, content on right
   postCardLayout: {
     sections: [
       {
@@ -237,7 +247,6 @@ export const defaultSettings: SettingsData = {
       { id: 'sec-6', orientation: 'horizontal', children: [{ type: 'element', id: 'votingPower' }, { type: 'element', id: 'hiveBalance' }, { type: 'element', id: 'hbdBalance' }] },
     ],
   },
-  // Default page layout with sections per slot
   pageLayout: {
     sections: [
       { id: 'page-sec-1', slot: 'top', orientation: 'horizontal', elements: ['header'], active: true },
@@ -246,29 +255,38 @@ export const defaultSettings: SettingsData = {
       { id: 'page-sec-4', slot: 'bottom', orientation: 'horizontal', elements: ['footer'], active: true },
     ],
   },
-  // Sorting defaults
   postsSortOrder: 'blog',
   includeReblogs: false,
-  // Card Hover Animation defaults
   cardHoverEffect: 'shadow',
   cardTransitionDuration: 200,
   cardHoverScale: 1.02,
   cardHoverShadow: 'md',
   cardHoverBrightness: 1.0,
-  // Scroll Animation defaults
   scrollAnimationEnabled: true,
   scrollAnimationType: 'fade',
   scrollAnimationDuration: 400,
   scrollAnimationDelay: 100,
-  // Navigation Tabs defaults (only Hive content tabs)
   navigationTabs: [
     { id: 'posts', label: 'Posts', enabled: true, showCount: false },
     { id: 'threads', label: 'Hive Threads', enabled: false, showCount: false },
     { id: 'comments', label: 'Comments', enabled: true, showCount: false },
   ],
-  // Social media links defaults
   socialLinks: [],
+  community_default_sort: 'trending',
+  community_show_rules: true,
+  community_show_leadership: true,
+  community_show_subscribers: true,
+  community_show_description: true,
 }
+
+/** Keys of SettingsData that are community-only and should be stripped in user mode */
+export const COMMUNITY_SETTINGS_KEYS: ReadonlyArray<keyof SettingsData> = [
+  'community_default_sort',
+  'community_show_rules',
+  'community_show_leadership',
+  'community_show_subscribers',
+  'community_show_description',
+] as const
 
 /**
  * Helper function to convert SettingsData to Record for diff comparison.

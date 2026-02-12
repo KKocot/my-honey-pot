@@ -4,10 +4,11 @@
 import type { Accessor } from 'solid-js'
 import type { AuthUser } from '../../../auth'
 import { showToast } from '../../../ui'
-import { broadcastConfigToHive, getConfigUrlSync, loadConfigFromHive } from '../../hive-broadcast'
+import { broadcastConfigToHive, getConfigUrlSync, loadConfigFromHive, strip_community_fields } from '../../hive-broadcast'
 import { settingsToRecord } from '../../types/index'
 import { setHasUnsavedChanges, syncSettingsToStore } from '../../store'
 import { getSettingsSnapshot } from '../../queries'
+import { IS_COMMUNITY } from '../../../../lib/config'
 import type { SettingsData } from '../../types/index'
 
 /**
@@ -165,8 +166,9 @@ export function handle_load_local_storage() {
     return
   }
   try {
-    const parsed = JSON.parse(saved) as SettingsData
-    syncSettingsToStore(parsed, true)
+    const parsed: SettingsData = JSON.parse(saved)
+    const safe_settings = IS_COMMUNITY ? parsed : strip_community_fields(parsed)
+    syncSettingsToStore(safe_settings, true)
     setHasUnsavedChanges(true)
     showToast('Settings loaded from local storage', 'success')
   } catch {

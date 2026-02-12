@@ -8,21 +8,16 @@
 // Helper to get env variable from both client and server contexts
 const getEnv = (key: string, fallback: string): string => {
   // import.meta.env works in dev and client-side (Vite)
+  if (typeof import.meta !== "undefined" && import.meta.env) {
+    const val = import.meta.env[key];
+    if (typeof val === "string" && val.trim() !== "") return val;
+  }
   // process.env works in Node.js SSR
-  let value: string | undefined
-
-  if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env[key]) {
-    value = import.meta.env[key] as string
-  } else if (typeof process !== 'undefined' && process.env && process.env[key]) {
-    value = process.env[key] as string
+  if (typeof process !== "undefined" && process.env) {
+    const val = process.env[key];
+    if (typeof val === "string" && val.trim() !== "") return val;
   }
-
-  // Validate: trim whitespace and check if non-empty
-  if (value && value.trim() !== '') {
-    return value.trim()
-  }
-
-  return fallback
+  return fallback;
 }
 
 // Hive API Endpoints
@@ -30,7 +25,18 @@ const getEnv = (key: string, fallback: string): string => {
 export const HIVE_API_ENDPOINT = getEnv('HIVE_API_ENDPOINT', 'https://api.openhive.network')
 
 // Blog owner username (determines whose config to load and favicon)
-export const HIVE_USERNAME = getEnv('HIVE_USERNAME', '')
+export const HIVE_USERNAME = getEnv("HIVE_USERNAME", "");
+
+// Community mode detection
+// Hive community accounts follow the pattern "hive-" followed by ONLY digits (e.g. "hive-123456")
+const COMMUNITY_PATTERN = /^hive-\d+$/;
+
+export const IS_COMMUNITY = COMMUNITY_PATTERN.test(HIVE_USERNAME);
+
+/** Check if a given Hive account name is a community */
+export function is_community(name: string): boolean {
+  return COMMUNITY_PATTERN.test(name);
+}
 
 // Config storage settings (where user configs are stored on Hive)
 // These can be overridden via environment variables

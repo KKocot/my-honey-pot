@@ -2,6 +2,7 @@
 // Copyright (C) 2026 Krzysztof Kocot
 
 import { DefaultRenderer, TablePlugin } from './renderer/index';
+import { escape_html } from '../shared/formatters/html';
 
 const HIVE_IMAGES_ENDPOINT = 'https://images.hive.blog';
 
@@ -38,6 +39,6 @@ export function renderPostBody(body: string): string {
     return renderer.render(body);
   } catch (error) {
     console.error('[Renderer] Error rendering post body:', error);
-    return `<p>${body}</p>`;
+    return `<p>${escape_html(body)}</p>`;
   }
 }

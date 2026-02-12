@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 Krzysztof Kocot
 
-import { createEffect, createSignal, Show, onMount, onCleanup, ErrorBoundary, on } from 'solid-js'
+import { createEffect, createSignal, createResource, Show, onMount, onCleanup, ErrorBoundary, on } from 'solid-js'
 import { QueryClientProvider } from '@tanstack/solid-query'
 import { Toast, showToast, Button } from '../../../ui'
 import { currentUser, isAuthenticated, login, logout, needsReauth, type AuthUser } from '../../../auth'
@@ -13,6 +13,10 @@ import { CardAppearanceSettings } from '../../settings/CardAppearanceSettings'
 import { AuthorProfileSettings } from '../../settings/AuthorProfileSettings'
 import { CommentSettings } from '../../settings/CommentSettings'
 import { NavigationSettings } from '../../settings/NavigationSettings'
+import { CommunitySettings } from '../../settings/CommunitySettings'
+import { CommunityInfo } from '../../settings/CommunityInfo'
+import { CommunityDisplaySettings } from '../../settings/CommunityDisplaySettings'
+import { CommunityModeration } from '../../settings/CommunityModeration'
 import { FullPreview } from '../FullPreview/index'
 import type { SettingsData } from '../../types/index'
 import {
@@ -28,6 +32,10 @@ import { LoginModal } from './LoginModal'
 import { JsonPreviewModal } from './JsonPreviewModal'
 import { BottomBar } from './BottomBar'
 import { handle_broadcast_to_hive, handle_preview_json } from './handlers'
+import { IS_COMMUNITY, HIVE_USERNAME } from '../../../../lib/config'
+import { fetch_community } from '../../../../lib/queries'
+
+type AdminTab = 'design' | 'community' | 'moderation'
 
 interface AdminPanelContentProps {
   initialSettings?: SettingsData | null
@@ -48,6 +56,27 @@ function AdminPanelContent(props: AdminPanelContentProps) {
   const [diffViewMode, setDiffViewMode] = createSignal<'diff' | 'old' | 'new'>('diff')
   const [isLoadingDiff, setIsLoadingDiff] = createSignal(false)
   const [showMobileMenu, setShowMobileMenu] = createSignal(false)
+  const [activeTab, setActiveTab] = createSignal<AdminTab>('design')
+
+  // Fetch community data to check user role (only in community mode)
+  const [community_data] = createResource(
+    () => (IS_COMMUNITY ? HIVE_USERNAME : undefined),
+    (name) => fetch_community(name)
+  )
+
+  /** Check if the current user has moderation privileges (mod, admin, or owner) */
+  const is_moderator = (): boolean => {
+    if (!isAuthenticated()) return false
+    const user = currentUser()
+    const data = community_data()
+    if (!user || !data) return false
+
+    const user_entry = data.team.find((member) => member[0] === user.username)
+    if (!user_entry) return false
+
+    const role = user_entry[1]
+    return role === 'mod' || role === 'admin' || role === 'owner'
+  }
 
   const isOwner = () => {
     const user = currentUser()
@@ -74,6 +103,15 @@ function AdminPanelContent(props: AdminPanelContentProps) {
       updateSettings({ hiveUsername: props.ownerUsername })
     }
     window.addEventListener('beforeunload', handleBeforeUnload)
+
+    // Handle ?tab= URL parameter for direct navigation
+    if (IS_COMMUNITY) {
+      const url_params = new URLSearchParams(window.location.search)
+      const tab_param = url_params.get('tab')
+      if (tab_param === 'community' || tab_param === 'moderation') {
+        setActiveTab(tab_param)
+      }
+    }
   })
 
   onCleanup(() => {
@@ -259,14 +297,79 @@ function AdminPanelContent(props: AdminPanelContentProps) {
 
       {/* Main Admin Panel Content */}
       <Show when={!settingsQuery.isLoading}>
-        <TemplateSelector />
-        <LayoutEditor />
-        <NavigationSettings />
-        <SiteSettings />
-        <AuthorProfileSettings />
-        <PostsLayoutSettings />
-        <CardAppearanceSettings />
-        <CommentSettings />
+        {/* Tab navigation (visible only in community mode) */}
+        <Show when={IS_COMMUNITY}>
+          <nav class="flex border-b border-border mb-6">
+            <button
+              type="button"
+              onClick={() => setActiveTab('design')}
+              class={`relative px-4 py-2.5 text-sm font-medium transition-colors ${
+                activeTab() === 'design'
+                  ? 'text-text'
+                  : 'text-text-muted hover:text-text'
+              }`}
+            >
+              Design
+              <Show when={activeTab() === 'design'}>
+                <span class="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-t-full" />
+              </Show>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('community')}
+              class={`relative px-4 py-2.5 text-sm font-medium transition-colors ${
+                activeTab() === 'community'
+                  ? 'text-text'
+                  : 'text-text-muted hover:text-text'
+              }`}
+            >
+              Community
+              <Show when={activeTab() === 'community'}>
+                <span class="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-t-full" />
+              </Show>
+            </button>
+            <Show when={is_moderator()}>
+              <button
+                type="button"
+                onClick={() => setActiveTab('moderation')}
+                class={`relative px-4 py-2.5 text-sm font-medium transition-colors ${
+                  activeTab() === 'moderation'
+                    ? 'text-text'
+                    : 'text-text-muted hover:text-text'
+                }`}
+              >
+                Moderation
+                <Show when={activeTab() === 'moderation'}>
+                  <span class="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-t-full" />
+                </Show>
+              </button>
+            </Show>
+          </nav>
+        </Show>
+
+        {/* Design tab (default, always visible in user mode) */}
+        <Show when={activeTab() === 'design'}>
+          <TemplateSelector />
+          <LayoutEditor />
+          <NavigationSettings />
+          <SiteSettings />
+          <AuthorProfileSettings />
+          <PostsLayoutSettings />
+          <CardAppearanceSettings />
+          <CommentSettings />
+          <CommunityDisplaySettings />
+        </Show>
+
+        {/* Community tab (only in community mode) */}
+        <Show when={IS_COMMUNITY && activeTab() === 'community'}>
+          <CommunitySettings />
+          <CommunityInfo community_name={HIVE_USERNAME} />
+        </Show>
+
+        {/* Moderation tab (only for mod/admin/owner in community mode) */}
+        <Show when={IS_COMMUNITY && activeTab() === 'moderation' && is_moderator()}>
+          <CommunityModeration />
+        </Show>
 
         <div class="h-24" />
 

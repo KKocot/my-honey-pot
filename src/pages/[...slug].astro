@@ -5,15 +5,30 @@
 import Layout from '../layouts/Layout.astro'
 import Footer from '../components/home/layout/Footer.astro'
 import { configureEndpoints, DataProvider, getWax, stripAssetSuffix, Post, type BridgePost } from '@hiveio/workerbee/blog-logic'
-import { HIVE_USERNAME, HIVE_API_ENDPOINTS } from '../lib/config'
+import { HIVE_USERNAME, HIVE_API_ENDPOINTS, IS_COMMUNITY } from '../lib/config'
 
 // Configure workerbee to use our custom Hive API endpoints
 configureEndpoints(HIVE_API_ENDPOINTS)
 import { renderPostBody } from '../lib/renderer'
 
+// Parse slug: community mode uses "author/permlink", user mode uses "permlink"
 const { slug } = Astro.params
-const author = HIVE_USERNAME
-const permlink = slug ?? ''
+const slug_value = slug ?? ''
+
+let author: string
+let permlink: string
+
+if (IS_COMMUNITY && slug_value.includes('/')) {
+  const parts = slug_value.split('/')
+  if (parts.length !== 2) {
+    return Astro.redirect('/404')
+  }
+  author = parts[0]
+  permlink = parts[1]
+} else {
+  author = HIVE_USERNAME
+  permlink = slug_value
+}
 
 let post: Post | null = null
 let rawPost: BridgePost | null = null
@@ -53,6 +68,23 @@ if (post) {
     // If counting fails, use 0
   }
 }
+
+// Community-specific fields from rawPost
+const author_role = rawPost?.author_role ?? ''
+const author_title = rawPost?.author_title ?? ''
+const is_pinned = rawPost?.stats?.is_pinned === true
+const is_gray = rawPost?.stats?.gray === true
+
+// Role badge color mapping
+const ROLE_BADGE_COLORS: Record<string, string> = {
+  owner: 'bg-warning/20 text-warning border-warning/30',
+  admin: 'bg-error/20 text-error border-error/30',
+  mod: 'bg-info/20 text-info border-info/30',
+  member: 'bg-success/20 text-success border-success/30',
+  guest: 'bg-bg-secondary text-text-muted border-border',
+  muted: 'bg-error/10 text-error border-error/30',
+}
+const role_badge_class = ROLE_BADGE_COLORS[author_role] ?? ROLE_BADGE_COLORS.guest
 ---
 
 <Layout title={`${post?.title ?? 'Post'} | ${HIVE_USERNAME ? `${HIVE_USERNAME} Blog` : 'Hive Blog'}`}>
@@ -74,8 +106,24 @@ if (post) {
     )}
 
     {post && (
-      <article class="bg-bg-card p-8 rounded-xl shadow-sm border border-border">
-        <h1 class="text-3xl font-bold text-text mb-4">{post.title}</h1>
+      <article class:list={["bg-bg-card p-8 rounded-xl shadow-sm border border-border", { "opacity-50": is_gray }]}>
+        {is_gray && (
+          <div class="bg-warning/10 border border-warning/30 text-warning px-4 py-2 rounded-lg mb-4 text-sm">
+            This post has been muted by community moderators
+          </div>
+        )}
+
+        <div class="flex items-start gap-3 mb-4">
+          <h1 class="text-3xl font-bold text-text flex-1">{post.title}</h1>
+          {IS_COMMUNITY && is_pinned && (
+            <span class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium bg-accent/20 text-accent border border-accent/30 rounded-full flex-shrink-0">
+              <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M10 2a1 1 0 011 1v1.323l3.954 1.582 1.599-.8a1 1 0 01.894 1.79l-1.233.616 1.738 5.42a1 1 0 01-.285 1.05A3.989 3.989 0 0115 15a3.989 3.989 0 01-2.667-1.019 1 1 0 01-.285-1.05l1.715-5.349L11 6.477V16h2a1 1 0 110 2H7a1 1 0 110-2h2V6.477L6.237 7.582l1.715 5.349a1 1 0 01-.285 1.05A3.989 3.989 0 015 15a3.989 3.989 0 01-2.667-1.019 1 1 0 01-.285-1.05l1.738-5.42-1.233-.617a1 1 0 01.894-1.788l1.599.799L9 4.323V3a1 1 0 011-1z" />
+              </svg>
+              Pinned
+            </span>
+          )}
+        </div>
 
         <div class="flex items-center gap-3 mb-6 pb-4 border-b border-border">
           <img
@@ -85,14 +133,24 @@ if (post) {
             onerror="this.src='/hive-logo.png'"
           />
           <div>
-            <a
-              href={`https://blog.openhive.network/@${post.author}`}
-              target="_blank"
-              rel="noopener"
-              class="font-medium text-text hover:text-primary transition-colors"
-            >
-              @{post.author}
-            </a>
+            <div class="flex items-center gap-2">
+              <a
+                href={`https://blog.openhive.network/@${post.author}`}
+                target="_blank"
+                rel="noopener"
+                class="font-medium text-text hover:text-primary transition-colors"
+              >
+                @{post.author}
+              </a>
+              {IS_COMMUNITY && author_role && (
+                <span class={`inline-flex px-2 py-0.5 text-xs font-medium rounded-full border ${role_badge_class}`}>
+                  {author_role}
+                </span>
+              )}
+            </div>
+            {IS_COMMUNITY && author_title && (
+              <p class="text-text-muted text-xs">{author_title}</p>
+            )}
             <p class="text-text-muted text-sm">
               {post.publishedAt.toLocaleDateString('en-US', {
                 year: 'numeric',
@@ -136,7 +194,7 @@ if (post) {
           </div>
         )}
 
-        <div class="mt-6 pt-4 border-t border-border">
+        <div class="mt-6 pt-4 border-t border-border flex flex-wrap gap-3">
           <a
             href={`https://blog.openhive.network/@${post.author}/${post.permlink}`}
             target="_blank"
@@ -148,6 +206,17 @@ if (post) {
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
             </svg>
           </a>
+          {IS_COMMUNITY && (
+            <a
+              href="/admin?tab=moderation"
+              class="inline-flex items-center px-4 py-2 border border-border text-text-muted rounded-lg hover:bg-bg-secondary hover:text-text transition-colors text-sm"
+            >
+              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+              </svg>
+              Manage in Admin Panel
+            </a>
+          )}
         </div>
       </article>
     )}

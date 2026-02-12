@@ -3,216 +3,62 @@
 // Copyright (C) 2026 Krzysztof Kocot
 
 import Layout from '../layouts/Layout.astro'
-import { loadConfigFromHive } from '../components/admin/hive-broadcast'
-import { HIVE_USERNAME } from '../lib/config'
+import { HIVE_USERNAME, IS_COMMUNITY } from '../lib/config'
+import { prepare_community_page } from '../lib/ssr/prepare-community-page'
+import { prepare_user_page } from '../lib/ssr/prepare-user-page'
 
-// Blog Logic imports - all data goes through workerbee/blog-logic
-import {
-  configureEndpoints,
-  DataProvider,
-  getWax,
-  Post,
-  type IAccountManabars,
-  type IProfile,
-  type IDatabaseAccount,
-  type IGlobalProperties,
-  type AccountPostsSortOption,
-  type CommentSortOption,
-  type IPaginationCursor,
-  type BridgeComment,
-} from '@hiveio/workerbee/blog-logic'
-import { HIVE_API_ENDPOINTS } from '../lib/config'
-
-// Configure workerbee to use our custom Hive API endpoints
-configureEndpoints(HIVE_API_ENDPOINTS)
-
-// TanStack Query imports for SSR prefetching
-import { dehydrate } from '@tanstack/solid-query'
-import { create_query_client, query_keys, fetch_profile, fetch_database_account, fetch_global_properties, fetch_manabars, fetch_posts, fetch_comments, type FetchPostsResult, type FetchCommentsResult } from '../lib/queries'
 import { BlogContent } from '../components/home/blog/BlogContent'
+import { CommunityContent } from '../components/community/CommunityContent'
+import { CommunityProfile } from '../components/community/CommunityProfile'
+import { CommunitySidebar } from '../components/community/CommunitySidebar'
 
 import SlotRenderer from '../components/home/blog/SlotRenderer.astro'
 import NoscriptFallback from '../components/home/blog/NoscriptFallback.astro'
 import { type SiteSettings, type PageLayout, type PageSlotPosition, defaultPageLayout } from '../components/home/types'
 
+import type { IPaginationCursor } from '@hiveio/workerbee/blog-logic'
+
 // ============================================
-// Data fetching with TanStack Query
+// SSR Data Preparation (delegated to modules)
 // ============================================
 
-// Create per-request QueryClient (NEVER global on server)
-const query_client = create_query_client()
-
-// Get URL for parsing query params
+const hiveUsername = import.meta.env.HIVE_USERNAME || process.env.HIVE_USERNAME
 const url = new URL(Astro.request.url)
 
-let blogLogicPosts: Post[] = []
-let hiveComments: readonly BridgeComment[] = []
-let hiveAccount: IDatabaseAccount | null = null
-let hiveProfile: IProfile | null = null
-let globalProperties: IGlobalProperties | null = null
-let accountManabars: IAccountManabars | null = null
-let settings: SiteSettings = {}
-let error: string | null = null
-let hasMorePosts = false
-let hasMoreComments = false
-let totalFetchedBeforeFilter = 0
-let nextPostsCursor: IPaginationCursor | undefined
-let nextCommentsCursor: IPaginationCursor | undefined
-let dehydrated_state: string | null = null
-
-// Get hive username from env variable first (this is the blog owner)
-// import.meta.env works in dev, process.env works in production SSR
-const hiveUsername = import.meta.env.HIVE_USERNAME || process.env.HIVE_USERNAME
-
-// Load settings from Hive blockchain for this user
-if (hiveUsername) {
-  try {
-    const hiveConfig = await loadConfigFromHive(hiveUsername)
-    if (hiveConfig) {
-      settings = hiveConfig as SiteSettings
-    }
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Unknown error'
-    console.error('Failed to load config from Hive:', message)
-  }
-}
-
-// ============================================
-// Tab handling - use navigationTabs from settings
-// ============================================
-
-// Check if comments tab is enabled in navigationTabs
-const commentsTabConfig = settings.navigationTabs?.find(tab => tab.id === 'comments')
-const showCommentsTab = commentsTabConfig?.enabled !== false
-
-const requestedTab = url.searchParams.get('tab') || 'posts'
-
-// Validate tab ID against known tabs - unknown tabs fall back to 'posts'
-// Include 'comments' as fallback even when navigationTabs is undefined
-const knownTabIds = ['posts', 'comments', ...(settings.navigationTabs?.map(t => t.id) || [])]
-const validatedTab = knownTabIds.includes(requestedTab) ? requestedTab : 'posts'
-
-// If comments tab is disabled but user requested it, fall back to posts
-const activeTab = (validatedTab === 'comments' && !showCommentsTab) ? 'posts' : validatedTab
-
-// Check if active tab is a category tab (has tag for filtering)
-const activeCategoryTab = settings.navigationTabs?.find(tab => tab.id === activeTab && tab.tag)
-const activeCategoryTag = activeCategoryTab?.tag || null
-
-// ============================================
-// Pagination cursor from URL
-// ============================================
-
-const startAuthor = url.searchParams.get('start_author') || undefined
-const startPermlink = url.searchParams.get('start_permlink') || undefined
-const cursor: IPaginationCursor | undefined = (startAuthor && startPermlink)
-  ? { startAuthor, startPermlink }
-  : undefined
-
-// ============================================
-// Fetch Hive data (all through blog-logic)
-// ============================================
-
-/**
- * Wraps a promise with a timeout to prevent indefinite waiting
- * @param promise - The promise to wrap
- * @param ms - Timeout in milliseconds
- * @returns Promise that rejects if timeout is exceeded
- */
-function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
-  return Promise.race([
-    promise,
-    new Promise<T>((_, reject) => setTimeout(() => reject(new Error(`Timeout after ${ms}ms`)), ms))
-  ])
-}
-
-const postsLimit = settings.postsPerPage || 20
-const postsSortOrder: AccountPostsSortOption = settings.postsSortOrder || 'blog'
-const commentsSortOrder: CommentSortOption = settings.commentsSortOrder || 'comments'
-
-try {
-
-  if (hiveUsername) {
-    // Prefetch data using TanStack Query
-    await Promise.allSettled([
-      query_client.prefetchQuery({
-        queryKey: query_keys.profile(hiveUsername),
-        queryFn: () => fetch_profile(hiveUsername),
-      }),
-      query_client.prefetchQuery({
-        queryKey: query_keys.database_account(hiveUsername),
-        queryFn: () => fetch_database_account(hiveUsername),
-      }),
-      query_client.prefetchQuery({
-        queryKey: query_keys.global_properties(),
-        queryFn: () => fetch_global_properties(),
-      }),
-      query_client.prefetchQuery({
-        queryKey: query_keys.manabars(hiveUsername),
-        queryFn: () => fetch_manabars(hiveUsername),
-      }),
-    ])
-
-    // Get cached data for SSR rendering
-    hiveProfile = query_client.getQueryData(query_keys.profile(hiveUsername)) ?? null
-    hiveAccount = query_client.getQueryData(query_keys.database_account(hiveUsername)) ?? null
-    globalProperties = query_client.getQueryData(query_keys.global_properties()) ?? null
-    accountManabars = query_client.getQueryData(query_keys.manabars(hiveUsername)) ?? null
-
-    // Prefetch content based on active tab
-    if (activeTab === 'comments' && showCommentsTab) {
-      await query_client.prefetchQuery({
-        queryKey: query_keys.comments(hiveUsername, commentsSortOrder, postsLimit, cursor),
-        queryFn: () => fetch_comments(hiveUsername, commentsSortOrder, postsLimit, cursor),
-      })
-
-      const comments_data = query_client.getQueryData<FetchCommentsResult>(query_keys.comments(hiveUsername, commentsSortOrder, postsLimit, cursor))
-      if (comments_data) {
-        hiveComments = comments_data.comments
-        hasMoreComments = comments_data.has_more
-        nextCommentsCursor = comments_data.next_cursor
-      }
-    } else {
-      await query_client.prefetchQuery({
-        queryKey: query_keys.posts(hiveUsername, postsSortOrder, postsLimit, cursor, activeCategoryTag),
-        queryFn: () => fetch_posts(hiveUsername, postsSortOrder, postsLimit, cursor, activeCategoryTag),
-      })
-
-      const posts_data = query_client.getQueryData<FetchPostsResult>(query_keys.posts(hiveUsername, postsSortOrder, postsLimit, cursor, activeCategoryTag))
-      if (posts_data) {
-        blogLogicPosts = posts_data.posts
-        hasMorePosts = posts_data.has_more
-        nextPostsCursor = posts_data.next_cursor
-        totalFetchedBeforeFilter = posts_data.posts.length
-      }
-    }
-
-    // Dehydrate state for client-side hydration
-    // Serialize to JSON string to avoid cyclic reference and BigInt errors in Astro props serialization
-    const raw_state = dehydrate(query_client)
-    const seen = new WeakSet()
-    dehydrated_state = JSON.stringify(raw_state, (_key, value) => {
-      if (typeof value === 'bigint') return value.toString()
-      if (typeof value === 'object' && value !== null) {
-        if (seen.has(value)) return undefined
-        seen.add(value)
-      }
-      return value
+const community_page = IS_COMMUNITY && hiveUsername
+  ? await prepare_community_page(hiveUsername, {
+      sort: url.searchParams.get('sort') || undefined,
+      start_author: url.searchParams.get('start_author') || undefined,
+      start_permlink: url.searchParams.get('start_permlink') || undefined,
     })
-  }
-} catch (error) {
-  const message = error instanceof Error ? error.message : 'Unknown error'
-  console.error('Error fetching Hive data:', message)
-  error = 'Error fetching data from Hive blockchain.'
-}
+  : null
+
+const user_page = !IS_COMMUNITY && hiveUsername
+  ? await prepare_user_page(hiveUsername, {
+      tab: url.searchParams.get('tab') || undefined,
+      start_author: url.searchParams.get('start_author') || undefined,
+      start_permlink: url.searchParams.get('start_permlink') || undefined,
+    })
+  : null
+
+// Unified access to settings and state
+const settings: SiteSettings = community_page?.settings ?? user_page?.settings ?? {}
+const dehydrated_state = community_page?.dehydrated_state ?? user_page?.dehydrated_state ?? null
+const error = community_page?.error ?? user_page?.error ?? null
 
 // ============================================
 // Settings with defaults
 // ============================================
 
-const defaultSiteName = HIVE_USERNAME ? `${HIVE_USERNAME} Blog` : 'Hive Blog'
+const communityTitle = community_page?.community_data?.title || HIVE_USERNAME
+const defaultSiteName = IS_COMMUNITY
+  ? (communityTitle || 'Hive Community')
+  : (HIVE_USERNAME ? `${HIVE_USERNAME} Blog` : 'Hive Blog')
 const siteName = settings.siteName || defaultSiteName
-const siteDescription = settings.siteDescription || 'Posts from Hive blockchain'
+const defaultDescription = IS_COMMUNITY
+  ? (community_page?.community_data?.about || 'Hive community')
+  : 'Posts from Hive blockchain'
+const siteDescription = settings.siteDescription || defaultDescription
 
 // Use new pageLayout format, fallback to default
 const pageLayout: PageLayout = settings.pageLayout?.sections?.length
@@ -262,6 +108,33 @@ const authorAboutSize = settings.authorAboutSizePx ?? 14
 const authorStatsSize = settings.authorStatsSizePx ?? 14
 const authorMetaSize = settings.authorMetaSizePx ?? 12
 
+// ============================================
+// Unpack mode-specific data
+// ============================================
+
+// Community mode
+const communityData = community_page?.community_data ?? null
+const communitySortOrder = community_page?.community_sort_order ?? 'trending'
+
+// User mode
+const hiveAccount = user_page?.hive_account ?? null
+const hiveProfile = user_page?.hive_profile ?? null
+const globalProperties = user_page?.global_properties ?? null
+const accountManabars = user_page?.account_manabars ?? null
+const blogLogicPosts = user_page?.blog_logic_posts ?? []
+const hiveComments = user_page?.hive_comments ?? []
+const activeTab = user_page?.active_tab ?? 'posts'
+const showCommentsTab = user_page?.show_comments_tab ?? false
+const activeCategoryTag = user_page?.active_category_tag ?? null
+const postsSortOrder = user_page?.posts_sort_order ?? 'blog'
+const commentsSortOrder = user_page?.comments_sort_order ?? 'comments'
+const postsLimit = community_page?.posts_limit ?? user_page?.posts_limit ?? 20
+const hasMorePosts = community_page?.has_more_posts ?? user_page?.has_more_posts ?? false
+const hasMoreComments = user_page?.has_more_comments ?? false
+const nextPostsCursor = user_page?.next_posts_cursor
+const nextCommentsCursor = user_page?.next_comments_cursor
+const totalFetchedBeforeFilter = user_page?.total_fetched_before_filter ?? 0
+
 // Shared props for AuthorProfile to reduce duplication
 const authorProfileBaseProps = {
   username: hiveUsername,
@@ -269,9 +142,7 @@ const authorProfileBaseProps = {
   profile: hiveProfile,
   globalProperties: globalProperties,
   accountManabars: accountManabars,
-  // Layout from settings (uses CardLayout format)
   profileLayout: settings.authorProfileLayout2,
-  // Size settings
   avatarSize: authorAvatarSizePx,
   coverHeight: authorCoverHeight,
   usernameSize: authorUsernameSize,
@@ -279,7 +150,6 @@ const authorProfileBaseProps = {
   aboutSize: authorAboutSize,
   statsSize: authorStatsSize,
   metaSize: authorMetaSize,
-  // Social links
   socialLinks: settings.socialLinks || [],
 }
 
@@ -299,10 +169,10 @@ function buildNextPageUrl(tab: string, nextCursor: IPaginationCursor | undefined
 
 const nextPostsPageUrl = buildNextPageUrl('posts', nextPostsCursor)
 const nextCommentsPageUrl = buildNextPageUrl('comments', nextCommentsCursor)
+const cursor = (url.searchParams.get('start_author') && url.searchParams.get('start_permlink')) ? true : false
 const isFirstPage = !cursor
 
 const isCategory = !!activeCategoryTag
-// Show warning when category filter may hide matching posts beyond the API fetch limit
 const showCategoryLimitWarning = isCategory && totalFetchedBeforeFilter >= (settings.postsPerPage || 20)
 
 // Common props for SlotRenderer
@@ -336,12 +206,10 @@ const slotRendererProps = {
 
 <Layout title={siteName} settings={settings}>
   <div class="max-w-7xl mx-auto px-4 py-16">
-    {/* Top sections - render elements in order */}
-    <SlotRenderer sections={sectionsBySlot['top']} context="top" {...slotRendererProps} />
 
     {error && (
       <div class="bg-error/10 border border-error/30 text-error px-4 py-3 rounded-lg mb-6">
-        <strong>Błąd:</strong> {error}
+        <strong>Error:</strong> {error}
       </div>
     )}
 
@@ -352,116 +220,179 @@ const slotRendererProps = {
       </div>
     )}
 
-    {/* Main content with optional sidebars - Responsive Layout */}
-    {hasSidebars ? (
-      <div class="sidebar-layout">
-        {/* Left Sidebar - Mobile: above main content | Desktop: left side with fixed width */}
-        {hasLeftSidebar && (
+    {/* ============================================ */}
+    {/* COMMUNITY MODE */}
+    {/* ============================================ */}
+    {IS_COMMUNITY && hiveUsername && (
+      <>
+        {/* Top sections */}
+        <SlotRenderer sections={sectionsBySlot['top']} context="top" {...slotRendererProps} />
+
+        <div class="sidebar-layout">
+          {/* Left Sidebar: Community Profile + Sidebar */}
           <aside class="sidebar-left" style={`--sidebar-width: ${sidebarWidthPx}px;`}>
-            <SlotRenderer sections={sectionsBySlot['sidebar-left']} context="sidebar-left" {...slotRendererProps} />
-          </aside>
-        )}
-
-        {/* Main Content - always in the center */}
-        <main class="main-content">
-          {/* Render non-content elements from main slot (like navigation) */}
-          {hiveUsername && dehydrated_state && hasElementInSlot('main', 'navigation') && (
-            <SlotRenderer
-              sections={sectionsBySlot['main']
-                .filter(section => section.elements.includes('navigation'))
-                .map(section => ({
-                  ...section,
-                  elements: section.elements.filter(el => el === 'navigation')
-                }))}
-              context="main"
-              {...slotRendererProps}
-            />
-          )}
-
-          {/* Progressive enhancement: Use SolidJS island for interactive content with TanStack Query */}
-          {/* Falls back to SSR content if JS is disabled */}
-          {hiveUsername && dehydrated_state && (
-            <>
-              <noscript>
-                <NoscriptFallback active_tab={activeTab} blog_logic_posts={blogLogicPosts} hive_comments={hiveComments} />
-              </noscript>
-              <div class="js-only">
-                <BlogContent
+            {communityData && (
+              <div class="space-y-4">
+                <CommunityProfile
                   client:only="solid-js"
-                  hive_username={hiveUsername}
-                  initial_tab={activeTab}
-                  show_comments_tab={showCommentsTab}
-                  posts_sort_order={postsSortOrder}
-                  comments_sort_order={commentsSortOrder}
+                  community={communityData}
+                  show_subscribers={settings.community_show_subscribers !== false}
+                />
+                <CommunitySidebar
+                  client:only="solid-js"
+                  community={communityData}
+                  show_description={settings.community_show_description !== false}
+                  show_rules={settings.community_show_rules !== false}
+                  show_leadership={settings.community_show_leadership !== false}
+                />
+              </div>
+            )}
+          </aside>
+
+          {/* Main Content: Community Posts */}
+          <main class="main-content">
+            {dehydrated_state && (
+              <div class="js-only">
+                <CommunityContent
+                  client:only="solid-js"
+                  community_name={hiveUsername}
+                  initial_sort={communitySortOrder}
                   posts_per_page={postsLimit}
                   settings={settings}
                   dehydrated_state={dehydrated_state}
-                  category_tag={activeCategoryTag}
-                  navigation_tabs={settings.navigationTabs}
                   post_card_layout={settings.postCardLayout}
                 />
               </div>
-            </>
-          )}
-          {(!hiveUsername || !dehydrated_state) && (
-            <SlotRenderer sections={sectionsBySlot['main']} context="main" {...slotRendererProps} />
-          )}
-        </main>
+            )}
+            {!dehydrated_state && (
+              <div class="text-center py-12 bg-bg-card rounded-xl shadow-sm border border-border">
+                <p class="text-text-muted">Loading community...</p>
+              </div>
+            )}
+          </main>
+        </div>
 
-        {/* Right Sidebar - Mobile: above main content (after left sidebar) | Desktop: right side */}
-        {hasRightSidebar && (
-          <aside class="sidebar-right" style={`--sidebar-width: ${sidebarWidthPx}px;`}>
-            <SlotRenderer sections={sectionsBySlot['sidebar-right']} context="sidebar-right" {...slotRendererProps} />
-          </aside>
-        )}
-      </div>
-    ) : (
-      /* No sidebars - render main content directly */
-      <>
-        {/* Render non-content elements from main slot (like navigation) */}
-        {hiveUsername && dehydrated_state && hasElementInSlot('main', 'navigation') && (
-          <SlotRenderer
-            sections={sectionsBySlot['main']
-              .filter(section => section.elements.includes('navigation'))
-              .map(section => ({
-                ...section,
-                elements: section.elements.filter(el => el === 'navigation')
-              }))}
-            context="main"
-            {...slotRendererProps}
-          />
-        )}
-
-        {hiveUsername && dehydrated_state && (
-          <>
-            <noscript>
-              <NoscriptFallback active_tab={activeTab} blog_logic_posts={blogLogicPosts} hive_comments={hiveComments} />
-            </noscript>
-            <div class="js-only">
-              <BlogContent
-                client:only="solid-js"
-                hive_username={hiveUsername}
-                initial_tab={activeTab}
-                show_comments_tab={showCommentsTab}
-                posts_sort_order={postsSortOrder}
-                comments_sort_order={commentsSortOrder}
-                posts_per_page={postsLimit}
-                settings={settings}
-                dehydrated_state={dehydrated_state}
-                category_tag={activeCategoryTag}
-                navigation_tabs={settings.navigationTabs}
-                post_card_layout={settings.postCardLayout}
-              />
-            </div>
-          </>
-        )}
-        {(!hiveUsername || !dehydrated_state) && (
-          <SlotRenderer sections={sectionsBySlot['main']} context="main" {...slotRendererProps} />
-        )}
+        {/* Bottom sections */}
+        <SlotRenderer sections={sectionsBySlot['bottom']} context="bottom" {...slotRendererProps} />
       </>
     )}
 
-    {/* Bottom sections - render elements in order */}
-    <SlotRenderer sections={sectionsBySlot['bottom']} context="bottom" {...slotRendererProps} />
+    {/* ============================================ */}
+    {/* USER MODE (unchanged) */}
+    {/* ============================================ */}
+    {!IS_COMMUNITY && (
+      <>
+        {/* Top sections - render elements in order */}
+        <SlotRenderer sections={sectionsBySlot['top']} context="top" {...slotRendererProps} />
+
+        {/* Main content with optional sidebars - Responsive Layout */}
+        {hasSidebars ? (
+          <div class="sidebar-layout">
+            {/* Left Sidebar */}
+            {hasLeftSidebar && (
+              <aside class="sidebar-left" style={`--sidebar-width: ${sidebarWidthPx}px;`}>
+                <SlotRenderer sections={sectionsBySlot['sidebar-left']} context="sidebar-left" {...slotRendererProps} />
+              </aside>
+            )}
+
+            {/* Main Content */}
+            <main class="main-content">
+              {hiveUsername && dehydrated_state && hasElementInSlot('main', 'navigation') && (
+                <SlotRenderer
+                  sections={sectionsBySlot['main']
+                    .filter(section => section.elements.includes('navigation'))
+                    .map(section => ({
+                      ...section,
+                      elements: section.elements.filter(el => el === 'navigation')
+                    }))}
+                  context="main"
+                  {...slotRendererProps}
+                />
+              )}
+
+              {hiveUsername && dehydrated_state && (
+                <>
+                  <noscript>
+                    <NoscriptFallback active_tab={activeTab} blog_logic_posts={blogLogicPosts} hive_comments={hiveComments} />
+                  </noscript>
+                  <div class="js-only">
+                    <BlogContent
+                      client:only="solid-js"
+                      hive_username={hiveUsername}
+                      initial_tab={activeTab}
+                      show_comments_tab={showCommentsTab}
+                      posts_sort_order={postsSortOrder}
+                      comments_sort_order={commentsSortOrder}
+                      posts_per_page={postsLimit}
+                      settings={settings}
+                      dehydrated_state={dehydrated_state}
+                      category_tag={activeCategoryTag}
+                      navigation_tabs={settings.navigationTabs}
+                      post_card_layout={settings.postCardLayout}
+                    />
+                  </div>
+                </>
+              )}
+              {(!hiveUsername || !dehydrated_state) && (
+                <SlotRenderer sections={sectionsBySlot['main']} context="main" {...slotRendererProps} />
+              )}
+            </main>
+
+            {/* Right Sidebar */}
+            {hasRightSidebar && (
+              <aside class="sidebar-right" style={`--sidebar-width: ${sidebarWidthPx}px;`}>
+                <SlotRenderer sections={sectionsBySlot['sidebar-right']} context="sidebar-right" {...slotRendererProps} />
+              </aside>
+            )}
+          </div>
+        ) : (
+          /* No sidebars - render main content directly */
+          <>
+            {hiveUsername && dehydrated_state && hasElementInSlot('main', 'navigation') && (
+              <SlotRenderer
+                sections={sectionsBySlot['main']
+                  .filter(section => section.elements.includes('navigation'))
+                  .map(section => ({
+                    ...section,
+                    elements: section.elements.filter(el => el === 'navigation')
+                  }))}
+                context="main"
+                {...slotRendererProps}
+              />
+            )}
+
+            {hiveUsername && dehydrated_state && (
+              <>
+                <noscript>
+                  <NoscriptFallback active_tab={activeTab} blog_logic_posts={blogLogicPosts} hive_comments={hiveComments} />
+                </noscript>
+                <div class="js-only">
+                  <BlogContent
+                    client:only="solid-js"
+                    hive_username={hiveUsername}
+                    initial_tab={activeTab}
+                    show_comments_tab={showCommentsTab}
+                    posts_sort_order={postsSortOrder}
+                    comments_sort_order={commentsSortOrder}
+                    posts_per_page={postsLimit}
+                    settings={settings}
+                    dehydrated_state={dehydrated_state}
+                    category_tag={activeCategoryTag}
+                    navigation_tabs={settings.navigationTabs}
+                    post_card_layout={settings.postCardLayout}
+                  />
+                </div>
+              </>
+            )}
+            {(!hiveUsername || !dehydrated_state) && (
+              <SlotRenderer sections={sectionsBySlot['main']} context="main" {...slotRendererProps} />
+            )}
+          </>
+        )}
+
+        {/* Bottom sections */}
+        <SlotRenderer sections={sectionsBySlot['bottom']} context="bottom" {...slotRendererProps} />
+      </>
+    )}
   </div>
 </Layout>

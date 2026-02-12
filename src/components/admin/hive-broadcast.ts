@@ -3,41 +3,27 @@
 
 import { ReplyOperation } from '@hiveio/wax'
 import { configureEndpoints, DataProvider, getWax } from '@hiveio/workerbee/blog-logic'
-import { CONFIG_PARENT_AUTHOR, CONFIG_PARENT_PERMLINK, HIVE_API_ENDPOINTS } from '../../lib/config'
+import { CONFIG_PARENT_AUTHOR, CONFIG_PARENT_PERMLINK, HIVE_API_ENDPOINTS, IS_COMMUNITY } from '../../lib/config'
 
 // Configure workerbee to use our custom Hive API endpoints
 configureEndpoints(HIVE_API_ENDPOINTS)
 import { getOnlineClient } from '../../lib/hbauth-service'
 import type { SettingsData } from './types/index'
+import { settings_schema } from './types/settings-schema'
+import { with_retry } from '../../lib/retry'
 
 const MAX_BODY_SIZE = 64 * 1024 // 64KB in bytes
 
-/**
- * Retry wrapper for async operations with exponential backoff
- */
-async function withRetry<T>(
-  operation: () => Promise<T>,
-  maxRetries: number = 3,
-  delayMs: number = 1000
-): Promise<T> {
-  let lastError: Error | null = null
-
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    try {
-      return await operation()
-    } catch (error) {
-      lastError = error instanceof Error ? error : new Error(String(error))
-      // Retry logic - silent on failure, will throw if all retries exhausted
-
-      if (attempt < maxRetries) {
-        // Exponential backoff: 1s, 2s, 4s, 8s...
-        const backoffDelay = delayMs * Math.pow(2, attempt - 1)
-        await new Promise(resolve => setTimeout(resolve, backoffDelay))
-      }
-    }
+/** Remove community-specific fields from a settings object (used in user mode) */
+export function strip_community_fields(config: SettingsData): SettingsData {
+  return {
+    ...config,
+    community_default_sort: undefined,
+    community_show_rules: undefined,
+    community_show_leadership: undefined,
+    community_show_subscribers: undefined,
+    community_show_description: undefined,
   }
-
-  throw lastError
 }
 
 /**
@@ -157,7 +143,7 @@ export async function broadcastConfigToHive(
     tx.addSignature(signature)
 
     // Broadcast with retry logic (max 3 attempts with exponential backoff)
-    await withRetry(
+    await with_retry(
       async () => await chain.broadcast(tx),
       3, // max 3 retries
       1000 // 1s initial delay
@@ -209,7 +195,23 @@ export async function loadConfigFromHive(username: string): Promise<SettingsData
       return null
     }
 
-    const config = JSON.parse(jsonMatch[1]) as SettingsData
+    const raw: unknown = JSON.parse(jsonMatch[1])
+    const result = settings_schema.safeParse(raw)
+
+    if (!result.success) {
+      if (import.meta.env.DEV) {
+        console.warn('Invalid config from blockchain, using defaults:', result.error.issues)
+      }
+      return null
+    }
+
+    const config = result.data as SettingsData
+
+    // In user mode, strip community-specific fields to prevent stale data leaking
+    if (!IS_COMMUNITY) {
+      return strip_community_fields(config)
+    }
+
     return config
   } catch (error) {
     if (import.meta.env.DEV) console.error('Failed to load config from Hive:', error)

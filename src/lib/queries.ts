@@ -6,8 +6,10 @@ import {
   configureEndpoints,
   DataProvider,
   getWax,
+  withRetry,
   Post,
   type BridgeComment,
+  type BridgePost,
   type IDatabaseAccount,
   type IProfile,
   type IGlobalProperties,
@@ -17,6 +19,18 @@ import {
   type IPaginationCursor,
 } from "@hiveio/workerbee/blog-logic";
 import { HIVE_API_ENDPOINTS } from "./config";
+import type {
+  HiveCommunity,
+  CommunityTeamMember,
+  CommunitySubscriber,
+} from "./types/community";
+
+export type CommunitySortOrder =
+  | "trending"
+  | "hot"
+  | "created"
+  | "payout"
+  | "muted";
 
 // Configure workerbee to use our custom Hive API endpoints
 // This must be called before the first getWax() call
@@ -63,6 +77,19 @@ export const query_keys = {
     limit: number,
     cursor?: IPaginationCursor
   ) => ["comments", username, sort, limit, cursor] as const,
+
+  // Community query keys
+  community: (name: string) => ["community", name] as const,
+  community_posts: (
+    name: string,
+    sort: CommunitySortOrder,
+    limit: number,
+    cursor_author?: string,
+    cursor_permlink?: string
+  ) =>
+    ["community_posts", name, sort, limit, cursor_author, cursor_permlink] as const,
+  subscribers: (name: string) => ["subscribers", name] as const,
+  community_roles: (name: string) => ["community_roles", name] as const,
 };
 
 // ============================================
@@ -195,4 +222,89 @@ export async function fetch_comments(
     has_more: result.hasMore,
     next_cursor: result.nextCursor,
   };
+}
+
+// ============================================
+// Community Query Functions
+// ============================================
+
+export interface FetchCommunityPostsResult {
+  posts: BridgePost[];
+  has_more: boolean;
+  next_author?: string;
+  next_permlink?: string;
+}
+
+/**
+ * Fetch community details (title, about, description, rules, team, subscribers count)
+ * Uses withRetry for automatic endpoint rotation on timeout.
+ */
+export async function fetch_community(name: string): Promise<HiveCommunity | null> {
+  return withRetry((chain) =>
+    chain.api.bridge.get_community({ name, observer: "" })
+  );
+}
+
+/**
+ * Fetch community posts with server-side pagination via get_ranked_posts.
+ * Sort options: "trending" | "hot" | "created" | "payout" | "muted"
+ * Pagination: pass start_author + start_permlink from previous page's last post.
+ */
+export async function fetch_community_posts(
+  name: string,
+  sort: CommunitySortOrder,
+  limit: number,
+  start_author?: string,
+  start_permlink?: string
+): Promise<FetchCommunityPostsResult> {
+  // Build params as variable to allow extra fields not typed in SDK.
+  // Hive bridge API accepts limit/start_author/start_permlink but
+  // @hiveio/wax-api-jsonrpc GetRankedPosts omits them (SDK limitation).
+  const params = {
+    sort,
+    tag: name,
+    observer: "",
+    limit,
+    ...(start_author && start_permlink
+      ? { start_author, start_permlink }
+      : {}),
+  };
+
+  const posts = await withRetry((chain) =>
+    chain.api.bridge.get_ranked_posts(params)
+  );
+
+  const has_more = posts.length >= limit;
+  const last_post = posts[posts.length - 1];
+
+  return {
+    posts,
+    has_more,
+    next_author: last_post?.author,
+    next_permlink: last_post?.permlink,
+  };
+}
+
+/**
+ * Fetch community subscribers list.
+ * Returns array of tuples: [username, role, title, ...]
+ */
+export async function fetch_subscribers(
+  name: string
+): Promise<CommunitySubscriber[]> {
+  return withRetry((chain) =>
+    chain.api.bridge.list_subscribers({ community: name })
+  );
+}
+
+/**
+ * Fetch community roles (moderators, admins, members).
+ * Returns array of tuples: [username, role, title]
+ */
+export async function fetch_community_roles(
+  name: string
+): Promise<CommunityTeamMember[]> {
+  return withRetry((chain) =>
+    chain.api.bridge.list_community_roles({ community: name })
+  );
 }

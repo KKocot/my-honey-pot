@@ -11,6 +11,8 @@
     "astro": "astro",
     "test": "playwright test",
     "test:ui": "playwright test --ui",
+    "test:community": "playwright test --project=community-mode",
+    "test:user-mode": "playwright test --project=user-mode",
     "postinstall": "mkdir -p public/auth/assets && cp -r node_modules/@hiveio/hb-auth/dist/assets/* public/auth/assets/"
   },
   "dependencies": {
@@ -34,7 +36,8 @@
     "markdown-it": "^14.1.0",
     "sanitize-html": "^2.17.0",
     "solid-js": "^1.9.11",
-    "tailwindcss": "^4.1.18"
+    "tailwindcss": "^4.1.18",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "@playwright/test": "^1.58.0",
