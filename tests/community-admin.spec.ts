@@ -240,3 +240,122 @@ test.describe("Community Admin Panel", () => {
     ).not.toBeVisible();
   });
 });
+
+/**
+ * Community Mode - Full Preview Tests
+ *
+ * Tests for the Full Preview overlay in community mode.
+ * Full Preview is rendered in a <Portal> (directly in document body),
+ * fetches community posts from Hive, and displays them using current settings.
+ */
+
+test.describe("Community Full Preview", () => {
+  test.setTimeout(60000);
+
+  test("Full Preview opens and shows community title in badge", async ({
+    page,
+  }) => {
+    await page.goto("/admin");
+    await page.waitForLoadState("networkidle");
+
+    // Wait for SolidJS hydration
+    await expect(page.locator('h1:has-text("Admin Panel")')).toBeVisible({
+      timeout: 30000,
+    });
+
+    // Click "Full Preview" button in the bottom bar (desktop variant)
+    const full_preview_btn = page.locator('button:has-text("Full Preview")');
+    await full_preview_btn.click();
+
+    // Badge is rendered in Portal with class bg-primary, text starts with "Preview Mode"
+    const preview_badge = page.locator(".bg-primary").filter({
+      hasText: "Preview Mode",
+    });
+    await expect(preview_badge).toBeVisible({ timeout: 15000 });
+
+    // In community mode the badge should NOT contain "no user"
+    const badge_text = await preview_badge.textContent();
+    expect(badge_text).not.toContain("no user");
+
+    // Badge should contain a community name (non-empty text after "Preview Mode - ")
+    const name_part = badge_text?.replace("Preview Mode - ", "") ?? "";
+    expect(name_part.trim().length).toBeGreaterThan(0);
+  });
+
+  test("Full Preview shows community posts", async ({ page }) => {
+    await page.goto("/admin");
+    await page.waitForLoadState("networkidle");
+
+    await expect(page.locator('h1:has-text("Admin Panel")')).toBeVisible({
+      timeout: 30000,
+    });
+
+    const full_preview_btn = page.locator('button:has-text("Full Preview")');
+    await full_preview_btn.click();
+
+    // Wait for loading spinner to disappear (spinner has animate-spin class)
+    await expect(page.locator(".animate-spin")).toBeHidden({ timeout: 30000 });
+
+    // Posts are rendered as <article> elements inside the Portal overlay
+    const post_cards = page.locator("article.bg-bg-card");
+    await expect(post_cards.first()).toBeVisible({ timeout: 15000 });
+
+    // Should have at least 1 post
+    const post_count = await post_cards.count();
+    expect(post_count).toBeGreaterThanOrEqual(1);
+  });
+
+  test("Full Preview header shows community name, not Hive Blog", async ({
+    page,
+  }) => {
+    await page.goto("/admin");
+    await page.waitForLoadState("networkidle");
+
+    await expect(page.locator('h1:has-text("Admin Panel")')).toBeVisible({
+      timeout: 30000,
+    });
+
+    const full_preview_btn = page.locator('button:has-text("Full Preview")');
+    await full_preview_btn.click();
+
+    // Wait for data to load (spinner gone, content visible)
+    await expect(page.locator(".animate-spin")).toBeHidden({ timeout: 30000 });
+
+    // Header is rendered inside the Portal overlay's <header> element
+    // The overlay is .fixed.inset-0 containing the preview content
+    const preview_overlay = page.locator(".fixed.inset-0");
+    const header_el = preview_overlay.locator("header").first();
+    await expect(header_el).toBeVisible({ timeout: 15000 });
+
+    const header_text = await header_el.textContent();
+
+    // In community mode the header should NOT show "Hive Blog" (user mode default)
+    expect(header_text).not.toBe("Hive Blog");
+
+    // Header text should not be empty
+    expect((header_text ?? "").trim().length).toBeGreaterThan(0);
+  });
+
+  test("Full Preview closes on X button click", async ({ page }) => {
+    await page.goto("/admin");
+    await page.waitForLoadState("networkidle");
+
+    await expect(page.locator('h1:has-text("Admin Panel")')).toBeVisible({
+      timeout: 30000,
+    });
+
+    const full_preview_btn = page.locator('button:has-text("Full Preview")');
+    await full_preview_btn.click();
+
+    // Verify the overlay is visible
+    const preview_overlay = page.locator(".fixed.inset-0");
+    await expect(preview_overlay).toBeVisible({ timeout: 15000 });
+
+    // Click close button inside the preview overlay (top-right, fixed position)
+    const close_btn = preview_overlay.locator("button").first();
+    await close_btn.click();
+
+    // The Portal overlay should disappear
+    await expect(preview_overlay).toBeHidden({ timeout: 10000 });
+  });
+});
