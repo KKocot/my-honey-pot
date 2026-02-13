@@ -18,6 +18,7 @@ export interface PostCardData {
   votesCount: number
   commentsCount: number
   pendingPayout: string
+  author?: string
 }
 
 /**

@@ -63,6 +63,7 @@ export function createPostCardDataFromBridge(
     votesCount: post.active_votes?.length ?? 0,
     commentsCount: post.children ?? 0,
     pendingPayout: post.pending_payout_value ?? '0.00 HBD',
+    author: post.author,
   }
 }
 
@@ -105,6 +106,7 @@ interface BlogLogicPost {
   votesCount: number
   pendingPayoutValue?: string
   images: readonly string[]
+  author?: string
   getTitleImage: () => string
   getContent: () => Promise<string>
   getCommentsCount: () => Promise<number>
@@ -148,5 +150,6 @@ export async function createPostCardDataFromPost(
     votesCount: post.votesCount,
     commentsCount,
     pendingPayout: post.pendingPayoutValue ?? '0.000 HBD',
+    author: post.author,
   }
 }

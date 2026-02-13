@@ -65,6 +65,15 @@ function renderElement(
       }
       return `<img src="${data.thumbnail}" alt="" style="width: ${settings.thumbnailSizePx}px; height: ${settings.thumbnailSizePx}px; object-fit: cover; border-radius: 8px; flex-shrink: 0;" onerror="this.style.display='none'" />`
 
+    case 'avatar':
+      if (!data.author) return ''
+      const author = escape_html(data.author)
+      const avatarUrl = `https://images.hive.blog/u/${author}/avatar/small`
+      if (isVertical) {
+        return `<a href="/@${author}" class="flex items-center gap-2 no-underline" onclick="event.stopPropagation()"><img src="${avatarUrl}" alt="" class="rounded-full flex-shrink-0" style="width: 24px; height: 24px;" onerror="this.style.display='none'" /><span class="text-xs text-text-muted truncate">@${author}</span></a>`
+      }
+      return `<a href="/@${author}" class="flex-shrink-0 no-underline" onclick="event.stopPropagation()"><img src="${avatarUrl}" alt="" class="rounded-full" style="width: 40px; height: 40px;" onerror="this.style.display='none'" /></a>`
+
     case 'title':
       return `<h3 class="font-semibold text-text line-clamp-2" style="font-size: ${settings.titleSizePx}px;">${escape_html(data.title)}</h3>`
 
