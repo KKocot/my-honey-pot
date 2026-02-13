@@ -1,12 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 Krzysztof Kocot
 
-import { loadConfigFromHive } from "../../components/admin/hive-broadcast";
-import {
-  defaultSettings,
-  settingsToRecord,
-  type SettingsData,
-} from "../../components/admin/types";
+import { load_and_prepare_config } from "../config-pipeline";
 import {
   create_query_client,
   query_keys,
@@ -27,6 +22,7 @@ import type {
   Post,
   BridgeComment,
 } from "@hiveio/workerbee/blog-logic";
+import { get_default_settings } from "../../components/admin/types/settings";
 import type { SiteSettings } from "../../components/home/types";
 import type { UserPageData, UserQueryParams } from "./types";
 
@@ -97,39 +93,16 @@ export async function prepare_user_page(
   hive_username: string,
   query_params: UserQueryParams
 ): Promise<UserPageData> {
-  let settings: SiteSettings = { ...defaultSettings, hiveUsername: hive_username };
   let error: string | null = null;
 
-  // Load settings from Hive blockchain (merge with defaults)
+  // Load settings through unified pipeline (migrations + mode-specific defaults)
+  let settings: SiteSettings;
   try {
-    const hive_config = await loadConfigFromHive(hive_username);
-    if (hive_config) {
-      const hive_record = settingsToRecord(hive_config);
-      for (const key of Object.keys(hive_config) as (keyof SettingsData)[]) {
-        if (hive_config[key] !== undefined && hive_config[key] !== null) {
-          Object.assign(settings, { [key]: hive_record[key] });
-        }
-      }
-
-      if (!settings.layoutSections?.length) {
-        settings.layoutSections = defaultSettings.layoutSections;
-      }
-      if (!settings.pageLayout?.sections?.length) {
-        settings.pageLayout = defaultSettings.pageLayout;
-      }
-      if (!settings.postCardLayout?.sections?.length) {
-        settings.postCardLayout = defaultSettings.postCardLayout;
-      }
-      if (!settings.commentCardLayout?.sections?.length) {
-        settings.commentCardLayout = defaultSettings.commentCardLayout;
-      }
-      if (!settings.authorProfileLayout2?.sections?.length) {
-        settings.authorProfileLayout2 = defaultSettings.authorProfileLayout2;
-      }
-    }
+    settings = await load_and_prepare_config(hive_username, false);
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
     console.error("Failed to load config from Hive:", message);
+    settings = { ...get_default_settings(false), hiveUsername: hive_username };
   }
 
   const { active_tab, show_comments_tab, active_category_tag } = resolve_tabs(

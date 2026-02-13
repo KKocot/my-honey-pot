@@ -3,6 +3,7 @@
 
 import type { BridgePost, IDatabaseAccount, AccountPostsSortOption, CommentSortOption } from '@hiveio/workerbee/blog-logic'
 import type { SettingsData } from '../admin/types'
+import { defaultSettings, defaultCommunitySettings } from "../admin/types/settings"
 
 // ============================================
 // Re-export types from admin/types
@@ -49,22 +50,9 @@ export interface HomePageData {
 }
 
 // ============================================
-// Default values
+// Default values (single source of truth: settings.ts)
 // ============================================
 
-export const defaultLayoutSections: import('../admin/types/index').LayoutSection[] = [
-  { id: 'header', position: 'top', enabled: true },
-  { id: 'authorProfile', position: 'sidebar-left', enabled: true },
-  { id: 'posts', position: 'main', enabled: true },
-  { id: 'footer', position: 'bottom', enabled: false },
-]
-
-export const defaultPageLayout: import('../admin/types/index').PageLayout = {
-  sections: [
-    { id: 'page-sec-1', slot: 'top', orientation: 'horizontal', elements: ['header'], active: true },
-    { id: 'page-sec-2', slot: 'top', orientation: 'horizontal', elements: ['navigation'], active: true },
-    { id: 'page-sec-3', slot: 'sidebar-left', orientation: 'vertical', elements: ['authorProfile'], active: true },
-    { id: 'page-sec-4', slot: 'main', orientation: 'vertical', elements: ['posts', 'comments'], active: true },
-    { id: 'page-sec-5', slot: 'bottom', orientation: 'horizontal', elements: ['footer'], active: true },
-  ],
-}
+export const defaultLayoutSections = defaultSettings.layoutSections;
+export const defaultPageLayout = defaultSettings.pageLayout;
+export const defaultCommunityPageLayout = defaultCommunitySettings.pageLayout;
