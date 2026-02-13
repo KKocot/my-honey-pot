@@ -2,7 +2,7 @@
 // Copyright (C) 2026 Krzysztof Kocot
 
 import { Show, For } from "solid-js";
-import { IS_COMMUNITY } from "../../../lib/config";
+import { is_community_mode } from "../queries";
 import { settings, updateSettings } from "../store";
 import type { CommunityDisplaySortOrder } from "../types/settings";
 
@@ -89,7 +89,7 @@ function update_community_toggle(
 // ============================================
 
 export function CommunityDisplaySettings() {
-  const disabled = !IS_COMMUNITY;
+  const disabled = !is_community_mode();
 
   return (
     <div

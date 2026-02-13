@@ -3,7 +3,7 @@
 
 import { createSignal, createResource, createEffect, Show, For } from "solid-js";
 import { fetch_community } from "../../../lib/queries";
-import { HIVE_USERNAME } from "../../../lib/config";
+import { settings } from "../store";
 import { currentUser, isAuthenticated } from "../../auth";
 import {
   broadcast_update_community,
@@ -35,7 +35,7 @@ const COMMUNITY_LANGUAGES = [
 // ============================================
 
 export function CommunitySettings() {
-  const community_name = HIVE_USERNAME;
+  const community_name = settings.hiveUsername;
   const [is_broadcasting, set_is_broadcasting] = createSignal(false);
 
   // Fetch current community data from blockchain

@@ -9,22 +9,11 @@ import { CONFIG_PARENT_AUTHOR, CONFIG_PARENT_PERMLINK, HIVE_API_ENDPOINTS, IS_CO
 configureEndpoints(HIVE_API_ENDPOINTS)
 import { getOnlineClient } from '../../lib/hbauth-service'
 import type { SettingsData } from './types/index'
+import { defaultSettings, strip_community_fields } from './types/index'
 import { settings_schema } from './types/settings-schema'
 import { with_retry } from '../../lib/retry'
 
 const MAX_BODY_SIZE = 64 * 1024 // 64KB in bytes
-
-/** Remove community-specific fields from a settings object (used in user mode) */
-export function strip_community_fields(config: SettingsData): SettingsData {
-  return {
-    ...config,
-    community_default_sort: undefined,
-    community_show_rules: undefined,
-    community_show_leadership: undefined,
-    community_show_subscribers: undefined,
-    community_show_description: undefined,
-  }
-}
 
 /**
  * Find existing config comment from a user under the config post using Blog Logic
@@ -179,7 +168,79 @@ export async function broadcastConfigToHive(
 }
 
 /**
- * Load config from Hive blockchain for a specific user
+ * Load raw config from Hive blockchain -- only fields actually saved.
+ * Does NOT apply Zod defaults, does NOT strip community fields.
+ * Returns a Partial<SettingsData> so callers know which fields were explicit.
+ *
+ * This is the foundation of the unified config pipeline (config-pipeline.ts).
+ */
+export async function load_raw_config_from_hive(
+  username: string
+): Promise<Partial<SettingsData> | null> {
+  try {
+    const existingConfig = await findExistingConfig(username)
+
+    if (!existingConfig) {
+      return null
+    }
+
+    // Extract JSON from markdown code block
+    const jsonMatch = existingConfig.body.match(/```json\n([\s\S]*?)\n```/)
+    if (!jsonMatch) {
+      return null
+    }
+
+    const raw: unknown = JSON.parse(jsonMatch[1])
+
+    // Basic shape validation -- reject completely invalid payloads
+    // but do NOT apply Zod defaults (that would mask missing fields)
+    if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
+      if (import.meta.env.DEV) {
+        console.warn("Invalid config shape from blockchain (not an object)")
+      }
+      return null
+    }
+
+    // Validate with Zod schema to reject bad field types,
+    // but extract only the keys that were present in raw JSON
+    const result = settings_schema.safeParse(raw)
+
+    if (!result.success) {
+      if (import.meta.env.DEV) {
+        console.warn(
+          "Invalid config from blockchain, using defaults:",
+          result.error.issues
+        )
+      }
+      return null
+    }
+
+    // Return only the fields that actually existed in the raw JSON.
+    // This prevents Zod defaults from overriding mode-specific defaults.
+    // After the guard above, `raw` is narrowed to `object` (non-null, non-array).
+    const raw_keys = new Set(Object.keys(raw))
+    const parsed = result.data
+    const explicit_fields: Partial<SettingsData> = {}
+
+    for (const [key, value] of Object.entries(parsed)) {
+      if (raw_keys.has(key)) {
+        Object.assign(explicit_fields, { [key]: value })
+      }
+    }
+
+    return explicit_fields
+  } catch (error) {
+    if (import.meta.env.DEV) console.error("Failed to load config from Hive:", error)
+    return null
+  }
+}
+
+/**
+ * Load config from Hive blockchain for a specific user.
+ * Returns full SettingsData with Zod defaults applied.
+ *
+ * @deprecated Use load_and_prepare_config() from config-pipeline.ts instead.
+ * Kept for backwards compatibility (JSON diff preview in admin handlers).
  */
 export async function loadConfigFromHive(username: string): Promise<SettingsData | null> {
   try {
@@ -205,7 +266,9 @@ export async function loadConfigFromHive(username: string): Promise<SettingsData
       return null
     }
 
-    const config = result.data as SettingsData
+    // result.data is SettingsDataParsed (Zod inferred) which structurally
+    // matches SettingsData -- spread into a plain object to satisfy the return type.
+    const config: SettingsData = { ...defaultSettings, ...result.data }
 
     // In user mode, strip community-specific fields to prevent stale data leaking
     if (!IS_COMMUNITY) {

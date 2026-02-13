@@ -4,11 +4,11 @@
 import type { Accessor } from 'solid-js'
 import type { AuthUser } from '../../../auth'
 import { showToast } from '../../../ui'
-import { broadcastConfigToHive, getConfigUrlSync, loadConfigFromHive, strip_community_fields } from '../../hive-broadcast'
-import { settingsToRecord } from '../../types/index'
+import { broadcastConfigToHive, getConfigUrlSync, loadConfigFromHive } from '../../hive-broadcast'
+import { settings_to_record, strip_community_fields } from '../../types/index'
 import { setHasUnsavedChanges, syncSettingsToStore } from '../../store'
 import { getSettingsSnapshot } from '../../queries'
-import { IS_COMMUNITY } from '../../../../lib/config'
+import { is_community_mode } from '../../queries'
 import type { SettingsData } from '../../types/index'
 
 /**
@@ -68,7 +68,7 @@ export async function handle_preview_json(
 
   try {
     const snapshot = getSettingsSnapshot()
-    const new_settings = settingsToRecord(snapshot)
+    const new_settings = settings_to_record(snapshot)
     setJsonNewContent(new_settings)
     setJsonPreviewContent(JSON.stringify(new_settings, null, 2))
 
@@ -167,7 +167,7 @@ export function handle_load_local_storage() {
   }
   try {
     const parsed: SettingsData = JSON.parse(saved)
-    const safe_settings = IS_COMMUNITY ? parsed : strip_community_fields(parsed)
+    const safe_settings = is_community_mode() ? parsed : strip_community_fields(parsed)
     syncSettingsToStore(safe_settings, true)
     setHasUnsavedChanges(true)
     showToast('Settings loaded from local storage', 'success')

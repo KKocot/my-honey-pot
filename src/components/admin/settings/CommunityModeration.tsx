@@ -4,7 +4,7 @@
 import { createSignal, createResource, Show, For } from "solid-js";
 import type { BridgePost } from "@hiveio/workerbee/blog-logic";
 import { fetch_community_posts } from "../../../lib/queries";
-import { HIVE_USERNAME } from "../../../lib/config";
+import { settings } from "../store";
 import { currentUser } from "../../auth";
 import {
   broadcast_pin_post,
@@ -235,7 +235,7 @@ function PostRow(props: PostRowProps) {
 // ============================================
 
 export function CommunityModeration() {
-  const community_name = HIVE_USERNAME;
+  const community_name = settings.hiveUsername;
   const [is_broadcasting, set_is_broadcasting] = createSignal(false);
 
   // Mute dialog state

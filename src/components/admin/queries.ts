@@ -4,8 +4,8 @@
 import { QueryClient, createQuery, createMutation, useQueryClient } from '@tanstack/solid-query'
 import { createStore, produce } from 'solid-js/store'
 import { createSignal, createEffect, onCleanup } from 'solid-js'
-import { defaultSettings, migrateCardLayout, themePresets, ALL_PAGE_ELEMENT_IDS, settingsToRecord, type SettingsData, type LayoutSection, type ThemeColors, type PageLayout } from './types/index'
-import { loadConfigFromHive } from './hive-broadcast'
+import { get_default_settings, themePresets, type SettingsData, type LayoutSection, type ThemeColors } from './types/index'
+import { load_and_prepare_config } from '../../lib/config-pipeline'
 
 // Import from store.ts to avoid circular dependency with AdminPanel
 // Note: setHasUnsavedChanges is defined in store.ts and re-exported here
@@ -22,7 +22,13 @@ import {
   type BridgePost,
   type NaiAsset,
 } from '@hiveio/workerbee/blog-logic'
-import { HIVE_API_ENDPOINTS } from '../../lib/config'
+import { HIVE_API_ENDPOINTS, IS_COMMUNITY, is_community } from '../../lib/config'
+import {
+  fetch_community,
+  fetch_community_posts,
+  type FetchCommunityPostsResult,
+} from '../../lib/queries'
+import type { HiveCommunity } from '../../lib/types/community'
 import { is_dark_color } from '../../shared/utils/color'
 
 // Configure workerbee to use our custom Hive API endpoints
@@ -82,7 +88,10 @@ export const queryClient = new QueryClient({
 // Local Store for UI State
 // ============================================
 
-const [settings, setSettings] = createStore<SettingsData>(defaultSettings)
+// Always init with user defaults (false). IS_COMMUNITY relies on HIVE_USERNAME env var
+// which is stripped client-side (no PUBLIC_ prefix). AdminPanel onMount overwrites
+// the store with correct SSR-provided settings including proper community defaults.
+const [settings, setSettings] = createStore<SettingsData>(get_default_settings(false))
 
 export { settings }
 
@@ -178,43 +187,24 @@ export function setLayoutSections(sections: LayoutSection[]) {
 
 
 // ============================================
-// Helper to migrate all card layouts
+// Owner context for correct community mode detection client-side
 // ============================================
+// IS_COMMUNITY from config.ts uses env vars that may not be available
+// in the browser (non-PUBLIC_ vars are stripped by Astro/Vite).
+// This signal receives the owner username from AdminPanel props
+// (which come from the server) so we can detect community mode correctly.
 
-function migrateSettingsLayouts(data: Partial<SettingsData>): Partial<SettingsData> {
-  const result: Partial<SettingsData> = {}
+const [ownerContext, setOwnerContextInternal] = createSignal<string>('')
 
-  // Only migrate layouts that exist and are valid - migrateCardLayout returns null for invalid
-  const migratedPost = migrateCardLayout(data.postCardLayout)
-  if (migratedPost) {
-    result.postCardLayout = migratedPost
-  }
-
-  const migratedComment = migrateCardLayout(data.commentCardLayout)
-  if (migratedComment) {
-    result.commentCardLayout = migratedComment
-  }
-
-  const migratedAuthorProfile = migrateCardLayout(data.authorProfileLayout2)
-  if (migratedAuthorProfile) {
-    result.authorProfileLayout2 = migratedAuthorProfile
-  }
-
-  return result
+/** Set the blog owner username (called once from AdminPanel onMount) */
+export function setOwnerContext(username: string): void {
+  setOwnerContextInternal(username)
 }
 
-// Filter out obsolete page elements from loaded pageLayout
-function migratePageLayout(pageLayout: PageLayout | undefined): PageLayout {
-  if (!pageLayout) return defaultSettings.pageLayout
-
-  const validElementIds = new Set(ALL_PAGE_ELEMENT_IDS)
-
-  return {
-    sections: pageLayout.sections.map(section => ({
-      ...section,
-      elements: section.elements.filter(el => validElementIds.has(el))
-    }))
-  }
+/** Detect community mode from owner context (reliable client-side) */
+export function is_community_mode(): boolean {
+  const owner = ownerContext()
+  return owner ? is_community(owner) : IS_COMMUNITY
 }
 
 // ============================================
@@ -243,62 +233,18 @@ function clearFetchError(): void {
 async function fetchSettings(): Promise<SettingsData> {
   lastFetchError = null
 
-  // Load from Hive if user is logged in
-  if (currentUsername()) {
+  // Load from Hive through unified pipeline if user is logged in
+  const username = currentUsername()
+  if (username) {
     try {
-      const hiveConfig = await loadConfigFromHive(currentUsername()!)
-      if (hiveConfig) {
-        const migratedData = migrateSettingsLayouts(hiveConfig)
-        // Migrate pageLayout to filter out obsolete elements like 'comments'
-        const pageLayout = migratePageLayout(hiveConfig.pageLayout)
-
-        // Build final settings - start with defaults, then overlay hiveConfig (excluding undefined values)
-        const finalSettings: SettingsData = { ...defaultSettings }
-
-        // Apply hiveConfig values, but skip undefined/null to keep defaults
-        const hiveConfigRecord = settingsToRecord(hiveConfig as SettingsData)
-        for (const key of Object.keys(hiveConfig) as (keyof SettingsData)[]) {
-          if (hiveConfig[key] !== undefined && hiveConfig[key] !== null) {
-            const finalRecord = settingsToRecord(finalSettings)
-            finalRecord[key] = hiveConfigRecord[key]
-            Object.assign(finalSettings, { [key]: hiveConfigRecord[key] })
-          }
-        }
-
-        // Apply migrated layouts (these are already validated to exist)
-        Object.assign(finalSettings, migratedData)
-
-        // Ensure layoutSections and pageLayout have proper values
-        if (!finalSettings.layoutSections?.length) {
-          finalSettings.layoutSections = defaultSettings.layoutSections
-        }
-        // Use migrated pageLayout (obsolete elements filtered out)
-        finalSettings.pageLayout = pageLayout
-
-        // Ensure authorProfileLayout2 has sections
-        if (!finalSettings.authorProfileLayout2?.sections?.length) {
-          finalSettings.authorProfileLayout2 = defaultSettings.authorProfileLayout2
-        }
-
-        // Ensure postCardLayout has sections
-        if (!finalSettings.postCardLayout?.sections?.length) {
-          finalSettings.postCardLayout = defaultSettings.postCardLayout
-        }
-
-        // Ensure commentCardLayout has sections
-        if (!finalSettings.commentCardLayout?.sections?.length) {
-          finalSettings.commentCardLayout = defaultSettings.commentCardLayout
-        }
-
-        return finalSettings
-      }
+      return await load_and_prepare_config(username, is_community_mode())
     } catch (error) {
       lastFetchError = error instanceof Error ? error.message : 'Failed to connect to Hive API'
       throw new Error(`Hive API error: ${lastFetchError}. Please refresh the page.`)
     }
   }
 
-  return defaultSettings
+  return get_default_settings(is_community_mode())
 }
 
 async function saveSettingsToServer(data: SettingsData): Promise<boolean> {
@@ -481,6 +427,70 @@ export function useHivePreviewQuery(
     queryFn: () => fetchHivePreviewData(debouncedUsername() || '', postsPerPage()),
     enabled: enabled() && !!debouncedUsername(),
     staleTime: 1000 * 60 * 2, // 2 minutes
+    retry: 1,
+  }))
+}
+
+// ============================================
+// Community Preview Data
+// ============================================
+
+export interface CommunityPreviewData {
+  community: HiveCommunity | null
+  posts: BridgePost[]
+}
+
+async function fetchCommunityPreviewData(
+  community_name: string,
+  posts_per_page: number
+): Promise<CommunityPreviewData | null> {
+  if (!community_name) return null
+
+  try {
+    const [community, posts_result] = await Promise.all([
+      fetch_community(community_name),
+      fetch_community_posts(community_name, 'trending', posts_per_page),
+    ])
+
+    return {
+      community,
+      posts: posts_result.posts,
+    }
+  } catch (error) {
+    if (import.meta.env.DEV) console.error('Failed to fetch community preview data:', error)
+    return null
+  }
+}
+
+// ============================================
+// Community Preview Query Hook
+// ============================================
+
+export function useCommunityPreviewQuery(
+  community_name: () => string | undefined,
+  posts_per_page: () => number,
+  enabled: () => boolean
+) {
+  const [debouncedName, setDebouncedName] = createSignal(community_name())
+  let debounceTimer: ReturnType<typeof setTimeout> | null = null
+
+  createEffect(() => {
+    const name = community_name()
+    if (debounceTimer) clearTimeout(debounceTimer)
+    debounceTimer = setTimeout(() => {
+      setDebouncedName(name)
+    }, 500)
+
+    onCleanup(() => {
+      if (debounceTimer) clearTimeout(debounceTimer)
+    })
+  })
+
+  return createQuery(() => ({
+    queryKey: ['community-preview', debouncedName(), posts_per_page()] as const,
+    queryFn: () => fetchCommunityPreviewData(debouncedName() || '', posts_per_page()),
+    enabled: enabled() && !!debouncedName(),
+    staleTime: 1000 * 60 * 2,
     retry: 1,
   }))
 }

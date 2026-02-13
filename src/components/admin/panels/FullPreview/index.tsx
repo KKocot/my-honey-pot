@@ -4,7 +4,7 @@
 import { Show, For, createMemo, createSignal, type Accessor } from 'solid-js'
 import { Portal } from 'solid-js/web'
 import { settings } from '../../store'
-import { useHivePreviewQuery } from '../../queries'
+import { useHivePreviewQuery, useCommunityPreviewQuery, is_community_mode } from '../../queries'
 import { get_section_wrapper_class } from '../../../../shared/components/page-layout'
 import { SectionRenderer } from '../../../../shared/components/solid/SectionRenderer'
 
@@ -22,16 +22,29 @@ export function FullPreview(props: FullPreviewProps) {
   // Active tab state for navigation routing
   const [activeTab, setActiveTab] = createSignal('posts')
 
-  // Use TanStack Query for data fetching with caching
+  const in_community_mode = createMemo(() => is_community_mode())
+
+  // User mode: fetch profile + blog posts
   const hiveQuery = useHivePreviewQuery(
     () => settings.hiveUsername,
     () => settings.postsPerPage || 20,
-    props.open
+    () => props.open() && !in_community_mode()
   )
 
-  // Derive data and loading state from query
+  // Community mode: fetch community data + ranked posts
+  const communityQuery = useCommunityPreviewQuery(
+    () => settings.hiveUsername,
+    () => settings.postsPerPage || 20,
+    () => props.open() && in_community_mode()
+  )
+
+  // Unified data accessors
   const data = () => hiveQuery.data ?? null
-  const loading = () => hiveQuery.isLoading
+  const community_data = () => communityQuery.data ?? null
+  const loading = () => in_community_mode() ? communityQuery.isLoading : hiveQuery.isLoading
+  const has_data = () => in_community_mode() ? !!community_data() : !!data()
+  // undefined in user mode, string (possibly empty) in community mode
+  const community_title = () => in_community_mode() ? (community_data()?.community?.title || '') : undefined
 
   // Handle escape key
   const handleKeyDown = (e: KeyboardEvent) => {
@@ -92,7 +105,9 @@ export function FullPreview(props: FullPreviewProps) {
 
           {/* Preview info badge */}
           <div class="fixed top-4 left-4 z-50 px-3 py-1.5 rounded-lg bg-primary text-primary-text text-sm font-medium shadow-lg">
-            Preview Mode - @{settings.hiveUsername || 'no user'}
+            Preview Mode - {in_community_mode()
+              ? (community_title() || settings.hiveUsername || 'Community')
+              : `@${settings.hiveUsername || 'no user'}`}
           </div>
 
           {/* Loading state */}
@@ -116,7 +131,7 @@ export function FullPreview(props: FullPreviewProps) {
           </Show>
 
           {/* Error/No data state */}
-          <Show when={settings.hiveUsername && !data() && !loading()}>
+          <Show when={settings.hiveUsername && !has_data() && !loading()}>
             <div class="flex items-center justify-center min-h-screen">
               <div class="text-center">
                 <p class="text-text text-lg">Failed to load data for @{settings.hiveUsername}</p>
@@ -126,7 +141,7 @@ export function FullPreview(props: FullPreviewProps) {
           </Show>
 
           {/* Main content */}
-          <Show when={data() && !loading()}>
+          <Show when={has_data() && !loading()}>
             <div class="max-w-7xl mx-auto px-4 py-16">
               {/* Top slot - full width on all screens */}
               <For each={topSections()}>
@@ -137,6 +152,9 @@ export function FullPreview(props: FullPreviewProps) {
                       activeTab={activeTab}
                       setActiveTab={setActiveTab}
                       data={data}
+                      community_title={community_title()}
+                      community_posts={community_data()?.posts}
+                      community={community_data()?.community ?? null}
                     />
                   </div>
                 )}
@@ -161,6 +179,9 @@ export function FullPreview(props: FullPreviewProps) {
                               activeTab={activeTab}
                               setActiveTab={setActiveTab}
                               data={data}
+                              community_title={community_title()}
+                              community_posts={community_data()?.posts}
+                              community={community_data()?.community ?? null}
                             />
                           </div>
                         )}
@@ -183,6 +204,9 @@ export function FullPreview(props: FullPreviewProps) {
                               activeTab={activeTab}
                               setActiveTab={setActiveTab}
                               data={data}
+                              community_title={community_title()}
+                              community_posts={community_data()?.posts}
+                              community={community_data()?.community ?? null}
                             />
                           </div>
                         )}
@@ -200,6 +224,9 @@ export function FullPreview(props: FullPreviewProps) {
                             activeTab={activeTab}
                             setActiveTab={setActiveTab}
                             data={data}
+                            community_title={community_title()}
+                            community_posts={community_data()?.posts}
+                            community={community_data()?.community ?? null}
                           />
                         </div>
                       )}
@@ -218,6 +245,9 @@ export function FullPreview(props: FullPreviewProps) {
                         activeTab={activeTab}
                         setActiveTab={setActiveTab}
                         data={data}
+                        community_title={community_title()}
+                        community_posts={community_data()?.posts}
+                        community={community_data()?.community ?? null}
                       />
                     </div>
                   )}
@@ -233,6 +263,9 @@ export function FullPreview(props: FullPreviewProps) {
                       activeTab={activeTab}
                       setActiveTab={setActiveTab}
                       data={data}
+                      community_title={community_title()}
+                      community_posts={community_data()?.posts}
+                      community={community_data()?.community ?? null}
                     />
                   </div>
                 )}

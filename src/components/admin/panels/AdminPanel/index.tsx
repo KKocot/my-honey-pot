@@ -24,15 +24,16 @@ import {
   useSettingsQuery,
   syncSettingsToStore,
   setCurrentUsername,
+  setOwnerContext,
   getLastFetchError,
-  updateSettings,
 } from '../../queries'
 import { setHasUnsavedChanges, getHasUnsavedChanges } from '../../store'
 import { LoginModal } from './LoginModal'
 import { JsonPreviewModal } from './JsonPreviewModal'
 import { BottomBar } from './BottomBar'
 import { handle_broadcast_to_hive, handle_preview_json } from './handlers'
-import { IS_COMMUNITY, HIVE_USERNAME } from '../../../../lib/config'
+import { is_community } from '../../../../lib/config'
+import { get_default_settings } from '../../types/index'
 import { fetch_community } from '../../../../lib/queries'
 
 type AdminTab = 'design' | 'community' | 'moderation'
@@ -43,6 +44,15 @@ interface AdminPanelContentProps {
 }
 
 function AdminPanelContent(props: AdminPanelContentProps) {
+  // Set owner context BEFORE useSettingsQuery so fetchSettings() uses correct
+  // community mode from the first call. IS_COMMUNITY from config.ts may be
+  // false client-side because non-PUBLIC_ env vars are stripped by Astro/Vite.
+  if (props.ownerUsername) {
+    setOwnerContext(props.ownerUsername)
+  }
+
+  const community_mode = () => is_community(props.ownerUsername ?? '')
+
   const settingsQuery = useSettingsQuery()
   const [showPreview, setShowPreview] = createSignal(false)
   const [showLoginModal, setShowLoginModal] = createSignal(false)
@@ -60,7 +70,7 @@ function AdminPanelContent(props: AdminPanelContentProps) {
 
   // Fetch community data to check user role (only in community mode)
   const [community_data] = createResource(
-    () => (IS_COMMUNITY ? HIVE_USERNAME : undefined),
+    () => (community_mode() ? props.ownerUsername : undefined),
     (name) => fetch_community(name)
   )
 
@@ -100,12 +110,18 @@ function AdminPanelContent(props: AdminPanelContentProps) {
       }
       syncSettingsToStore(settings_with_username, true)
     } else if (props.ownerUsername) {
-      updateSettings({ hiveUsername: props.ownerUsername })
+      const community_mode = is_community(props.ownerUsername)
+      const defaults = get_default_settings(community_mode)
+      const settings_with_username = {
+        ...defaults,
+        hiveUsername: props.ownerUsername,
+      }
+      syncSettingsToStore(settings_with_username, true)
     }
     window.addEventListener('beforeunload', handleBeforeUnload)
 
     // Handle ?tab= URL parameter for direct navigation
-    if (IS_COMMUNITY) {
+    if (community_mode()) {
       const url_params = new URLSearchParams(window.location.search)
       const tab_param = url_params.get('tab')
       if (tab_param === 'community' || tab_param === 'moderation') {
@@ -120,7 +136,11 @@ function AdminPanelContent(props: AdminPanelContentProps) {
 
   createEffect(on(() => settingsQuery.data, (data) => {
     if (data) {
-      syncSettingsToStore(data, true)
+      // Preserve hiveUsername from ownerUsername if query returned default/empty
+      const merged = !data.hiveUsername && props.ownerUsername
+        ? { ...data, hiveUsername: props.ownerUsername }
+        : data
+      syncSettingsToStore(merged, true)
     }
   }))
 
@@ -298,7 +318,7 @@ function AdminPanelContent(props: AdminPanelContentProps) {
       {/* Main Admin Panel Content */}
       <Show when={!settingsQuery.isLoading}>
         {/* Tab navigation (visible only in community mode) */}
-        <Show when={IS_COMMUNITY}>
+        <Show when={community_mode()}>
           <nav class="flex border-b border-border mb-6">
             <button
               type="button"
@@ -361,13 +381,13 @@ function AdminPanelContent(props: AdminPanelContentProps) {
         </Show>
 
         {/* Community tab (only in community mode) */}
-        <Show when={IS_COMMUNITY && activeTab() === 'community'}>
+        <Show when={community_mode() && activeTab() === 'community'}>
           <CommunitySettings />
-          <CommunityInfo community_name={HIVE_USERNAME} />
+          <CommunityInfo community_name={props.ownerUsername ?? ''} />
         </Show>
 
         {/* Moderation tab (only for mod/admin/owner in community mode) */}
-        <Show when={IS_COMMUNITY && activeTab() === 'moderation' && is_moderator()}>
+        <Show when={community_mode() && activeTab() === 'moderation' && is_moderator()}>
           <CommunityModeration />
         </Show>
 
