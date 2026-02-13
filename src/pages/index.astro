@@ -9,12 +9,10 @@ import { prepare_user_page } from '../lib/ssr/prepare-user-page'
 
 import { BlogContent } from '../components/home/blog/BlogContent'
 import { CommunityContent } from '../components/community/CommunityContent'
-import { CommunityProfile } from '../components/community/CommunityProfile'
-import { CommunitySidebar } from '../components/community/CommunitySidebar'
 
 import SlotRenderer from '../components/home/blog/SlotRenderer.astro'
 import NoscriptFallback from '../components/home/blog/NoscriptFallback.astro'
-import { type SiteSettings, type PageLayout, type PageSlotPosition, defaultPageLayout } from '../components/home/types'
+import { type SiteSettings, type PageLayout, type PageSlotPosition, defaultPageLayout, defaultCommunityPageLayout } from '../components/home/types'
 
 import type { IPaginationCursor } from '@hiveio/workerbee/blog-logic'
 
@@ -60,10 +58,10 @@ const defaultDescription = IS_COMMUNITY
   : 'Posts from Hive blockchain'
 const siteDescription = settings.siteDescription || defaultDescription
 
-// Use new pageLayout format, fallback to default
+// Use new pageLayout format, fallback to mode-appropriate default
 const pageLayout: PageLayout = settings.pageLayout?.sections?.length
   ? settings.pageLayout
-  : defaultPageLayout
+  : IS_COMMUNITY ? defaultCommunityPageLayout : defaultPageLayout
 
 // Group sections by slot position
 const sectionsBySlot: Record<PageSlotPosition, typeof pageLayout.sections> = {
@@ -201,6 +199,7 @@ const slotRendererProps = {
   nextPostsPageUrl,
   hasMoreComments,
   nextCommentsPageUrl,
+  communityData,
 }
 ---
 
@@ -225,32 +224,51 @@ const slotRendererProps = {
     {/* ============================================ */}
     {IS_COMMUNITY && hiveUsername && (
       <>
-        {/* Top sections */}
+        {/* Top sections - render elements in order */}
         <SlotRenderer sections={sectionsBySlot['top']} context="top" {...slotRendererProps} />
 
-        <div class="sidebar-layout">
-          {/* Left Sidebar: Community Profile + Sidebar */}
-          <aside class="sidebar-left" style={`--sidebar-width: ${sidebarWidthPx}px;`}>
-            {communityData && (
-              <div class="space-y-4">
-                <CommunityProfile
-                  client:only="solid-js"
-                  community={communityData}
-                  show_subscribers={settings.community_show_subscribers !== false}
-                />
-                <CommunitySidebar
-                  client:only="solid-js"
-                  community={communityData}
-                  show_description={settings.community_show_description !== false}
-                  show_rules={settings.community_show_rules !== false}
-                  show_leadership={settings.community_show_leadership !== false}
-                />
-              </div>
+        {/* Main content with optional sidebars - Responsive Layout */}
+        {hasSidebars ? (
+          <div class="sidebar-layout">
+            {/* Left Sidebar */}
+            {hasLeftSidebar && (
+              <aside class="sidebar-left" style={`--sidebar-width: ${sidebarWidthPx}px;`}>
+                <SlotRenderer sections={sectionsBySlot['sidebar-left']} context="sidebar-left" {...slotRendererProps} />
+              </aside>
             )}
-          </aside>
 
-          {/* Main Content: Community Posts */}
-          <main class="main-content">
+            {/* Main Content */}
+            <main class="main-content">
+              {dehydrated_state && (
+                <div class="js-only">
+                  <CommunityContent
+                    client:only="solid-js"
+                    community_name={hiveUsername}
+                    initial_sort={communitySortOrder}
+                    posts_per_page={postsLimit}
+                    settings={settings}
+                    dehydrated_state={dehydrated_state}
+                    post_card_layout={settings.postCardLayout}
+                  />
+                </div>
+              )}
+              {!dehydrated_state && (
+                <div class="text-center py-12 bg-bg-card rounded-xl shadow-sm border border-border">
+                  <p class="text-text-muted">Loading community...</p>
+                </div>
+              )}
+            </main>
+
+            {/* Right Sidebar */}
+            {hasRightSidebar && (
+              <aside class="sidebar-right" style={`--sidebar-width: ${sidebarWidthPx}px;`}>
+                <SlotRenderer sections={sectionsBySlot['sidebar-right']} context="sidebar-right" {...slotRendererProps} />
+              </aside>
+            )}
+          </div>
+        ) : (
+          /* No sidebars - render main content directly */
+          <>
             {dehydrated_state && (
               <div class="js-only">
                 <CommunityContent
@@ -269,8 +287,8 @@ const slotRendererProps = {
                 <p class="text-text-muted">Loading community...</p>
               </div>
             )}
-          </main>
-        </div>
+          </>
+        )}
 
         {/* Bottom sections */}
         <SlotRenderer sections={sectionsBySlot['bottom']} context="bottom" {...slotRendererProps} />

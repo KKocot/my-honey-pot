@@ -9,6 +9,7 @@
 import { Show, For, createMemo, type Accessor } from 'solid-js'
 import { settings } from '../../../components/admin/store'
 import type { HiveData } from '../../../components/admin/queries'
+import type { BridgePost } from '@hiveio/workerbee/blog-logic'
 import {
   createAuthorProfileData,
   createAuthorProfileSettings,
@@ -33,6 +34,9 @@ import {
   renderFooter as renderFooterHtml,
 } from '../footer'
 import { PostCard } from './PostCard'
+import { CommunityProfile } from '../../../components/community/CommunityProfile'
+import { CommunitySidebar } from '../../../components/community/CommunitySidebar'
+import type { HiveCommunity } from '../../../lib/types/community'
 
 interface ElementRendererProps {
   elementId: string
@@ -40,13 +44,23 @@ interface ElementRendererProps {
   activeTab?: Accessor<string>
   setActiveTab?: (tab: string) => void
   data?: Accessor<HiveData | null>
+  community_title?: string
+  community_posts?: BridgePost[]
+  community?: HiveCommunity | null
 }
 
 // Render header element using shared component
-function renderHeader() {
+// community_title is undefined in user mode, empty string or title in community mode
+function renderHeader(community_title?: string) {
+  const username = settings.hiveUsername
+  const is_community = community_title !== undefined
+  const default_name = is_community
+    ? (community_title || username || 'Hive Community')
+    : (username ? `${username} Blog` : 'Hive Blog')
+  const default_description = is_community ? '' : 'Posts from Hive blockchain'
   const data = createHeaderData(
-    settings.siteName || 'Hive Blog',
-    settings.siteDescription || 'Posts from Hive blockchain'
+    settings.siteName || default_name,
+    settings.siteDescription || default_description
   )
   const header_settings = createHeaderSettings({
     headerMaxWidthPx: settings.headerMaxWidthPx,
@@ -104,8 +118,8 @@ function renderFooter() {
 }
 
 // Posts component - reactive
-function PostsSection(props: { data: Accessor<HiveData | null> }) {
-  const posts = () => props.data()?.posts || []
+function PostsSection(props: { data: Accessor<HiveData | null>; community_posts?: BridgePost[] }) {
+  const posts = () => props.community_posts ?? props.data()?.posts ?? []
 
   const gridSettings = createMemo(() => ({
     layout: settings.postsLayout || 'grid',
@@ -213,11 +227,15 @@ function ThreadsSection() {
 }
 
 // Main content section that switches based on active tab
-function MainContentSection(props: { activeTab: Accessor<string>; data: Accessor<HiveData | null> }) {
+function MainContentSection(props: {
+  activeTab: Accessor<string>
+  data: Accessor<HiveData | null>
+  community_posts?: BridgePost[]
+}) {
   return (
     <>
       <Show when={props.activeTab() === 'posts'}>
-        <PostsSection data={props.data} />
+        <PostsSection data={props.data} community_posts={props.community_posts} />
       </Show>
       <Show when={props.activeTab() === 'comments'}>
         <CommentsSection data={props.data} />
@@ -262,19 +280,37 @@ export function ElementRenderer(props: ElementRendererProps) {
   return (
     <>
       <Show when={props.elementId === 'header'}>
-        {renderHeader()}
+        {renderHeader(props.community_title)}
       </Show>
       <Show when={props.elementId === 'authorProfile'}>
         {renderAuthorProfile(props.inSidebar ? 'vertical' : (settings.authorProfileLayout || 'horizontal'), props.data!)}
       </Show>
       <Show when={props.elementId === 'posts'}>
-        <MainContentSection activeTab={props.activeTab!} data={props.data!} />
+        <MainContentSection activeTab={props.activeTab!} data={props.data!} community_posts={props.community_posts} />
       </Show>
       <Show when={props.elementId === 'footer'}>
         {renderFooter()}
       </Show>
-      <Show when={props.elementId === 'navigation'}>
+      <Show when={props.elementId === 'navigation' && props.community_title === undefined}>
         <NavigationPreview activeTab={props.activeTab!} setActiveTab={props.setActiveTab!} />
+      </Show>
+      <Show when={props.elementId === 'communityProfile' && props.community}>
+        {(community) => (
+          <CommunityProfile
+            community={community()}
+            show_subscribers={settings.community_show_subscribers !== false}
+          />
+        )}
+      </Show>
+      <Show when={props.elementId === 'communitySidebar' && props.community}>
+        {(community) => (
+          <CommunitySidebar
+            community={community()}
+            show_description={settings.community_show_description !== false}
+            show_rules={settings.community_show_rules !== false}
+            show_leadership={settings.community_show_leadership !== false}
+          />
+        )}
       </Show>
     </>
   )

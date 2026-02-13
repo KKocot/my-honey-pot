@@ -209,6 +209,8 @@ export const pageElementLabels: Record<string, string> = {
   header: 'Header',
   navigation: 'Navigation Tabs',
   authorProfile: 'Author Profile',
+  communityProfile: 'Community Profile',
+  communitySidebar: 'Community Sidebar',
   posts: 'Posts List',
   footer: 'Footer',
 }
@@ -218,6 +220,8 @@ export const pageElementColors: Record<string, string> = {
   header: 'bg-accent text-white',
   navigation: 'bg-accent text-white',
   authorProfile: 'bg-accent text-white',
+  communityProfile: 'bg-accent text-white',
+  communitySidebar: 'bg-accent text-white',
   posts: 'bg-accent text-white',
   footer: 'bg-accent text-white',
 }
@@ -244,6 +248,8 @@ export const ALL_PAGE_ELEMENT_IDS = [
   'header',
   'navigation',
   'authorProfile',
+  'communityProfile',
+  'communitySidebar',
   'posts',
   'footer',
 ]

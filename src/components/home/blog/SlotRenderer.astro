@@ -14,6 +14,8 @@ import AuthorProfile from '../cards/AuthorProfile.astro'
 import BlogLogicPostsGrid from './BlogLogicPostsGrid.astro'
 import CommentCard from '../cards/CommentCard.astro'
 import Footer from '../layout/Footer.astro'
+import { CommunityProfile } from '../../community/CommunityProfile'
+import { CommunitySidebar } from '../../community/CommunitySidebar'
 import { createHeaderData, renderHeaderCompact, renderHeaderBottom } from '../../../shared/components/header'
 import {
   get_section_wrapper_class,
@@ -26,6 +28,7 @@ import {
 
 import type { SiteSettings, CardLayout, SocialLink, PageLayoutSection } from '../types'
 import type { Post, BridgeComment, IDatabaseAccount, IProfile, IGlobalProperties, IAccountManabars } from '@hiveio/workerbee/blog-logic'
+import type { HiveCommunity } from '../../../lib/types/community'
 
 interface AuthorProfileBaseProps {
   username: string
@@ -76,6 +79,8 @@ interface Props {
   nextPostsPageUrl: string | null
   hasMoreComments: boolean
   nextCommentsPageUrl: string | null
+  // Community data (passed through for communityProfile/communitySidebar elements)
+  communityData?: HiveCommunity | null
 }
 
 const {
@@ -102,6 +107,7 @@ const {
   nextPostsPageUrl,
   hasMoreComments,
   nextCommentsPageUrl,
+  communityData,
 } = Astro.props
 
 // Use shared utilities for CSS classes
@@ -133,12 +139,30 @@ const activeSections = sections.filter(s => s.active !== false && s.elements.len
       </>
     )}
 
-    {elementId === 'navigation' && (
+    {elementId === 'navigation' && !communityData && (
       <Navigation activeTab={activeTab} postsCount={blogLogicPosts.length} commentsCount={hiveComments.length} navigationTabs={settings.navigationTabs} />
     )}
 
     {elementId === 'authorProfile' && (
       <AuthorProfile {...authorProfileBaseProps} />
+    )}
+
+    {elementId === 'communityProfile' && communityData && (
+      <CommunityProfile
+        client:only="solid-js"
+        community={communityData}
+        show_subscribers={settings.community_show_subscribers !== false}
+      />
+    )}
+
+    {elementId === 'communitySidebar' && communityData && (
+      <CommunitySidebar
+        client:only="solid-js"
+        community={communityData}
+        show_description={settings.community_show_description !== false}
+        show_rules={settings.community_show_rules !== false}
+        show_leadership={settings.community_show_leadership !== false}
+      />
     )}
 
     {elementId === 'posts' && hiveUsername && (

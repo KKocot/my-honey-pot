@@ -4,8 +4,8 @@
 
 import '../styles/global.css'
 import { loadConfigFromHive } from '../components/admin/hive-broadcast'
-import { themePresets, type ThemeColors } from '../components/admin/types'
-import { HIVE_USERNAME } from '../lib/config'
+import { themePresets, type ThemeColors, get_default_settings } from '../components/admin/types'
+import { HIVE_USERNAME, IS_COMMUNITY } from '../lib/config'
 import { is_dark_color } from '../shared/utils/color'
 
 interface SettingsWithTheme {
@@ -42,8 +42,10 @@ const faviconUrl = hiveUsername
   ? `https://images.hive.blog/u/${hiveUsername}/avatar`
   : '/favicon.svg'
 
-// Default to light theme colors
-let themeColors: ThemeColors = themePresets[0].colors
+// Default to mode-aware theme colors (community uses ocean, user uses light)
+const mode_defaults = get_default_settings(IS_COMMUNITY)
+const default_preset = themePresets.find((p) => p.id === mode_defaults.siteTheme)
+let themeColors: ThemeColors = default_preset?.colors || themePresets[0].colors
 
 // Use settings from props if available, otherwise load from Hive
 let settings = propsSettings

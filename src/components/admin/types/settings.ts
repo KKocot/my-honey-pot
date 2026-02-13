@@ -279,19 +279,138 @@ export const defaultSettings: SettingsData = {
   community_show_description: true,
 }
 
+export const defaultCommunitySettings: SettingsData = {
+  ...defaultSettings,
+  siteTheme: "ocean",
+  postsLayout: "grid",
+  gridColumns: 2,
+  cardLayout: "vertical",
+  cardGapPx: 20,
+  cardPaddingPx: 20,
+  cardBorderRadiusPx: 12,
+  titleSizePx: 18,
+  thumbnailSizePx: 200,
+  showSummary: true,
+  summaryMaxLength: 100,
+  showAuthorProfile: false,
+  cardHoverEffect: "lift",
+  scrollAnimationType: "slide-up",
+  postCardLayout: {
+    sections: [
+      {
+        id: "sec-main",
+        orientation: "vertical",
+        children: [
+          { type: "element", id: "thumbnail" },
+          {
+            type: "section",
+            section: {
+              id: "sec-author-date",
+              orientation: "horizontal",
+              children: [
+                { type: "element", id: "avatar" },
+                { type: "element", id: "date" },
+              ],
+            },
+          },
+          { type: "element", id: "title" },
+          { type: "element", id: "summary" },
+          {
+            type: "section",
+            section: {
+              id: "sec-meta",
+              orientation: "horizontal",
+              children: [
+                { type: "element", id: "votes" },
+                { type: "element", id: "comments" },
+              ],
+            },
+          },
+        ],
+      },
+    ],
+  },
+  layoutSections: [
+    { id: "header", position: "top", enabled: true },
+    { id: "posts", position: "main", enabled: true },
+    { id: "footer", position: "bottom", enabled: true },
+  ],
+  pageLayout: {
+    sections: [
+      {
+        id: "page-sec-1",
+        slot: "top",
+        orientation: "horizontal",
+        elements: ["header"],
+        active: true,
+      },
+      {
+        id: "page-sec-2",
+        slot: "sidebar-left",
+        orientation: "vertical",
+        elements: ["communityProfile", "communitySidebar"],
+        active: true,
+      },
+      {
+        id: "page-sec-3",
+        slot: "main",
+        orientation: "vertical",
+        elements: ["posts"],
+        active: true,
+      },
+      {
+        id: "page-sec-4",
+        slot: "bottom",
+        orientation: "horizontal",
+        elements: ["footer"],
+        active: true,
+      },
+    ],
+  },
+};
+
+export function get_default_settings(is_community: boolean): SettingsData {
+  return is_community ? defaultCommunitySettings : defaultSettings;
+}
+
 /** Keys of SettingsData that are community-only and should be stripped in user mode */
 export const COMMUNITY_SETTINGS_KEYS: ReadonlyArray<keyof SettingsData> = [
-  'community_default_sort',
-  'community_show_rules',
-  'community_show_leadership',
-  'community_show_subscribers',
-  'community_show_description',
-] as const
+  "community_default_sort",
+  "community_show_rules",
+  "community_show_leadership",
+  "community_show_subscribers",
+  "community_show_description",
+] as const;
+
+/**
+ * Remove community-specific fields from a settings object (used in user mode).
+ * Works with both full SettingsData and Partial<SettingsData>.
+ * COMMUNITY_SETTINGS_KEYS is the single source of truth for which fields to strip.
+ */
+export function strip_community_fields<T extends Partial<SettingsData>>(
+  config: T
+): T {
+  const keys_to_strip: ReadonlySet<string> = new Set(COMMUNITY_SETTINGS_KEYS);
+  const result: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(config)) {
+    if (!keys_to_strip.has(key)) {
+      result[key] = value;
+    }
+  }
+  // Safe: we only removed keys, shape is subset of T
+  return result as T;
+}
 
 /**
  * Helper function to convert SettingsData to Record for diff comparison.
- * This avoids TypeScript errors when using object spread/iteration.
+ * Uses JSON round-trip to produce a plain object (no prototype chain issues).
  */
-export function settingsToRecord(settings: SettingsData): Record<string, unknown> {
-  return { ...settings } as Record<string, unknown>
+export function settings_to_record(
+  settings: SettingsData
+): Record<string, unknown> {
+  const json: unknown = JSON.parse(JSON.stringify(settings));
+  if (typeof json === "object" && json !== null && !Array.isArray(json)) {
+    return json as Record<string, unknown>;
+  }
+  return {};
 }

@@ -9,6 +9,8 @@
 import { For, type Accessor } from 'solid-js'
 import type { PageLayoutSection } from '../../../components/admin/types/index'
 import type { HiveData } from '../../../components/admin/queries'
+import type { BridgePost } from '@hiveio/workerbee/blog-logic'
+import type { HiveCommunity } from '../../../lib/types/community'
 import { get_slot_container_class, get_element_wrapper_class } from '../page-layout'
 import { ElementRenderer } from './ElementRenderer'
 
@@ -18,6 +20,9 @@ interface SectionRendererProps {
   activeTab: Accessor<string>
   setActiveTab: (tab: string) => void
   data: Accessor<HiveData | null>
+  community_title?: string
+  community_posts?: BridgePost[]
+  community?: HiveCommunity | null
 }
 
 export function SectionRenderer(props: SectionRendererProps) {
@@ -32,6 +37,9 @@ export function SectionRenderer(props: SectionRendererProps) {
               activeTab={props.activeTab}
               setActiveTab={props.setActiveTab}
               data={props.data}
+              community_title={props.community_title}
+              community_posts={props.community_posts}
+              community={props.community}
             />
           </div>
         )}
