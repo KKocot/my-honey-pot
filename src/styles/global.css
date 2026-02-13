@@ -103,9 +103,8 @@
 
   .sidebar-layout .sidebar-left,
   .sidebar-layout .sidebar-right {
-    /* Sidebar takes exact width of its content - no min, no max */
-    flex: 0 0 auto;
-    width: auto;
+    flex: 0 0 var(--sidebar-width, 280px);
+    width: var(--sidebar-width, 280px);
   }
 
   .sidebar-layout .sidebar-left {
