@@ -11,7 +11,7 @@ import type { NavigationTab } from './navigation'
 import type { SocialLink } from './social'
 
 /** Sort order options for community posts display */
-export type CommunityDisplaySortOrder = 'trending' | 'hot' | 'created' | 'payout'
+export type CommunityDisplaySortOrder = 'trending' | 'hot' | 'created' | 'payout' | 'muted'
 
 // Naming convention:
 // Legacy fields use camelCase (e.g. postsSortOrder, showAuthorProfile).
@@ -115,12 +115,19 @@ export interface SettingsData {
   navigationTabs: NavigationTab[]
   // Social media links for author profile
   socialLinks: SocialLink[]
+  // Footer settings
+  footer_text?: string
+  footer_show_kofi?: boolean
   // Community-specific display settings
   community_default_sort?: CommunityDisplaySortOrder
   community_show_rules?: boolean
   community_show_leadership?: boolean
   community_show_subscribers?: boolean
   community_show_description?: boolean
+  community_avatar_size_px?: number
+  community_title_size_px?: number
+  community_about_size_px?: number
+  community_visible_sorts?: CommunityDisplaySortOrder[]
 }
 
 export const defaultSettings: SettingsData = {
@@ -272,11 +279,17 @@ export const defaultSettings: SettingsData = {
     { id: 'comments', label: 'Comments', enabled: true, showCount: false },
   ],
   socialLinks: [],
+  footer_text: '',
+  footer_show_kofi: true,
   community_default_sort: 'trending',
   community_show_rules: true,
   community_show_leadership: true,
   community_show_subscribers: true,
   community_show_description: true,
+  community_avatar_size_px: 48,
+  community_title_size_px: 16,
+  community_about_size_px: 14,
+  community_visible_sorts: ['trending', 'hot', 'created', 'payout'],
 }
 
 export const defaultCommunitySettings: SettingsData = {
@@ -380,6 +393,54 @@ export const COMMUNITY_SETTINGS_KEYS: ReadonlyArray<keyof SettingsData> = [
   "community_show_leadership",
   "community_show_subscribers",
   "community_show_description",
+  "community_avatar_size_px",
+  "community_title_size_px",
+  "community_about_size_px",
+  "community_visible_sorts",
+] as const;
+
+/** Keys of SettingsData that are user-only and should be stripped in community mode */
+export const USER_ONLY_SETTINGS_KEYS: ReadonlyArray<keyof SettingsData> = [
+  "navigationTabs",
+  "commentCardLayout",
+  "commentAvatarSizePx",
+  "commentPaddingPx",
+  "commentMaxLength",
+  "showCommentsTab",
+  "commentShowAuthor",
+  "commentShowAvatar",
+  "commentShowReplyContext",
+  "commentShowTimestamp",
+  "commentShowRepliesCount",
+  "commentShowVotes",
+  "commentShowPayout",
+  "commentShowViewLink",
+  "authorProfileLayout2",
+  "authorAvatarSizePx",
+  "authorCoverHeightPx",
+  "authorUsernameSizePx",
+  "authorDisplayNameSizePx",
+  "authorAboutSizePx",
+  "authorStatsSizePx",
+  "authorMetaSizePx",
+  "authorReputationSizePx",
+  "socialLinks",
+  // Author Profile visibility flags
+  "showAuthorProfile",
+  "authorProfileLayout",
+  "showAuthorAbout",
+  "showAuthorLocation",
+  "showAuthorWebsite",
+  "showAuthorJoinDate",
+  "showAuthorReputation",
+  "showAuthorFollowers",
+  "showAuthorFollowing",
+  "showAuthorVotingPower",
+  "showAuthorHiveBalance",
+  "showAuthorHbdBalance",
+  "showAuthorCoverImage",
+  "showPostCount",
+  "showAuthorRewards",
 ] as const;
 
 /**
@@ -399,6 +460,38 @@ export function strip_community_fields<T extends Partial<SettingsData>>(
   }
   // Safe: we only removed keys, shape is subset of T
   return result as T;
+}
+
+/**
+ * Remove user-only fields from a settings object (used in community mode).
+ * Works with both full SettingsData and Partial<SettingsData>.
+ * USER_ONLY_SETTINGS_KEYS is the single source of truth for which fields to strip.
+ */
+export function strip_user_fields<T extends Partial<SettingsData>>(
+  config: T
+): T {
+  const keys_to_strip: ReadonlySet<string> = new Set(USER_ONLY_SETTINGS_KEYS);
+  const result: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(config)) {
+    if (!keys_to_strip.has(key)) {
+      result[key] = value;
+    }
+  }
+  return result as T;
+}
+
+/**
+ * Strip irrelevant fields based on current mode.
+ * In community mode: removes user-only fields (comments, author profile details, etc.).
+ * In user mode: removes community-specific fields (community_*).
+ */
+export function strip_irrelevant_fields<T extends Partial<SettingsData>>(
+  config: T,
+  is_community: boolean
+): T {
+  return is_community
+    ? strip_user_fields(config)
+    : strip_community_fields(config);
 }
 
 /**

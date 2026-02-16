@@ -140,14 +140,24 @@ export const settings_schema = z
     // Social media links (array of objects - validate loosely)
     socialLinks: z.array(z.unknown()).optional().default([]),
 
+    // Footer settings
+    footer_text: z.string().max(500).optional(),
+    footer_show_kofi: z.boolean().optional(),
+
     // Community-specific display settings
     community_default_sort: z
-      .enum(["trending", "hot", "created", "payout"])
+      .enum(["trending", "hot", "created", "payout", "muted"])
       .optional(),
     community_show_rules: z.boolean().optional(),
     community_show_leadership: z.boolean().optional(),
     community_show_subscribers: z.boolean().optional(),
     community_show_description: z.boolean().optional(),
+    community_avatar_size_px: z.number().min(32).max(96).optional(),
+    community_title_size_px: z.number().min(14).max(28).optional(),
+    community_about_size_px: z.number().min(12).max(18).optional(),
+    community_visible_sorts: z
+      .array(z.enum(["trending", "hot", "created", "payout", "muted"]))
+      .optional(),
   })
   .passthrough();
 

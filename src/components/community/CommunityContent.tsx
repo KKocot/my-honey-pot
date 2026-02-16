@@ -57,11 +57,19 @@ interface CommunityContentProps {
 // Constants
 // ============================================
 
-const COMMUNITY_TABS: { id: CommunitySortOrder; label: string }[] = [
+const ALL_COMMUNITY_TABS: { id: CommunitySortOrder; label: string }[] = [
   { id: "trending", label: "Trending" },
   { id: "hot", label: "Hot" },
   { id: "created", label: "New" },
   { id: "payout", label: "Payouts" },
+  { id: "muted", label: "Muted" },
+];
+
+const DEFAULT_VISIBLE_SORTS: CommunitySortOrder[] = [
+  "trending",
+  "hot",
+  "created",
+  "payout",
 ];
 
 // ============================================
@@ -315,6 +323,15 @@ const CommunityPostCard: Component<{
 // ============================================
 
 const CommunityContentInner: Component<CommunityContentProps> = (props) => {
+  const visible_tabs = createMemo(() => {
+    const visible = props.settings.community_visible_sorts;
+    const allowed =
+      Array.isArray(visible) && visible.length > 0
+        ? visible
+        : DEFAULT_VISIBLE_SORTS;
+    return ALL_COMMUNITY_TABS.filter((tab) => allowed.includes(tab.id));
+  });
+
   const [active_sort, set_active_sort] = createSignal<CommunitySortOrder>(
     props.initial_sort
   );
@@ -371,7 +388,7 @@ const CommunityContentInner: Component<CommunityContentProps> = (props) => {
       {/* Sort Tabs */}
       <nav class="border-b border-border mb-6">
         <div class="flex flex-wrap">
-          <For each={COMMUNITY_TABS}>
+          <For each={visible_tabs()}>
             {(tab) => (
               <button
                 type="button"
