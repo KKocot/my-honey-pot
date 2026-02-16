@@ -228,8 +228,7 @@ const CommunityPostCard: Component<{
   const [is_visible, set_is_visible] = createSignal(false);
 
   const handle_post_click = () => {
-    const url = props.post.url || `/@${props.post.author}/${props.post.permlink}`;
-    window.location.href = url;
+    window.location.href = `/${props.post.author}/${props.post.permlink}`;
   };
 
   onMount(() => {
