@@ -13,9 +13,10 @@ import { CardAppearanceSettings } from '../../settings/CardAppearanceSettings'
 import { AuthorProfileSettings } from '../../settings/AuthorProfileSettings'
 import { CommentSettings } from '../../settings/CommentSettings'
 import { NavigationSettings } from '../../settings/NavigationSettings'
-import { CommunitySettings } from '../../settings/CommunitySettings'
-import { CommunityInfo } from '../../settings/CommunityInfo'
 import { CommunityDisplaySettings } from '../../settings/CommunityDisplaySettings'
+import { CommunityProfileSettings } from '../../settings/CommunityProfileSettings'
+import { CommunitySidebarSettings } from '../../settings/CommunitySidebarSettings'
+import { FooterSettings } from '../../settings/FooterSettings'
 import { CommunityModeration } from '../../settings/CommunityModeration'
 import { FullPreview } from '../FullPreview/index'
 import type { SettingsData } from '../../types/index'
@@ -36,7 +37,7 @@ import { is_community } from '../../../../lib/config'
 import { get_default_settings } from '../../types/index'
 import { fetch_community } from '../../../../lib/queries'
 
-type AdminTab = 'design' | 'community' | 'moderation'
+type AdminTab = 'design' | 'moderation'
 
 interface AdminPanelContentProps {
   initialSettings?: SettingsData | null
@@ -124,7 +125,7 @@ function AdminPanelContent(props: AdminPanelContentProps) {
     if (community_mode()) {
       const url_params = new URLSearchParams(window.location.search)
       const tab_param = url_params.get('tab')
-      if (tab_param === 'community' || tab_param === 'moderation') {
+      if (tab_param === 'moderation') {
         setActiveTab(tab_param)
       }
     }
@@ -334,20 +335,6 @@ function AdminPanelContent(props: AdminPanelContentProps) {
                 <span class="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-t-full" />
               </Show>
             </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab('community')}
-              class={`relative px-4 py-2.5 text-sm font-medium transition-colors ${
-                activeTab() === 'community'
-                  ? 'text-text'
-                  : 'text-text-muted hover:text-text'
-              }`}
-            >
-              Community
-              <Show when={activeTab() === 'community'}>
-                <span class="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-t-full" />
-              </Show>
-            </button>
             <Show when={is_moderator()}>
               <button
                 type="button"
@@ -371,19 +358,24 @@ function AdminPanelContent(props: AdminPanelContentProps) {
         <Show when={activeTab() === 'design'}>
           <TemplateSelector />
           <LayoutEditor />
-          <NavigationSettings />
+          <Show when={!community_mode()}>
+            <NavigationSettings />
+          </Show>
           <SiteSettings />
-          <AuthorProfileSettings />
+          <Show when={!community_mode()}>
+            <AuthorProfileSettings />
+          </Show>
           <PostsLayoutSettings />
           <CardAppearanceSettings />
-          <CommentSettings />
-          <CommunityDisplaySettings />
-        </Show>
-
-        {/* Community tab (only in community mode) */}
-        <Show when={community_mode() && activeTab() === 'community'}>
-          <CommunitySettings />
-          <CommunityInfo community_name={props.ownerUsername ?? ''} />
+          <FooterSettings />
+          <Show when={!community_mode()}>
+            <CommentSettings />
+          </Show>
+          <Show when={community_mode()}>
+            <CommunityProfileSettings />
+            <CommunitySidebarSettings />
+            <CommunityDisplaySettings />
+          </Show>
         </Show>
 
         {/* Moderation tab (only for mod/admin/owner in community mode) */}
