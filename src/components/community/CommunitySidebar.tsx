@@ -105,7 +105,7 @@ const CommunitySidebar: Component<CommunitySidebarProps> = (props) => {
   const rules = () => parse_rules(community().flag_text);
 
   return (
-    <div class="space-y-4">
+    <div class="space-y-4 max-w-xs">
       {/* Description */}
       <Show when={(props.show_description !== false) && community().description}>
         <div class="bg-bg-card rounded-xl shadow-sm border border-border p-4">
