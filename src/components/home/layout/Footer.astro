@@ -2,15 +2,21 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 Krzysztof Kocot
 
-import { renderFooter, createFooterSettings } from '../../../shared/components/footer'
+import { renderFooter, createFooterData, createFooterSettings } from '../../../shared/components/footer'
 
 interface Props {
   class?: string
+  footer_text?: string
+  footer_show_kofi?: boolean
 }
 
-const { class: className = '' } = Astro.props
-const settings = createFooterSettings({ class: className })
-const html = renderFooter(undefined, settings)
+const { class: className = '', footer_text, footer_show_kofi } = Astro.props
+const footer_data = createFooterData({
+  custom_text: footer_text,
+  show_kofi: footer_show_kofi,
+})
+const footer_settings = createFooterSettings({ class: className })
+const html = renderFooter(footer_data, footer_settings)
 ---
 
 <div set:html={html} />

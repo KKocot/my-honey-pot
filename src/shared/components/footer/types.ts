@@ -11,6 +11,8 @@ export interface FooterData {
   kofi_url: string
   kofi_image_url: string
   platform_name: string
+  custom_text?: string
+  show_kofi?: boolean
 }
 
 export interface FooterSettings {

@@ -32,6 +32,7 @@ import {
 } from '../header'
 import {
   renderFooter as renderFooterHtml,
+  createFooterData,
 } from '../footer'
 import { PostCard } from './PostCard'
 import { CommunityProfile } from '../../../components/community/CommunityProfile'
@@ -114,7 +115,11 @@ function renderAuthorProfile(_layout: 'horizontal' | 'vertical' = 'horizontal', 
 
 // Render footer element using shared component
 function renderFooter() {
-  return <div innerHTML={renderFooterHtml()} />
+  const footer_data = createFooterData({
+    custom_text: settings.footer_text,
+    show_kofi: settings.footer_show_kofi,
+  })
+  return <div innerHTML={renderFooterHtml(footer_data)} />
 }
 
 // Posts component - reactive

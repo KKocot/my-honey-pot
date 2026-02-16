@@ -37,16 +37,35 @@ export function renderFooter(
   const kofi_image_url = escape_url(footer_data.kofi_image_url)
   const platform_name = escape_html(footer_data.platform_name)
   const extra_class = escape_html(footer_settings.extra_class)
+  const show_kofi = footer_data.show_kofi !== false
+  const custom_text = footer_data.custom_text?.trim() ?? ''
+
+  // Build footer segments, join with separator to avoid empty dividers
+  const segments: string[] = []
+
+  // Segment 1: custom text or default "Built by ..."
+  if (custom_text) {
+    segments.push(`<span>${escape_html(custom_text)}</span>`)
+  } else {
+    segments.push(`<span>Built by <a href="${author_url}" target="_blank" rel="noopener noreferrer" class="text-primary hover:text-primary-hover transition-colors font-medium">${author_name}</a></span>`)
+  }
+
+  // Segment 2: Ko-fi button (optional)
+  if (show_kofi) {
+    segments.push(`<a href="${kofi_url}" target="_blank" rel="noopener noreferrer" class="inline-flex hover:opacity-90 transition-opacity" aria-label="Support on Ko-fi">
+      <img src="${kofi_image_url}" alt="Buy Me a Coffee at ko-fi.com" height="24" width="120" loading="lazy" />
+    </a>`)
+  }
+
+  // Segment 3: platform credit
+  segments.push(`<span>Powered by ${platform_name}</span>`)
+
+  const separator = '<span class="text-border">|</span>'
+  const content_html = segments.join(`\n    ${separator}\n    `)
 
   return `<footer class="text-center py-6 text-text-muted text-sm border-t border-border mt-6 ${extra_class}">
   <div class="flex items-center justify-center gap-3 flex-wrap">
-    <span>Built by <a href="${author_url}" target="_blank" rel="noopener noreferrer" class="text-primary hover:text-primary-hover transition-colors font-medium">${author_name}</a></span>
-    <span class="text-border">|</span>
-    <a href="${kofi_url}" target="_blank" rel="noopener noreferrer" class="inline-flex hover:opacity-90 transition-opacity" aria-label="Support on Ko-fi">
-      <img src="${kofi_image_url}" alt="Buy Me a Coffee at ko-fi.com" height="24" width="120" loading="lazy" />
-    </a>
-    <span class="text-border">|</span>
-    <span>Powered by ${platform_name}</span>
+    ${content_html}
   </div>
 </footer>`
 }
