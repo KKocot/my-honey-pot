@@ -82,6 +82,7 @@
 .sidebar-layout .main-content {
   flex: 1;
   min-width: 0;
+  overflow: hidden;
   order: 3; /* Main content last on mobile */
 }
 
@@ -93,32 +94,30 @@
   order: 2; /* Right sidebar second on mobile */
 }
 
-/* Desktop layout (lg: 1024px and up) */
+/* Desktop layout (lg: 1024px and up) — CSS Grid */
 @media (min-width: 1024px) {
   .sidebar-layout {
-    flex-direction: row;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
     gap: 2rem;
-    align-items: flex-start; /* Sidebars don't stretch to full height */
-  }
-
-  .sidebar-layout .sidebar-left,
-  .sidebar-layout .sidebar-right {
-    flex: 0 0 var(--sidebar-width, 280px);
-    width: var(--sidebar-width, 280px);
+    align-items: start;
   }
 
   .sidebar-layout .sidebar-left {
-    order: 1;
-  }
-
-  .sidebar-layout .sidebar-right {
-    order: 3;
+    grid-column: 1;
+    grid-row: 1;
   }
 
   .sidebar-layout .main-content {
-    order: 2; /* Main content in center on desktop */
-    flex: 1 1 0%;
-    min-width: 0; /* Allow shrinking below content size */
+    grid-column: 2;
+    grid-row: 1;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .sidebar-layout .sidebar-right {
+    grid-column: 3;
+    grid-row: 1;
   }
 }
 
