@@ -9,7 +9,15 @@ import {
   type PageLayoutSection,
   type PageSlotPosition,
 } from '../../types/index'
-import { MockHeader, MockAuthorProfile, MockPosts, MockNavigation, MockFooter } from './MockComponents'
+import {
+  MockHeader,
+  MockAuthorProfile,
+  MockPosts,
+  MockNavigation,
+  MockFooter,
+  MockCommunityProfile,
+  MockCommunitySidebar,
+} from './MockComponents'
 
 // ============================================
 // Page Layout Preview with Mock Content
@@ -33,6 +41,10 @@ export function PageLayoutPreview() {
         return <MockNavigation compact={isCompact} />
       case 'authorProfile':
         return <MockAuthorProfile compact={isCompact} />
+      case 'communityProfile':
+        return <MockCommunityProfile compact={isCompact} />
+      case 'communitySidebar':
+        return <MockCommunitySidebar compact={isCompact} />
       case 'posts':
         return <MockPosts compact={isCompact} />
       case 'footer':

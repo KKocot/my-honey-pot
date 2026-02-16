@@ -80,6 +80,51 @@ export function MockNavigation(props: { compact?: boolean }) {
   )
 }
 
+export function MockCommunityProfile(props: { compact?: boolean }) {
+  return (
+    <div class={`bg-bg-card rounded border border-border ${props.compact ? 'p-1.5' : 'p-2'}`}>
+      <div class="flex items-center gap-2">
+        <div class={`rounded-full bg-primary/30 flex-shrink-0 ${props.compact ? 'w-6 h-6' : 'w-8 h-8'}`} />
+        <div class="min-w-0 flex-1">
+          <div class={`font-semibold text-text truncate ${props.compact ? 'text-[9px]' : 'text-xs'}`}>Hive Community</div>
+          <div class={`text-text-muted ${props.compact ? 'text-[7px]' : 'text-[9px]'}`}>hive-123456</div>
+        </div>
+      </div>
+      <Show when={!props.compact}>
+        <div class="mt-2 flex gap-2 text-[8px]">
+          <span class="text-text-muted">Subscribers: 3.4K</span>
+          <span class="text-text-muted">Authors: 128</span>
+        </div>
+      </Show>
+    </div>
+  )
+}
+
+export function MockCommunitySidebar(props: { compact?: boolean }) {
+  return (
+    <div class={`bg-bg-card rounded border border-border ${props.compact ? 'p-1.5' : 'p-2'} space-y-1.5`}>
+      <div>
+        <div class={`font-semibold text-text ${props.compact ? 'text-[7px]' : 'text-[9px]'}`}>Description</div>
+        <div class={`text-text-muted ${props.compact ? 'text-[6px]' : 'text-[7px]'}`}>
+          A community for blockchain enthusiasts...
+        </div>
+      </div>
+      <div class="border-t border-border pt-1">
+        <div class={`font-semibold text-text ${props.compact ? 'text-[7px]' : 'text-[9px]'}`}>Rules</div>
+        <div class={`text-text-muted ${props.compact ? 'text-[6px]' : 'text-[7px]'}`}>
+          1. Be respectful 2. No spam
+        </div>
+      </div>
+      <Show when={!props.compact}>
+        <div class="border-t border-border pt-1">
+          <div class="font-semibold text-text text-[9px]">Team</div>
+          <div class="text-text-muted text-[7px]">@admin, @mod1, @mod2</div>
+        </div>
+      </Show>
+    </div>
+  )
+}
+
 export function MockFooter(props: { compact?: boolean }) {
   return (
     <div class={`bg-bg-card rounded border border-border text-center ${props.compact ? 'p-1' : 'p-2'}`}>

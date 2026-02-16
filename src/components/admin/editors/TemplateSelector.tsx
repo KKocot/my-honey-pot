@@ -3,8 +3,14 @@
 
 import { For } from 'solid-js'
 import { settings, updateSettings } from '../store'
-import { applyThemeColors } from '../queries'
-import { websiteTemplates, themePresets, type WebsiteTemplate, type SettingsData } from '../types/index'
+import { applyThemeColors, is_community_mode } from '../queries'
+import {
+  websiteTemplates,
+  themePresets,
+  strip_irrelevant_fields,
+  type WebsiteTemplate,
+  type SettingsData,
+} from '../types/index'
 import { showToast } from '../../ui'
 
 // ============================================
@@ -106,14 +112,15 @@ function TemplateCard(props: TemplateCardProps) {
 
 export function TemplateSelector() {
   const applyTemplate = (template: WebsiteTemplate) => {
-    // Apply all template settings
-    const newSettings: Partial<SettingsData> = {
+    // Apply template settings, stripping fields irrelevant for current mode
+    const raw_settings: Partial<SettingsData> = {
       ...template.settings,
       // Ensure scroll animation is enabled when type is set
       scrollAnimationEnabled: template.settings.scrollAnimationType !== 'none',
     }
+    const filtered_settings = strip_irrelevant_fields(raw_settings, is_community_mode())
 
-    updateSettings(newSettings)
+    updateSettings(filtered_settings)
 
     // Apply theme colors
     if (template.settings.siteTheme) {
@@ -289,7 +296,8 @@ export function TemplateSelector() {
       commentPaddingPx: randomInt(12, 24),
     }
 
-    updateSettings(randomSettings)
+    const filtered_random = strip_irrelevant_fields(randomSettings, is_community_mode())
+    updateSettings(filtered_random)
     applyThemeColors(randomTheme.colors)
 
     showToast('Applied random settings!', 'success')

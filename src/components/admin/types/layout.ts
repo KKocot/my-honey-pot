@@ -253,3 +253,20 @@ export const ALL_PAGE_ELEMENT_IDS = [
   'posts',
   'footer',
 ]
+
+// Page element IDs available per mode
+export const USER_PAGE_ELEMENT_IDS: ReadonlySet<string> = new Set([
+  'header',
+  'navigation',
+  'authorProfile',
+  'posts',
+  'footer',
+])
+
+export const COMMUNITY_PAGE_ELEMENT_IDS: ReadonlySet<string> = new Set([
+  'header',
+  'communityProfile',
+  'communitySidebar',
+  'posts',
+  'footer',
+])
