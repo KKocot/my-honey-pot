@@ -2,10 +2,13 @@
 // Copyright (C) 2026 Krzysztof Kocot
 
 import { CommunityOperation } from "@hiveio/wax";
-import { configureEndpoints, getWax } from "@hiveio/workerbee/blog-logic";
+import { configureEndpoints } from "@hiveio/workerbee/blog-logic";
 import { HIVE_API_ENDPOINTS } from "../../lib/config";
+import { get_broadcast_chain } from "../../lib/broadcast-chain";
 import { getOnlineClient } from "../../lib/hbauth-service";
+import { is_raw_wif, sign_with_wif } from "../../lib/wif-signer";
 import { with_retry } from "../../lib/retry";
+import { currentUser } from "../auth/auth-store";
 
 // Configure workerbee to use our custom Hive API endpoints
 configureEndpoints(HIVE_API_ENDPOINTS);
@@ -33,9 +36,10 @@ export interface BroadcastResult {
 // ============================================
 
 /**
- * Verify HB-Auth session, build transaction, sign and broadcast.
- * Extracts the repeated auth check + sign + broadcast + error handling
- * pattern shared by all community broadcast functions.
+ * Build transaction, sign and broadcast.
+ * Supports HB-Auth (production) and direct WIF (dev/mirrornet) signing.
+ * Extracts the repeated sign + broadcast + error handling pattern
+ * shared by all community broadcast functions.
  */
 async function broadcast_community_operation(
   username: string,
@@ -43,23 +47,7 @@ async function broadcast_community_operation(
   context_label: string
 ): Promise<BroadcastResult> {
   try {
-    const chain = await getWax();
-    const auth_client = await getOnlineClient();
-
-    // Verify user is authenticated with HB-Auth
-    const registered_user =
-      await auth_client.getRegisteredUserByUsername(username);
-    if (!registered_user) {
-      throw new Error(
-        "User not registered in HB-Auth. Please login first."
-      );
-    }
-
-    if (!registered_user.unlocked) {
-      throw new Error(
-        "Wallet is locked. Please unlock with your password first."
-      );
-    }
+    const chain = await get_broadcast_chain();
 
     // Create transaction
     const tx = await chain.createTransaction();
@@ -69,9 +57,37 @@ async function broadcast_community_operation(
       build_operation(new CommunityOperation()).authorize(username)
     );
 
-    // Sign with HB-Auth (key never leaves IndexedDB)
+    // Determine signing method from auth store
+    const user = currentUser();
+    if (!user) {
+      return { success: false, error: "Not logged in. Please login first." };
+    }
+    const private_key = user.privateKey;
     const digest = tx.sigDigest;
-    const signature = await auth_client.sign(username, digest, "posting");
+
+    let signature: string;
+
+    if (is_raw_wif(private_key)) {
+      // Direct WIF signing via beekeeper (dev/mirrornet mode)
+      signature = await sign_with_wif(private_key, digest);
+    } else {
+      // HB-Auth signing (production mode -- key managed in IndexedDB)
+      const auth_client = await getOnlineClient();
+      const registered_user =
+        await auth_client.getRegisteredUserByUsername(username);
+      if (!registered_user) {
+        throw new Error(
+          "User not registered in HB-Auth. Please login first."
+        );
+      }
+      if (!registered_user.unlocked) {
+        throw new Error(
+          "Wallet is locked. Please unlock with your password first."
+        );
+      }
+      signature = await auth_client.sign(username, digest, "posting");
+    }
+
     tx.addSignature(signature);
 
     // Broadcast with retry logic

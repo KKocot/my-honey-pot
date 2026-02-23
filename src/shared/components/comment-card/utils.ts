@@ -9,6 +9,7 @@ import type { CommentCardData, CommentCardSettings } from './types'
 import type { BridgePost } from '@hiveio/workerbee/blog-logic'
 import { formatTimeAgo } from '../../formatters'
 import { defaultCommentCardSettings } from './types'
+import { hive_avatar_url } from '../../../lib/config'
 
 /**
  * Process comment body - strip markdown but keep readable
@@ -70,7 +71,7 @@ export function createCommentCardData(comment: BridgePost): CommentCardData {
     votesCount: comment.stats?.total_votes ?? comment.active_votes?.length ?? 0,
     payout,
     url: comment.url,
-    avatarUrl: `https://images.hive.blog/u/${comment.author}/avatar`,
+    avatarUrl: hive_avatar_url(comment.author),
   }
 }
 

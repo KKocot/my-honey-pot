@@ -5,6 +5,7 @@ import { For, Show, createMemo, createSignal } from 'solid-js'
 import { settings } from '../store'
 import type { CardSection, CardSectionChild } from '../types/index'
 import { SHADOW_MAP } from '../../../shared/constants'
+import { hive_avatar_url } from '../../../lib/config'
 
 // ============================================
 // Sample post data for preview
@@ -151,7 +152,7 @@ export function PostCard(props: PostCardProps) {
       case 'avatar':
         return (
           <img
-            src={`https://images.hive.blog/u/${props.post.author}/avatar`}
+            src={hive_avatar_url(props.post.author)}
             alt={props.post.author}
             class="rounded-full object-cover flex-shrink-0"
             style={{

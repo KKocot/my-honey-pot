@@ -10,6 +10,7 @@
 import type { PostCardData, PostCardSettings, CardSection, CardSectionChild, CardLayout, PostsGridSettings } from './types'
 import { getPostSummary, formatPayout } from './utils'
 import { escape_html } from '../../formatters'
+import { hive_avatar_url } from '../../../lib/config'
 
 /**
  * Validate URL (must start with http/https)
@@ -68,7 +69,7 @@ function renderElement(
     case 'avatar':
       if (!data.author) return ''
       const author = escape_html(data.author)
-      const avatarUrl = `https://images.hive.blog/u/${author}/avatar/small`
+      const avatarUrl = hive_avatar_url(author, "small")
       if (isVertical) {
         return `<a href="/@${author}" class="flex items-center gap-2 no-underline" onclick="event.stopPropagation()"><img src="${avatarUrl}" alt="" class="rounded-full flex-shrink-0" style="width: 24px; height: 24px;" onerror="this.style.display='none'" /><span class="text-xs text-text-muted truncate">@${author}</span></a>`
       }

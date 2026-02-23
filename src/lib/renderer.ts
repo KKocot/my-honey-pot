@@ -3,10 +3,13 @@
 
 import { DefaultRenderer, TablePlugin } from './renderer/index';
 import { escape_html } from '../shared/formatters/html';
+import { HIVE_IMAGES_ENDPOINT, HIVE_BLOG_URL, hive_image_proxy } from './config';
 
-const HIVE_IMAGES_ENDPOINT = 'https://images.hive.blog';
+function escape_regex(str: string): string {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
 
-const HIVE_BLOG_URL = 'https://blog.openhive.network';
+const ESCAPED_IMAGES_ENDPOINT = escape_regex(HIVE_IMAGES_ENDPOINT);
 
 const renderer = new DefaultRenderer({
   baseUrl: `${HIVE_BLOG_URL}/`,
@@ -22,14 +25,14 @@ const renderer = new DefaultRenderer({
   assetsWidth: 640,
   assetsHeight: 480,
   plugins: [new TablePlugin()],
-  imageProxyFn: (url: string) => `${HIVE_IMAGES_ENDPOINT}/768x0/${url}`,
+  imageProxyFn: (url: string) => hive_image_proxy(url, 768),
   usertagUrlFn: (account: string) => `${HIVE_BLOG_URL}/@${account}`,
   hashtagUrlFn: (hashtag: string) => `${HIVE_BLOG_URL}/trending/${hashtag}`,
   isLinkSafeFn: (url: string) =>
-    !!url.match(`^(/(?!/)|${HIVE_IMAGES_ENDPOINT})`) ||
+    !!url.match(`^(/(?!/)|${ESCAPED_IMAGES_ENDPOINT})`) ||
     !!url.match(`^(/(?!/)|#)`),
   addExternalCssClassToMatchingLinksFn: (url: string) =>
-    !url.match(`^(/(?!/)|${HIVE_IMAGES_ENDPOINT})`) &&
+    !url.match(`^(/(?!/)|${ESCAPED_IMAGES_ENDPOINT})`) &&
     !url.match(`^(/(?!/)|#)`)
 });
 

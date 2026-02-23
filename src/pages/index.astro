@@ -20,7 +20,7 @@ import type { IPaginationCursor } from '@hiveio/workerbee/blog-logic'
 // SSR Data Preparation (delegated to modules)
 // ============================================
 
-const hiveUsername = import.meta.env.HIVE_USERNAME || process.env.HIVE_USERNAME
+const hiveUsername = HIVE_USERNAME
 const url = new URL(Astro.request.url)
 
 const community_page = IS_COMMUNITY && hiveUsername

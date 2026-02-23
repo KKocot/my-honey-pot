@@ -5,14 +5,25 @@
 // Application Configuration
 // ============================================
 
-// Helper to get env variable from both client and server contexts
-const getEnv = (key: string, fallback: string): string => {
-  // import.meta.env works in dev and client-side (Vite)
+// Helper for PUBLIC_ env vars: Vite requires STATIC access to import.meta.env.PUBLIC_*
+// Dynamic access (import.meta.env[key]) is NOT replaced during bundling and returns undefined
+function get_public_env(
+  static_value: string | undefined,
+  fallback: string,
+): string {
+  if (typeof static_value === "string" && static_value.trim() !== "")
+    return static_value;
+  return fallback;
+}
+
+// Helper for server-only env vars (no PUBLIC_ prefix)
+// Vite loads .env into import.meta.env (SSR) but NOT into process.env.
+// Check import.meta.env first (Vite dev/SSR), then process.env (production Node.js).
+function get_server_env(key: string, fallback: string): string {
   if (typeof import.meta !== "undefined" && import.meta.env) {
-    const val = import.meta.env[key];
-    if (typeof val === "string" && val.trim() !== "") return val;
+    const meta_val = (import.meta.env as Record<string, string | undefined>)[key];
+    if (typeof meta_val === "string" && meta_val.trim() !== "") return meta_val;
   }
-  // process.env works in Node.js SSR
   if (typeof process !== "undefined" && process.env) {
     const val = process.env[key];
     if (typeof val === "string" && val.trim() !== "") return val;
@@ -21,11 +32,36 @@ const getEnv = (key: string, fallback: string): string => {
 }
 
 // Hive API Endpoints
-// import.meta.env works in dev and client-side, process.env only works in Node.js SSR
-export const HIVE_API_ENDPOINT = getEnv('HIVE_API_ENDPOINT', 'https://api.openhive.network')
+// PUBLIC_ prefix required for Astro client-side access via import.meta.env
+export const HIVE_API_ENDPOINT = get_public_env(
+  import.meta.env.PUBLIC_HIVE_API_ENDPOINT,
+  "https://api.openhive.network",
+);
+
+// Hive chain ID (mainnet default, override for mirrornet/testnet)
+export const HIVE_CHAIN_ID = get_public_env(
+  import.meta.env.PUBLIC_HIVE_CHAIN_ID,
+  "beeab0de00000000000000000000000000000000000000000000000000000000",
+);
+
+// Hive image proxy endpoint
+export const HIVE_IMAGES_ENDPOINT = get_public_env(
+  import.meta.env.PUBLIC_HIVE_IMAGES_ENDPOINT,
+  "https://images.hive.blog",
+);
+
+// Hive blog frontend URL (for usertag/hashtag links in rendered content)
+export const HIVE_BLOG_URL = get_public_env(
+  import.meta.env.PUBLIC_HIVE_BLOG_URL,
+  "https://blog.openhive.network",
+);
+
+// Non-mainnet detection (HB-Auth only works on mainnet, WIF login required otherwise)
+const MAINNET_CHAIN_ID = "beeab0de00000000000000000000000000000000000000000000000000000000";
+export const IS_NOT_MAINNET = HIVE_CHAIN_ID !== MAINNET_CHAIN_ID;
 
 // Blog owner username (determines whose config to load and favicon)
-export const HIVE_USERNAME = getEnv("HIVE_USERNAME", "");
+export const HIVE_USERNAME = get_server_env("HIVE_USERNAME", "");
 
 // Community mode detection
 // Hive community accounts follow the pattern "hive-" followed by ONLY digits (e.g. "hive-123456")
@@ -40,17 +76,29 @@ export function is_community(name: string): boolean {
 
 // Config storage settings (where user configs are stored on Hive)
 // These can be overridden via environment variables
-export const CONFIG_PARENT_AUTHOR = getEnv('CONFIG_PARENT_AUTHOR', 'barddev')
-export const CONFIG_PARENT_PERMLINK = getEnv('CONFIG_PARENT_PERMLINK', 'my-blog-configs')
+export const CONFIG_PARENT_AUTHOR = get_server_env("CONFIG_PARENT_AUTHOR", "barddev");
+export const CONFIG_PARENT_PERMLINK = get_server_env(
+  "CONFIG_PARENT_PERMLINK",
+  "my-blog-configs",
+);
 
 // Fallback API endpoints for retry logic (ordered by preference)
-export const HIVE_API_ENDPOINTS = [
+// When using a non-mainnet endpoint (mirrornet/testnet), only that endpoint is used
+// to avoid mixing networks in fallback rotation
+// NOTE: Keep in sync with mainnet_domains in astro.config.mjs (CSP connect-src)
+const MAINNET_FALLBACK_ENDPOINTS = [
   'https://api.openhive.network',
   'https://api.hive.blog',
   'https://api.deathwing.me',
   'https://hive-api.arcange.eu',
   'https://api.syncad.com',
-]
+];
+
+export const HIVE_API_ENDPOINTS = MAINNET_FALLBACK_ENDPOINTS.includes(
+  HIVE_API_ENDPOINT,
+)
+  ? MAINNET_FALLBACK_ENDPOINTS
+  : [HIVE_API_ENDPOINT];
 
 // Layout Constants
 export const LAYOUT_CONSTANTS = {
@@ -74,4 +122,23 @@ export const COMMENT_CONSTANTS = {
   PADDING_PX: { min: 8, max: 32, default: 16 },
   GAP_PX: { min: 0, max: 64, default: 16 },
   MAX_LENGTH: { min: 0, max: 1000, default: 0 },
-} as const
+} as const;
+
+// Hive Image Helpers
+
+/** Build avatar URL for a Hive user */
+export function hive_avatar_url(
+  username: string,
+  size: "small" | "medium" | "large" = "medium",
+): string {
+  return `${HIVE_IMAGES_ENDPOINT}/u/${username}/avatar${size !== "medium" ? `/${size}` : ""}`;
+}
+
+/** Proxy an image URL through Hive image CDN with resize */
+export function hive_image_proxy(
+  url: string,
+  width: number,
+  height: number = 0,
+): string {
+  return `${HIVE_IMAGES_ENDPOINT}/${width}x${height}/${url}`;
+}

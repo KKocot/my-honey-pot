@@ -3,6 +3,7 @@
 
 import { Show, createMemo } from 'solid-js'
 import { settings } from '../../store'
+import { hive_image_proxy, hive_avatar_url } from '../../../../lib/config'
 
 // ============================================
 // Element Renderer Component
@@ -49,14 +50,14 @@ export function ElementRenderer(props: ElementRendererProps) {
         }>
           <div
             class="bg-cover bg-center rounded-lg w-full"
-            style={`height: ${props.coverHeight()}px; background-image: url('https://images.hive.blog/640x0/${props.profileData.coverImage}');`}
+            style={`height: ${props.coverHeight()}px; background-image: url('${hive_image_proxy(props.profileData.coverImage, 640)}');`}
           />
         </Show>
       </Show>
 
       <Show when={props.id === 'avatar'}>
         <img
-          src={settings.hiveUsername ? `https://images.hive.blog/u/${settings.hiveUsername}/avatar` : '/hive-logo.png'}
+          src={settings.hiveUsername ? hive_avatar_url(settings.hiveUsername) : '/hive-logo.png'}
           alt={username()}
           style={{ width: `${props.avatarSize()}px`, height: `${props.avatarSize()}px` }}
           class="rounded-full border-2 border-bg-card ring-2 ring-border flex-shrink-0"

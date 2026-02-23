@@ -6,6 +6,7 @@ import { settings, updateSettings } from '../store'
 import { Slider } from '../../ui'
 import { commentCardElementLabels, type CardLayout, type CardSection, type CardSectionChild } from '../types/index'
 import { CardLayoutEditor } from '../editors/CardLayoutEditor'
+import { hive_avatar_url } from '../../../lib/config'
 
 // All available comment card element IDs
 const COMMENT_CARD_ELEMENT_IDS = ['replyContext', 'avatar', 'author', 'timestamp', 'body', 'replies', 'votes', 'payout', 'viewLink']
@@ -137,7 +138,7 @@ function CommentPreview() {
         return (
           <div class="flex-shrink-0">
             <img
-              src={`https://images.hive.blog/u/${mockComment.author}/avatar`}
+              src={hive_avatar_url(mockComment.author)}
               alt={mockComment.author}
               style={{
                 width: `${avatarSize()}px`,

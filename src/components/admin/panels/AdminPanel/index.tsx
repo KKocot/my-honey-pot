@@ -33,7 +33,7 @@ import { LoginModal } from './LoginModal'
 import { JsonPreviewModal } from './JsonPreviewModal'
 import { BottomBar } from './BottomBar'
 import { handle_broadcast_to_hive, handle_preview_json } from './handlers'
-import { is_community } from '../../../../lib/config'
+import { is_community, hive_avatar_url } from '../../../../lib/config'
 import { get_default_settings } from '../../types/index'
 import { fetch_community } from '../../../../lib/queries'
 
@@ -258,7 +258,7 @@ function AdminPanelContent(props: AdminPanelContentProps) {
         }>
           <div class="flex items-center gap-3">
             <img
-              src={`https://images.hive.blog/u/${currentUser()?.username}/avatar`}
+              src={hive_avatar_url(currentUser()?.username ?? "")}
               alt={currentUser()?.username}
               class="w-6 h-6 rounded-full"
             />

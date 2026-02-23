@@ -3,6 +3,7 @@
 
 import { Show, type Component } from "solid-js";
 import type { HiveCommunity } from "../../lib/types/community";
+import { hive_avatar_url } from "../../lib/config";
 
 // ============================================
 // Types
@@ -18,7 +19,7 @@ interface CommunityProfileProps {
 // ============================================
 
 function get_avatar_url(community_name: string): string {
-  return `https://images.hive.blog/u/${community_name}/avatar/medium`;
+  return hive_avatar_url(community_name, "medium");
 }
 
 function format_number(num: number): string {

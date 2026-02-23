@@ -9,6 +9,7 @@
 import type { AuthorProfileData, AuthorProfileSettings } from './types'
 import type { CardSection, CardSectionChild } from '../../../components/home/types'
 import { formatCompactNumber, normalizeUrl, getDisplayUrl } from '../../formatters'
+import { hive_image_proxy } from '../../../lib/config'
 import { locationIcon, websiteIcon, calendarIcon, getSocialIcon, platformColors } from '../../icons'
 import { build_social_url } from '../../../components/admin/types/social'
 import type { SocialLink } from '../../../components/admin/types/social'
@@ -27,7 +28,7 @@ export function renderProfileElement(
       if (!data.coverImage) {
         return `<div class="bg-gradient-to-r from-primary/30 to-accent/30 rounded-lg w-full" style="height: ${settings.coverHeight}px;"></div>`
       }
-      return `<div class="bg-cover bg-center rounded-lg w-full" style="height: ${settings.coverHeight}px; background-image: url('https://images.hive.blog/640x0/${data.coverImage}');"></div>`
+      return `<div class="bg-cover bg-center rounded-lg w-full" style="height: ${settings.coverHeight}px; background-image: url('${hive_image_proxy(data.coverImage, 640)}');"></div>`
 
     case 'avatar':
       return `<img src="${data.avatarUrl}" alt="${data.username}" style="width: ${settings.avatarSize}px; height: ${settings.avatarSize}px;" class="rounded-full border-2 border-bg-card ring-2 ring-border flex-shrink-0" onerror="this.src='/hive-logo.png'" />`

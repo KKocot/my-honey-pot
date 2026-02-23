@@ -5,6 +5,7 @@ import { Show } from "solid-js";
 import { settings, updateSettings } from "../store";
 import { useCommunityPreviewQuery, is_community_mode } from "../queries";
 import { Slider } from "../../ui";
+import { hive_image_proxy, hive_avatar_url } from "../../../lib/config";
 
 // ============================================
 // Mock data for preview when no real data
@@ -54,8 +55,8 @@ export function CommunityProfileSettings() {
 
   const avatar_src = () => {
     const url = community_data().avatar_url;
-    if (url) return `https://images.hive.blog/256x512/${url}`;
-    return `https://images.hive.blog/u/${settings.hiveUsername || "null"}/avatar`;
+    if (url) return hive_image_proxy(url, 256, 512);
+    return hive_avatar_url(settings.hiveUsername || "null");
   };
 
   return (

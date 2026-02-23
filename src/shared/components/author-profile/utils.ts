@@ -11,6 +11,7 @@ import { formatJoinDate } from '../../formatters'
 import type { AuthorProfileData, AuthorProfileSettings } from './types'
 import type { CardLayout, SocialLink } from '../../../components/home/types'
 import { defaultAuthorProfileLayout, defaultAuthorProfileSettings } from './types'
+import { hive_avatar_url } from '../../../lib/config'
 
 /**
  * Create normalized profile data from Hive API responses
@@ -43,7 +44,7 @@ export function createAuthorProfileData(
     location: profileMeta?.location || '',
     website: profileMeta?.website || '',
     coverImage: profileMeta?.coverImage || '',
-    avatarUrl: profileMeta?.profileImage || `https://images.hive.blog/u/${username}/avatar`,
+    avatarUrl: profileMeta?.profileImage || hive_avatar_url(username),
     reputation: profile?.reputation ?? 0,
     followers: profile?.stats?.followers ?? 0,
     following: profile?.stats?.following ?? 0,

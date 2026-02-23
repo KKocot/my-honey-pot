@@ -8,6 +8,7 @@
 import type { PostCardData, PostCardSettings } from './types'
 import type { BridgePost } from '@hiveio/workerbee/blog-logic'
 import { getSummary, stripMarkdownSimple } from '../../formatters'
+import { hive_image_proxy } from '../../../lib/config'
 
 /**
  * Parse thumbnail from HivePost json_metadata
@@ -19,7 +20,7 @@ export function getPostThumbnail(post: BridgePost, thumbnailSizePx: number): str
       : post.json_metadata
     const image = metadata?.image?.[0]
     if (image && image.startsWith('http')) {
-      return `https://images.hive.blog/${thumbnailSizePx * 2}x0/${image}`
+      return hive_image_proxy(image, thumbnailSizePx * 2)
     }
   } catch { /* ignore */ }
   return null
@@ -88,7 +89,7 @@ export function getSimpleSummary(body: string, maxLength: number): string {
 export function getThumbnailUrl(imageUrl: string | undefined, thumbnailSizePx: number): string | null {
   if (!imageUrl || imageUrl.length === 0) return null
   if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
-    return `https://images.hive.blog/${thumbnailSizePx * 2}x0/${imageUrl}`
+    return hive_image_proxy(imageUrl, thumbnailSizePx * 2)
   }
   return null
 }

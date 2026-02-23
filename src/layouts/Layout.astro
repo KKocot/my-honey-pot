@@ -5,7 +5,7 @@
 import '../styles/global.css'
 import { loadConfigFromHive } from '../components/admin/hive-broadcast'
 import { themePresets, type ThemeColors, get_default_settings } from '../components/admin/types'
-import { HIVE_USERNAME, IS_COMMUNITY } from '../lib/config'
+import { HIVE_USERNAME, IS_COMMUNITY, hive_avatar_url } from '../lib/config'
 import { is_dark_color } from '../shared/utils/color'
 
 interface SettingsWithTheme {
@@ -39,7 +39,7 @@ const {
 
 // Build favicon URL from Hive avatar (if username is set)
 const faviconUrl = hiveUsername
-  ? `https://images.hive.blog/u/${hiveUsername}/avatar`
+  ? hive_avatar_url(hiveUsername)
   : '/favicon.svg'
 
 // Default to mode-aware theme colors (community uses ocean, user uses light)

@@ -2,19 +2,14 @@
 // Copyright (C) 2026 Krzysztof Kocot
 
 import { OnlineClient, OfflineClient, type ClientOptions } from '@hiveio/hb-auth';
+import { HIVE_CHAIN_ID, HIVE_API_ENDPOINT } from './config';
 
 // ============================================================================
 // Configuration
 // ============================================================================
 
-/** Default Hive API endpoint - matches the one in hive.ts */
-const DEFAULT_HIVE_ENDPOINT = 'https://api.openhive.network';
-
 /** Default session timeout in milliseconds (24 hours) */
 const DEFAULT_SESSION_TIMEOUT = 24 * 60 * 60 * 1000;
-
-/** Hive mainnet chain ID */
-const HIVE_CHAIN_ID = 'beeab0de00000000000000000000000000000000000000000000000000000000';
 
 // ============================================================================
 // Worker URL Resolution
@@ -60,7 +55,7 @@ function getDefaultClientOptions(): ClientOptions {
   return {
     sessionTimeout: DEFAULT_SESSION_TIMEOUT,
     chainId: HIVE_CHAIN_ID,
-    node: node || DEFAULT_HIVE_ENDPOINT,
+    node: node || HIVE_API_ENDPOINT,
     workerUrl: getWorkerUrl(),
   };
 }

@@ -4,10 +4,13 @@
 import { ReplyOperation } from '@hiveio/wax'
 import { configureEndpoints, DataProvider, getWax } from '@hiveio/workerbee/blog-logic'
 import { CONFIG_PARENT_AUTHOR, CONFIG_PARENT_PERMLINK, HIVE_API_ENDPOINTS, IS_COMMUNITY } from '../../lib/config'
+import { get_broadcast_chain } from '../../lib/broadcast-chain'
 
 // Configure workerbee to use our custom Hive API endpoints
 configureEndpoints(HIVE_API_ENDPOINTS)
+
 import { getOnlineClient } from '../../lib/hbauth-service'
+import { is_raw_wif, sign_with_wif } from '../../lib/wif-signer'
 import type { SettingsData } from './types/index'
 import { defaultSettings, strip_community_fields } from './types/index'
 import { settings_schema } from './types/settings-schema'
@@ -62,27 +65,18 @@ function generateNewConfigPermlink(username: string): string {
 }
 
 /**
- * Broadcast settings as a comment to Hive blockchain using HB-Auth
- * Uses HB-Auth for signing - key is managed securely in IndexedDB
+ * Broadcast settings as a comment to Hive blockchain.
+ * Supports two signing modes:
+ * - HB-Auth (production): key managed securely in IndexedDB
+ * - Direct WIF (dev/mirrornet): raw WIF signing via beekeeper
  */
 export async function broadcastConfigToHive(
   settings: SettingsData,
   username: string,
-  _privateKey: string // Kept for API compatibility, but ignored - HB-Auth manages the key
+  privateKey: string
 ): Promise<{ success: boolean; txId?: string; permlink?: string; isUpdate?: boolean; error?: string }> {
   try {
-    const chain = await getWax()
-    const authClient = await getOnlineClient()
-
-    // Verify user is authenticated with HB-Auth
-    const registeredUser = await authClient.getRegisteredUserByUsername(username)
-    if (!registeredUser) {
-      throw new Error('User not registered in HB-Auth. Please login first.')
-    }
-
-    if (!registeredUser.unlocked) {
-      throw new Error('Wallet is locked. Please unlock with your password first.')
-    }
+    const chain = await get_broadcast_chain()
 
     // Check if user already has a config comment under this post
     const existingConfig = await findExistingConfig(username)
@@ -125,8 +119,23 @@ export async function broadcastConfigToHive(
     // Get the transaction digest for signing
     const digest = tx.sigDigest
 
-    // Sign with HB-Auth (key never leaves IndexedDB)
-    const signature = await authClient.sign(username, digest, 'posting')
+    let signature: string
+
+    if (is_raw_wif(privateKey)) {
+      // Direct WIF signing via beekeeper (dev/mirrornet mode)
+      signature = await sign_with_wif(privateKey, digest)
+    } else {
+      // HB-Auth signing (production mode -- key managed in IndexedDB)
+      const authClient = await getOnlineClient()
+      const registeredUser = await authClient.getRegisteredUserByUsername(username)
+      if (!registeredUser) {
+        throw new Error('User not registered in HB-Auth. Please login first.')
+      }
+      if (!registeredUser.unlocked) {
+        throw new Error('Wallet is locked. Please unlock with your password first.')
+      }
+      signature = await authClient.sign(username, digest, 'posting')
+    }
 
     // Add signature to transaction
     tx.addSignature(signature)
