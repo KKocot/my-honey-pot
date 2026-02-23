@@ -60,7 +60,7 @@ export function CommunityProfileSettings() {
   };
 
   return (
-    <div class="bg-bg-card rounded-xl p-6 mb-6 border border-border max-w-4xl">
+    <div class="bg-bg-card rounded-xl p-6 mb-6 border border-border">
       <h2 class="text-xl font-semibold text-primary mb-2">
         Community Profile Settings
       </h2>
