@@ -35,8 +35,7 @@ const TOGGLE_FIELDS: SidebarToggleField[] = [
   {
     key: "community_show_leadership",
     label: "Show Leadership",
-    description:
-      "Display the team (owners, admins, moderators) in the sidebar",
+    description: "Display the team (owners, admins, moderators) in the sidebar",
     default: true,
   },
 ];
@@ -68,10 +67,7 @@ const MOCK_SIDEBAR = {
 // Helpers
 // ============================================
 
-function update_sidebar_toggle(
-  key: SidebarToggleField["key"],
-  value: boolean,
-) {
+function update_sidebar_toggle(key: SidebarToggleField["key"], value: boolean) {
   if (key === "community_show_description") {
     updateSettings({ community_show_description: value });
   } else if (key === "community_show_rules") {
@@ -132,7 +128,7 @@ export function CommunitySidebarSettings() {
   };
 
   return (
-    <div class="bg-bg-card rounded-xl p-6 mb-6 border border-border max-w-4xl">
+    <div class="bg-bg-card rounded-xl p-6 mb-6 border border-border">
       <h2 class="text-xl font-semibold text-primary mb-2">
         Community Sidebar Settings
       </h2>
@@ -150,10 +146,7 @@ export function CommunitySidebarSettings() {
                   type="checkbox"
                   checked={get_toggle_value(field.key)}
                   onChange={(e) => {
-                    update_sidebar_toggle(
-                      field.key,
-                      e.currentTarget.checked,
-                    );
+                    update_sidebar_toggle(field.key, e.currentTarget.checked);
                   }}
                   class="mt-0.5 w-4 h-4 rounded border-border text-primary focus:ring-primary"
                 />
