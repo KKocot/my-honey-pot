@@ -52,13 +52,15 @@ interface ElementRendererProps {
 
 // Render header element using shared component
 // community_title is undefined in user mode, empty string or title in community mode
-function renderHeader(community_title?: string) {
+function renderHeader(community_title?: string, community?: HiveCommunity | null) {
   const username = settings.hiveUsername
   const is_community = community_title !== undefined
   const default_name = is_community
     ? (community_title || username || 'Hive Community')
     : (username ? `${username} Blog` : 'Hive Blog')
-  const default_description = is_community ? '' : 'Posts from Hive blockchain'
+  const default_description = is_community
+    ? (community?.about || 'Hive community')
+    : 'Posts from Hive blockchain'
   const data = createHeaderData(
     settings.siteName || default_name,
     settings.siteDescription || default_description
@@ -285,7 +287,7 @@ export function ElementRenderer(props: ElementRendererProps) {
   return (
     <>
       <Show when={props.elementId === 'header'}>
-        {renderHeader(props.community_title)}
+        {renderHeader(props.community_title, props.community)}
       </Show>
       <Show when={props.elementId === 'authorProfile'}>
         {renderAuthorProfile(props.inSidebar ? 'vertical' : (settings.authorProfileLayout || 'horizontal'), props.data!)}
