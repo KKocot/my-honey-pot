@@ -82,7 +82,7 @@
 .sidebar-layout .main-content {
   flex: 1;
   min-width: 0;
-  overflow: hidden;
+  overflow: visible;
   order: 3; /* Main content last on mobile */
 }
 
@@ -112,7 +112,7 @@
     grid-column: 2;
     grid-row: 1;
     min-width: 0;
-    overflow: hidden;
+    overflow: visible;
   }
 
   .sidebar-layout .sidebar-right {

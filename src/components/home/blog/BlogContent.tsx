@@ -80,7 +80,7 @@ const PostsGrid: Component<{ posts: Post[]; settings: SiteSettings; layout?: Car
       }>
         {/* List layout */}
         <Show when={grid_settings().layout === 'list'}>
-          <div style={`display: flex; flex-direction: column; gap: ${grid_settings().gap_px}px;`}>
+          <div style={`display: flex; flex-direction: column; gap: ${grid_settings().gap_px}px; padding: 8px;`}>
             <For each={props.posts}>
               {(post, index) => <PostCardItem post={post} settings={props.settings} card_settings={card_settings()} is_vertical={false} index={index()} />}
             </For>
@@ -88,7 +88,7 @@ const PostsGrid: Component<{ posts: Post[]; settings: SiteSettings; layout?: Car
         </Show>
         {/* Masonry layout */}
         <Show when={grid_settings().layout === 'masonry'}>
-          <div style={`column-count: ${grid_settings().columns}; column-gap: ${grid_settings().gap_px}px;`}>
+          <div style={`column-count: ${grid_settings().columns}; column-gap: ${grid_settings().gap_px}px; padding: 8px;`}>
             <For each={props.posts}>
               {(post, index) => (
                 <div style={`break-inside: avoid; margin-bottom: ${grid_settings().gap_px}px;`}>
@@ -100,7 +100,7 @@ const PostsGrid: Component<{ posts: Post[]; settings: SiteSettings; layout?: Car
         </Show>
         {/* Grid layout */}
         <Show when={grid_settings().layout === 'grid'}>
-          <div style={`display: grid; grid-template-columns: repeat(${grid_settings().columns}, 1fr); gap: ${grid_settings().gap_px}px;`}>
+          <div style={`display: grid; grid-template-columns: repeat(${grid_settings().columns}, 1fr); gap: ${grid_settings().gap_px}px; padding: 8px;`}>
             <For each={props.posts}>
               {(post, index) => <PostCardItem post={post} settings={props.settings} card_settings={card_settings()} is_vertical={true} index={index()} />}
             </For>
