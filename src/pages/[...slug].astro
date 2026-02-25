@@ -5,6 +5,7 @@
 import Layout from '../layouts/Layout.astro'
 import Footer from '../components/home/layout/Footer.astro'
 import { PostComments } from '../components/post/PostComments'
+import ExternalLinkDialog from '../components/post/ExternalLinkDialog'
 import { configureEndpoints, DataProvider, getWax, stripAssetSuffix, Post, type BridgePost } from '@hiveio/workerbee/blog-logic'
 import { HIVE_USERNAME, HIVE_API_ENDPOINTS, IS_COMMUNITY, HIVE_BLOG_URL, hive_avatar_url } from '../lib/config'
 
@@ -223,4 +224,5 @@ const role_badge_class = ROLE_BADGE_COLORS[author_role] ?? ROLE_BADGE_COLORS.gue
     )}
   </div>
   <Footer class="max-w-3xl mx-auto px-4" />
+  <ExternalLinkDialog client:only="solid-js" />
 </Layout>

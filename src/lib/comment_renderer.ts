@@ -76,7 +76,7 @@ const SANITIZE_OPTIONS: sanitizeHtml.IOptions = {
     "strike",
   ],
   allowedAttributes: {
-    a: ["href", "target", "rel"],
+    a: ["href", "target", "rel", "class"],
     img: ["src", "alt", "width", "height", "loading"],
     code: ["class"],
     pre: ["class"],
@@ -100,13 +100,16 @@ const SANITIZE_OPTIONS: sanitizeHtml.IOptions = {
         href.startsWith(HIVE_BLOG_URL) ||
         href.startsWith(HIVE_IMAGES_ENDPOINT);
 
+      const external_attribs: sanitizeHtml.Attributes = {
+        ...attribs,
+        target: "_blank",
+        rel: "noopener nofollow",
+        class: "link-external",
+      };
+
       return {
         tagName,
-        attribs: {
-          ...attribs,
-          target: is_internal ? "" : "_blank",
-          rel: is_internal ? "" : "noopener nofollow",
-        },
+        attribs: is_internal ? attribs : external_attribs,
       };
     },
     img: (tagName, attribs) => {

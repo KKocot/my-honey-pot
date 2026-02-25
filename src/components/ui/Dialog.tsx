@@ -8,7 +8,7 @@ import { Portal } from 'solid-js/web'
 // Focus Trap Hook
 // ============================================
 
-function useFocusTrap(containerRef: () => HTMLElement | undefined, isActive: () => boolean) {
+export function useFocusTrap(containerRef: () => HTMLElement | undefined, isActive: () => boolean) {
   let previousActiveElement: HTMLElement | null = null
 
   const getFocusableElements = (container: HTMLElement): HTMLElement[] => {
@@ -59,7 +59,8 @@ function useFocusTrap(containerRef: () => HTMLElement | undefined, isActive: () 
 
   // Store and focus first element when activated
   const activate = () => {
-    previousActiveElement = document.activeElement as HTMLElement
+    const active = document.activeElement
+    previousActiveElement = active instanceof HTMLElement ? active : null
     const container = containerRef()
     if (container) {
       // Prevent body scroll
