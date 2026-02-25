@@ -90,6 +90,10 @@ export const query_keys = {
     ["community_posts", name, sort, limit, cursor_author, cursor_permlink] as const,
   subscribers: (name: string) => ["subscribers", name] as const,
   community_roles: (name: string) => ["community_roles", name] as const,
+
+  // Post replies (comments under a specific post)
+  post_replies: (author: string, permlink: string) =>
+    ["post_replies", author, permlink] as const,
 };
 
 // ============================================
@@ -106,6 +110,16 @@ export interface FetchCommentsResult {
   comments: readonly BridgeComment[];
   has_more: boolean;
   next_cursor?: IPaginationCursor;
+}
+
+export interface CommentTreeNode {
+  comment: BridgePost;
+  children: CommentTreeNode[];
+}
+
+export interface FetchPostRepliesResult {
+  tree: CommentTreeNode[];
+  total_count: number;
 }
 
 // ============================================
@@ -307,4 +321,114 @@ export async function fetch_community_roles(
   return withRetry((chain) =>
     chain.api.bridge.list_community_roles({ community: name })
   );
+}
+
+// ============================================
+// Post Replies (comments under a specific post)
+// ============================================
+
+function is_bridge_post(entry: unknown): entry is BridgePost {
+  if (typeof entry !== "object" || entry === null) return false;
+  return (
+    "author" in entry &&
+    typeof entry.author === "string" &&
+    "permlink" in entry &&
+    typeof entry.permlink === "string" &&
+    "parent_author" in entry &&
+    typeof entry.parent_author === "string" &&
+    "parent_permlink" in entry &&
+    typeof entry.parent_permlink === "string" &&
+    "body" in entry &&
+    typeof entry.body === "string" &&
+    "created" in entry &&
+    typeof entry.created === "string" &&
+    "author_reputation" in entry &&
+    typeof entry.author_reputation === "number" &&
+    "stats" in entry &&
+    typeof entry.stats === "object" &&
+    entry.stats !== null &&
+    "gray" in entry.stats &&
+    typeof entry.stats.gray === "boolean" &&
+    "hide" in entry.stats &&
+    typeof entry.stats.hide === "boolean"
+  );
+}
+
+/** Hive bridge API returns reputation as a pre-calculated float (e.g. 25.5). Negative values indicate heavily downvoted accounts. */
+const MIN_REPUTATION = 0;
+
+function should_hide_comment(comment: BridgePost): boolean {
+  return (
+    comment.author_reputation < MIN_REPUTATION ||
+    comment.stats.gray === true ||
+    comment.stats.hide === true ||
+    comment.author_role === "muted"
+  );
+}
+
+function sort_newest_first(nodes: BridgePost[]): BridgePost[] {
+  return [...nodes].sort((a, b) => {
+    const time_a = new Date(a.created).getTime();
+    const time_b = new Date(b.created).getTime();
+    if (Number.isNaN(time_a) || Number.isNaN(time_b)) return 0;
+    return time_b - time_a;
+  });
+}
+
+/**
+ * Fetch full comment tree under a specific post.
+ * Uses bridge.get_discussion which returns the full discussion tree as a flat map,
+ * then builds a nested tree structure with hidden comments filtered out.
+ */
+export async function fetch_post_replies(
+  author: string,
+  permlink: string
+): Promise<FetchPostRepliesResult> {
+  const discussion = await withRetry((chain) =>
+    chain.api.bridge.get_discussion({ author, permlink, observer: "" })
+  );
+
+  const root_key = `${author}/${permlink}`;
+
+  // Index all valid, visible comments by their key
+  const comment_map = new Map<string, BridgePost>();
+  for (const [key, entry] of Object.entries(discussion)) {
+    if (key === root_key) continue;
+    if (!is_bridge_post(entry)) continue;
+    if (should_hide_comment(entry)) continue;
+    comment_map.set(key, entry);
+  }
+
+  // Build children lookup: parent_key -> list of child BridgePosts
+  const children_map = new Map<string, BridgePost[]>();
+  for (const [, comment] of comment_map) {
+    const parent_key = `${comment.parent_author}/${comment.parent_permlink}`;
+    const siblings = children_map.get(parent_key);
+    if (siblings) {
+      siblings.push(comment);
+    } else {
+      children_map.set(parent_key, [comment]);
+    }
+  }
+
+  function build_subtree(parent_key: string, depth = 0): CommentTreeNode[] {
+    if (depth > 50) return [];
+
+    const direct_children = children_map.get(parent_key);
+    if (!direct_children) return [];
+
+    const sorted = sort_newest_first(direct_children);
+
+    return sorted.map((child) => {
+      const child_key = `${child.author}/${child.permlink}`;
+      return {
+        comment: child,
+        children: build_subtree(child_key, depth + 1),
+      };
+    });
+  }
+
+  const tree = build_subtree(root_key);
+
+  return { tree, total_count: comment_map.size };
 }
