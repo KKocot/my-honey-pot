@@ -2,18 +2,18 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 Krzysztof Kocot
 
-import type { Post } from '@hiveio/workerbee/blog-logic'
+import type { BridgePost } from '@hiveio/workerbee/blog-logic'
 import type { SiteSettings } from '../types'
 import {
   renderPostsGrid,
   type PostsGridSettings,
   type PostCardSettings,
-  createPostCardDataFromPost,
+  createPostCardDataFromBridge,
   renderPostCard,
 } from '../../../shared/components/post-card'
 
 interface Props {
-  posts: Post[]
+  posts: BridgePost[]
   settings: SiteSettings
 }
 
@@ -71,16 +71,13 @@ const gridSettings: PostsGridSettings = {
 const isVertical = postsLayout !== 'list'
 
 // Render all post cards as HTML strings
-const cards_html = await Promise.all(
-  posts.map(async (post) => {
-    const postData = await createPostCardDataFromPost(post, {
-      thumbnailSizePx,
-      maxTags,
-      summaryMaxLength,
-    })
-    return renderPostCard(postData, cardSettings, isVertical, `/${post.permlink}`)
+const cards_html = posts.map((post) => {
+  const postData = createPostCardDataFromBridge(post, {
+    thumbnailSizePx,
+    maxTags,
   })
-)
+  return renderPostCard(postData, cardSettings, isVertical, `/${post.permlink}`)
+})
 
 // Wrap cards in appropriate grid layout
 const gridHtml = renderPostsGrid(cards_html, gridSettings)

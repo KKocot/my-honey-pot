@@ -19,7 +19,7 @@ import type {
   AccountPostsSortOption,
   CommentSortOption,
   IPaginationCursor,
-  Post,
+  BridgePost,
   BridgeComment,
 } from "@hiveio/workerbee/blog-logic";
 import { get_default_settings } from "../../components/admin/types/settings";
@@ -124,7 +124,7 @@ export async function prepare_user_page(
   // Create per-request QueryClient (NEVER global on server)
   const query_client = create_query_client();
 
-  let blog_logic_posts: Post[] = [];
+  let blog_logic_posts: BridgePost[] = [];
   let hive_comments: readonly BridgeComment[] = [];
   let has_more_posts = false;
   let has_more_comments = false;

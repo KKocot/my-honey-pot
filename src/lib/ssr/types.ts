@@ -2,7 +2,7 @@
 // Copyright (C) 2026 Krzysztof Kocot
 
 import type {
-  Post,
+  BridgePost,
   BridgeComment,
   IDatabaseAccount,
   IProfile,
@@ -53,7 +53,7 @@ export interface UserPageData {
   hive_profile: IProfile | null;
   global_properties: IGlobalProperties | null;
   account_manabars: IAccountManabars | null;
-  blog_logic_posts: Post[];
+  blog_logic_posts: BridgePost[];
   hive_comments: readonly BridgeComment[];
   active_tab: string;
   show_comments_tab: boolean;

@@ -27,7 +27,7 @@ import {
 } from '../../../shared/components/page-layout'
 
 import type { SiteSettings, CardLayout, SocialLink, PageLayoutSection } from '../types'
-import type { Post, BridgeComment, IDatabaseAccount, IProfile, IGlobalProperties, IAccountManabars } from '@hiveio/workerbee/blog-logic'
+import type { BridgePost, BridgeComment, IDatabaseAccount, IProfile, IGlobalProperties, IAccountManabars } from '@hiveio/workerbee/blog-logic'
 import type { HiveCommunity } from '../../../lib/types/community'
 
 interface AuthorProfileBaseProps {
@@ -61,7 +61,7 @@ interface Props {
   globalProperties?: IGlobalProperties | null
   accountManabars?: IAccountManabars | null
   // Content
-  blogLogicPosts: Post[]
+  blogLogicPosts: BridgePost[]
   hiveComments: readonly BridgeComment[]
   activeTab: string
   showCommentsTab: boolean

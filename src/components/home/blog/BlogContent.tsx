@@ -1,16 +1,15 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 Krzysztof Kocot
 
-import { createSignal, createEffect, createMemo, Show, For, ErrorBoundary, onCleanup, onMount, type Component } from "solid-js";
-import { QueryClient, QueryClientProvider, createQuery, type DehydratedState, hydrate } from "@tanstack/solid-query";
+import { createSignal, createMemo, Show, For, ErrorBoundary, onCleanup, onMount, type Component } from "solid-js";
+import { QueryClientProvider, createQuery, type DehydratedState, hydrate } from "@tanstack/solid-query";
 import { query_keys, fetch_posts, fetch_comments, create_query_client } from "../../../lib/queries";
-import type { Post, BridgeComment, AccountPostsSortOption, CommentSortOption, IPaginationCursor } from "@hiveio/workerbee/blog-logic";
+import type { BridgePost, BridgeComment, AccountPostsSortOption, CommentSortOption, IPaginationCursor } from "@hiveio/workerbee/blog-logic";
 import type { SiteSettings, CardLayout } from "../types";
 import {
-  createPostCardDataFromPost,
+  createPostCardDataFromBridge,
   renderPostCardContent,
   type PostCardSettings,
-  type PostCardData,
   type PostsGridSettings,
 } from "../../../shared/components/post-card";
 import {
@@ -45,7 +44,7 @@ interface BlogContentProps {
 // Renders multiple post cards with layout support
 // ============================================
 
-const PostsGrid: Component<{ posts: Post[]; settings: SiteSettings; layout?: CardLayout }> = (props) => {
+const PostsGrid: Component<{ posts: BridgePost[]; settings: SiteSettings; layout?: CardLayout }> = (props) => {
   const is_vertical = () => props.settings.postsLayout !== 'list';
 
   const card_settings = createMemo((): PostCardSettings => ({
@@ -114,7 +113,7 @@ const PostsGrid: Component<{ posts: Post[]; settings: SiteSettings; layout?: Car
 // Single post card - uses renderPostCardContent (same as FullPreview)
 // With hover and scroll animations (1:1 match with FullPreview)
 const PostCardItem: Component<{
-  post: Post;
+  post: BridgePost;
   settings: SiteSettings;
   card_settings: PostCardSettings;
   is_vertical: boolean;
@@ -143,24 +142,15 @@ const PostCardItem: Component<{
     }
   });
 
-  const [post_data, set_post_data] = createSignal<PostCardData | null>(null);
-
-  createEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const data = await createPostCardDataFromPost(props.post, {
-        thumbnailSizePx: props.settings.thumbnailSizePx || 96,
-        maxTags: props.settings.maxTags || 5,
-        summaryMaxLength: props.settings.summaryMaxLength || 150,
-      });
-      if (!cancelled) set_post_data(data);
-    })();
-    onCleanup(() => { cancelled = true; });
-  });
+  const post_data = createMemo(() =>
+    createPostCardDataFromBridge(props.post, {
+      thumbnailSizePx: props.settings.thumbnailSizePx || 96,
+      maxTags: props.settings.maxTags || 5,
+    })
+  );
 
   const content_html = createMemo(() => {
     const data = post_data();
-    if (!data) return "";
     return renderPostCardContent(data, props.card_settings, effective_vertical());
   });
 
@@ -214,16 +204,14 @@ const PostCardItem: Component<{
   });
 
   return (
-    <Show when={post_data()}>
-      <article
-        class="bg-bg-card rounded-xl overflow-hidden cursor-pointer"
-        style={card_style_string()}
-        onMouseEnter={() => set_is_hovered(true)}
-        onMouseLeave={() => set_is_hovered(false)}
-        onClick={() => handle_post_click(props.post.permlink)}
-        innerHTML={content_html()}
-      />
-    </Show>
+    <article
+      class="bg-bg-card rounded-xl overflow-hidden cursor-pointer"
+      style={card_style_string()}
+      onMouseEnter={() => set_is_hovered(true)}
+      onMouseLeave={() => set_is_hovered(false)}
+      onClick={() => handle_post_click(props.post.permlink)}
+      innerHTML={content_html()}
+    />
   );
 };
 
@@ -370,7 +358,7 @@ const BlogContentInner: Component<BlogContentProps> = (props) => {
           </div>
         </Show>
         <Show when={posts_query.data}>
-          <PostsGrid posts={posts_query.data?.posts || []} settings={props.settings} layout={props.post_card_layout} />
+          <PostsGrid posts={posts_query.data?.posts ?? []} settings={props.settings} layout={props.post_card_layout} />
         </Show>
       </Show>
 
