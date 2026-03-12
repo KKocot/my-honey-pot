@@ -7,7 +7,6 @@ import {
   DataProvider,
   getWax,
   withRetry,
-  Post,
   type BridgeComment,
   type BridgePost,
   type IDatabaseAccount,
@@ -101,7 +100,7 @@ export const query_keys = {
 // ============================================
 
 export interface FetchPostsResult {
-  posts: Post[];
+  posts: BridgePost[];
   has_more: boolean;
   next_cursor?: IPaginationCursor;
 }
@@ -168,7 +167,8 @@ export async function fetch_manabars(
 }
 
 /**
- * Fetch posts with optional category filtering and pagination
+ * Fetch posts with optional category filtering and cursor-based pagination.
+ * Calls get_account_posts directly (bypassing enumAccountPosts which lacks cursor support).
  */
 export async function fetch_posts(
   username: string,
@@ -177,25 +177,34 @@ export async function fetch_posts(
   cursor?: IPaginationCursor,
   category_tag?: string | null
 ): Promise<FetchPostsResult> {
-  const chain = await getWax();
-  const data_provider = new DataProvider(chain);
+  // Request one extra to detect if more pages exist
+  const safe_limit = Math.min(Math.max(1, limit), 19);
+  const request_limit = safe_limit + 1;
 
-  // API hard limit is 20
-  const page_size = Math.min(limit, 20);
-
-  // Fetch posts from Hive
-  const posts_iterator = await data_provider.bloggingPlatform.enumAccountPosts(
-    { sort, account: username },
-    { page: 1, pageSize: page_size }
+  const posts = await withRetry((chain) =>
+    chain.api.bridge.get_account_posts({
+      sort,
+      account: username,
+      limit: request_limit,
+      observer: "",
+      ...(cursor?.startAuthor && cursor?.startPermlink
+        ? { start_author: cursor.startAuthor, start_permlink: cursor.startPermlink }
+        : {}),
+    })
   );
 
-  const posts_array = Array.from(posts_iterator);
-  const all_posts = posts_array.filter((p): p is Post => p instanceof Post);
+  const has_more_raw = posts.length > safe_limit;
+  const all_posts = has_more_raw ? posts.slice(0, safe_limit) : posts;
 
   // Filter by tag if this is a category tab
   let filtered_posts = all_posts;
   if (category_tag) {
-    filtered_posts = all_posts.filter((post) => post.tags.includes(category_tag));
+    filtered_posts = all_posts.filter((post) => {
+      const metadata = typeof post.json_metadata === "string"
+        ? JSON.parse(post.json_metadata)
+        : post.json_metadata;
+      return metadata?.tags?.includes(category_tag);
+    });
   }
 
   // Only enable pagination for non-category tabs
@@ -203,9 +212,9 @@ export async function fetch_posts(
   let next_cursor: IPaginationCursor | undefined;
 
   if (!category_tag) {
-    has_more = all_posts.length >= page_size;
+    has_more = has_more_raw;
     const last_post = all_posts[all_posts.length - 1];
-    if (last_post) {
+    if (last_post && has_more) {
       next_cursor = { startAuthor: last_post.author, startPermlink: last_post.permlink };
     }
   }
