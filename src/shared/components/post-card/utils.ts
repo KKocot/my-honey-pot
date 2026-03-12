@@ -42,9 +42,8 @@ export function getPostTags(post: BridgePost, maxTags: number): string[] {
 /**
  * Format payout value
  */
-export function formatPayout(value: string): string {
-  const num = parseFloat(value.replace(' HBD', '').replace(' HIVE', ''))
-  return `$${num.toFixed(2)}`
+export function formatPayout(value: number): string {
+  return `$${value.toFixed(2)}`
 }
 
 /**
@@ -63,7 +62,7 @@ export function createPostCardDataFromBridge(
     publishedAt: new Date(post.created),
     votesCount: post.active_votes?.length ?? 0,
     commentsCount: post.children ?? 0,
-    pendingPayout: post.pending_payout_value ?? '0.00 HBD',
+    payout: post.payout > 0 ? post.payout : parseFloat(post.pending_payout_value ?? '0') || 0,
     author: post.author,
   }
 }
@@ -105,6 +104,7 @@ interface BlogLogicPost {
   tags: string[]
   publishedAt: Date
   votesCount: number
+  payout?: number
   pendingPayoutValue?: string
   images: readonly string[]
   author?: string
@@ -150,7 +150,7 @@ export async function createPostCardDataFromPost(
     publishedAt: post.publishedAt,
     votesCount: post.votesCount,
     commentsCount,
-    pendingPayout: post.pendingPayoutValue ?? '0.000 HBD',
+    payout: (post.payout ?? 0) > 0 ? post.payout ?? 0 : parseFloat(post.pendingPayoutValue ?? '0') || 0,
     author: post.author,
   }
 }
