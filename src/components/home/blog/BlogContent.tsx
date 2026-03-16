@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 Krzysztof Kocot
 
-import { createSignal, createMemo, Show, For, ErrorBoundary, onCleanup, onMount, type Component } from "solid-js";
+import { createSignal, createMemo, createEffect, Show, For, ErrorBoundary, onCleanup, onMount, type Component } from "solid-js";
 import { QueryClientProvider, createQuery, type DehydratedState, hydrate } from "@tanstack/solid-query";
 import { query_keys, fetch_posts, fetch_comments, create_query_client } from "../../../lib/queries";
 import type { BridgePost, BridgeComment, AccountPostsSortOption, CommentSortOption, IPaginationCursor } from "@hiveio/workerbee/blog-logic";
@@ -129,7 +129,7 @@ const PostCardItem: Component<{
 
   // Extract onClick handler to prevent re-render
   const handle_post_click = (permlink: string) => {
-    window.location.href = `/${permlink}`
+    window.location.href = `/${props.post.author}/${permlink}`
   }
 
   // Trigger scroll animation on mount with staggered delay
