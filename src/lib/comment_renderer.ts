@@ -3,7 +3,7 @@
 
 import MarkdownIt from "markdown-it";
 import sanitizeHtml from "sanitize-html";
-import { HIVE_IMAGES_ENDPOINT, HIVE_BLOG_URL } from "./config";
+import { HIVE_IMAGES_ENDPOINT, HIVE_BLOG_URL, hive_image_proxy } from "./config";
 import { Phishing } from "./renderer/security/Phishing";
 import { SecurityChecker, SecurityError } from "./renderer/security/SecurityChecker";
 import { PreliminarySanitizer } from "./renderer/sanitization/PreliminarySanitizer";
@@ -116,7 +116,7 @@ const SANITIZE_OPTIONS: sanitizeHtml.IOptions = {
       const src = attribs["src"] ?? "";
       const proxied_src = src.startsWith(HIVE_IMAGES_ENDPOINT)
         ? src
-        : `${HIVE_IMAGES_ENDPOINT}/768x0/${src}`;
+        : hive_image_proxy(src, 768);
 
       return {
         tagName,

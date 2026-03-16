@@ -140,5 +140,20 @@ export function hive_image_proxy(
   width: number,
   height: number = 0,
 ): string {
-  return `${HIVE_IMAGES_ENDPOINT}/${width}x${height}/${url}`;
+  let normalized = url;
+
+  if (normalized.startsWith("ipfs://")) {
+    normalized = `https://ipfs.io/ipfs/${normalized.slice(7)}`;
+  } else if (normalized.startsWith("/ipfs/")) {
+    normalized = `https://ipfs.io${normalized}`;
+  }
+
+  if (normalized.includes("steemitimages.com")) {
+    normalized = normalized.replace(/steemitimages\.com/g, "images.hive.blog");
+  }
+
+  const is_gif = /\.gif(\?.*)?$/i.test(normalized);
+  const size = is_gif ? "0x0" : `${width}x${height}`;
+
+  return `${HIVE_IMAGES_ENDPOINT}/${size}/${normalized}`;
 }
