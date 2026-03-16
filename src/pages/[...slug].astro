@@ -21,7 +21,7 @@ const slug_value = slug ?? ''
 let author: string
 let permlink: string
 
-if (IS_COMMUNITY && slug_value.includes('/')) {
+if (slug_value.includes('/')) {
   // Strip community prefix if present (e.g. "hive-XXXXX/@author/permlink" → "@author/permlink")
   const cleaned = slug_value.replace(/^hive-\d+\//, '')
   const parts = cleaned.split('/')
