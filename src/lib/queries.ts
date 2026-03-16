@@ -103,6 +103,7 @@ export interface FetchPostsResult {
   posts: BridgePost[];
   has_more: boolean;
   next_cursor?: IPaginationCursor;
+  total_before_filter: number;
 }
 
 export interface FetchCommentsResult {
@@ -178,7 +179,7 @@ export async function fetch_posts(
   category_tag?: string | null
 ): Promise<FetchPostsResult> {
   // Request one extra to detect if more pages exist
-  const safe_limit = Math.min(Math.max(1, limit), 19);
+  const safe_limit = Math.min(Math.max(1, limit), 20);
   const request_limit = safe_limit + 1;
 
   const posts = await withRetry((chain) =>
@@ -223,6 +224,7 @@ export async function fetch_posts(
     posts: filtered_posts,
     has_more,
     next_cursor,
+    total_before_filter: all_posts.length,
   };
 }
 

@@ -216,7 +216,7 @@ export async function prepare_user_page(
         blog_logic_posts = posts_data.posts;
         has_more_posts = posts_data.has_more;
         next_posts_cursor = posts_data.next_cursor;
-        total_fetched_before_filter = posts_data.posts.length;
+        total_fetched_before_filter = posts_data.total_before_filter;
       }
     }
   } catch (err) {
