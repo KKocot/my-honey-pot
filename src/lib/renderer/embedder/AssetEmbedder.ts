@@ -6,6 +6,7 @@ import {AbstractEmbedder} from './AbstractEmbedder';
 import {SpotifyEmbedder} from './SpotifyEmbedder';
 import {ThreeSpeakEmbedder} from './ThreeSpeakEmbedder';
 import {TwitchEmbedder} from './TwitchEmbedder';
+import {TwitterEmbedder} from './TwitterEmbedder';
 import {VimeoEmbedder} from './VimeoEmbedder';
 import {YoutubeEmbedder} from './YoutubeEmbedder';
 
@@ -24,7 +25,8 @@ export class AssetEmbedder {
             new VimeoEmbedder(),
             new TwitchEmbedder(options),
             new SpotifyEmbedder(),
-            new ThreeSpeakEmbedder()
+            new ThreeSpeakEmbedder(),
+            new TwitterEmbedder()
         ];
     }
 
@@ -38,6 +40,7 @@ export class AssetEmbedder {
         if (typeof o.imageProxyFn !== 'function') throw new Error('AssetEmbedderOptions.imageProxyFn must be a function');
         if (typeof o.hashtagUrlFn !== 'function') throw new Error('AssetEmbedderOptions.hashtagUrlFn must be a function');
         if (typeof o.usertagUrlFn !== 'function') throw new Error('AssetEmbedderOptions.usertagUrlFn must be a function');
+        if (typeof o.communityUrlFn !== 'function') throw new Error('AssetEmbedderOptions.communityUrlFn must be a function');
     }
 
     /**
@@ -93,4 +96,5 @@ export interface AssetEmbedderOptions {
     imageProxyFn: (url: string) => string;
     hashtagUrlFn: (hashtag: string) => string;
     usertagUrlFn: (account: string) => string;
+    communityUrlFn: (community: string) => string;
 }
