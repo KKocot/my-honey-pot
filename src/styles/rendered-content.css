@@ -137,6 +137,77 @@
   border: 1px solid var(--theme-border, #d1d5db);
 }
 
+/* Image loading skeleton */
+.rendered-content .img-placeholder-wrapper {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  border-radius: 0.5rem;
+  margin: 1.5rem 0;
+  background-color: var(--theme-bg-secondary, #e5e5e5);
+  min-height: 200px;
+}
+
+.rendered-content .img-placeholder-skeleton {
+  position: absolute;
+  inset: 0;
+  animation: img-skeleton-pulse 1.5s ease-in-out infinite;
+  background: linear-gradient(
+    90deg,
+    var(--theme-bg-secondary, #e5e5e5) 0%,
+    var(--theme-bg-card, #ffffff) 50%,
+    var(--theme-bg-secondary, #e5e5e5) 100%
+  );
+  background-size: 200% 100%;
+}
+
+@keyframes img-skeleton-pulse {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.rendered-content .img-placeholder-wrapper img {
+  opacity: 0;
+  transition: opacity 200ms ease;
+  margin: 0;
+  border: none;
+}
+
+.rendered-content .img-placeholder-wrapper img.img-loaded {
+  opacity: 1;
+}
+
+.rendered-content .img-placeholder-wrapper.img-done {
+  min-height: auto;
+  background-color: transparent;
+}
+
+.rendered-content .img-placeholder-wrapper.img-done .img-placeholder-skeleton {
+  display: none;
+}
+
+/* Image error state */
+.rendered-content .img-error-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 2rem;
+  color: var(--theme-text-muted, #6b7280);
+  min-height: 200px;
+}
+
+.rendered-content .img-error-state svg {
+  width: 2rem;
+  height: 2rem;
+  opacity: 0.5;
+}
+
+.rendered-content .img-error-state span {
+  font-size: 0.875rem;
+}
+
 /* Tables - use theme colors */
 .rendered-content table {
   width: 100%;
@@ -197,6 +268,20 @@
   left: 0;
   width: 100%;
   height: 100%;
+}
+
+/* Tweet embed wrapper */
+.rendered-content .tweet-embed {
+  max-width: 550px;
+  margin: 1.5rem auto;
+}
+
+.rendered-content .tweet-embed iframe {
+  width: 100%;
+  min-height: 300px;
+  aspect-ratio: auto;
+  border: 1px solid var(--theme-border, #d1d5db);
+  border-radius: 0.75rem;
 }
 
 /* Strong/Bold text */

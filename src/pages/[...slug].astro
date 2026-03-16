@@ -230,4 +230,34 @@ const raw_payout = (rawPost?.payout ?? 0) > 0
   </div>
   <Footer class="max-w-3xl mx-auto px-4" />
   <ExternalLinkDialog client:only="solid-js" />
+  <script>
+    function init_image_placeholders() {
+      const container = document.querySelector(".rendered-content");
+      if (!container) return;
+
+      container.querySelectorAll(".img-placeholder-wrapper img").forEach((el) => {
+        const img = el as HTMLImageElement;
+        if (img.complete && img.naturalWidth > 0) {
+          img.classList.add("img-loaded");
+          img.closest(".img-placeholder-wrapper")?.classList.add("img-done");
+          return;
+        }
+
+        img.addEventListener("load", () => {
+          img.classList.add("img-loaded");
+          img.closest(".img-placeholder-wrapper")?.classList.add("img-done");
+        }, { once: true });
+
+        img.addEventListener("error", () => {
+          const wrapper = img.closest(".img-placeholder-wrapper");
+          if (!wrapper) return;
+          wrapper.innerHTML = '<div class="img-error-state"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg><span>Image failed to load</span></div>';
+          wrapper.classList.add("img-done");
+        }, { once: true });
+      });
+    }
+
+    init_image_placeholders();
+    document.addEventListener("astro:after-swap", init_image_placeholders);
+  </script>
 </Layout>

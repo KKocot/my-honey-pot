@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 Krzysztof Kocot
 
-import { DefaultRenderer, TablePlugin } from './renderer/index';
+import { DefaultRenderer, TablePlugin, HiveLinkRewritePlugin, ImagePlaceholderPlugin } from './renderer/index';
 import { escape_html } from '../shared/formatters/html';
 import { HIVE_IMAGES_ENDPOINT, HIVE_BLOG_URL, hive_image_proxy } from './config';
 
@@ -24,10 +24,11 @@ const renderer = new DefaultRenderer({
   ipfsPrefix: 'https://ipfs.io/ipfs/',
   assetsWidth: 640,
   assetsHeight: 480,
-  plugins: [new TablePlugin()],
+  plugins: [new TablePlugin(), new HiveLinkRewritePlugin(), new ImagePlaceholderPlugin()],
   imageProxyFn: (url: string) => hive_image_proxy(url, 768),
   usertagUrlFn: (account: string) => `${HIVE_BLOG_URL}/@${account}`,
   hashtagUrlFn: (hashtag: string) => `${HIVE_BLOG_URL}/trending/${hashtag}`,
+  communityUrlFn: (community: string) => `${HIVE_BLOG_URL}/${community}`,
   isLinkSafeFn: (url: string) =>
     !!url.match(`^(/(?!/)|${ESCAPED_IMAGES_ENDPOINT})`) ||
     !!url.match(`^(/(?!/)|#)`),

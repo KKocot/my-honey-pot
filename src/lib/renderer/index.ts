@@ -3,5 +3,7 @@
 
 export {DefaultRenderer} from './DefaultRenderer';
 export {TablePlugin} from './plugins/TablePlugin';
+export {HiveLinkRewritePlugin} from './plugins/HiveLinkRewritePlugin';
+export {ImagePlaceholderPlugin} from './plugins/ImagePlaceholderPlugin';
 export type {RendererPlugin} from './plugins/RendererPlugin';
 export type {PostContext} from './sanitization/TagTransformingSanitizer';
