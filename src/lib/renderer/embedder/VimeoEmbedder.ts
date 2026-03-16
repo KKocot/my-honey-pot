@@ -26,7 +26,7 @@ export class VimeoEmbedder extends AbstractEmbedder {
     }
 
     public processEmbed(id: string, size: {width: number; height: number}): string {
-        return `<div class="videoWrapper"><iframe src=${this.generateCanonicalUrl(id)} width=${size.width} height=${size.height} frameBorder="0" webkitallowfullscreen mozallowfullscreen allowFullScreen></iframe></div>`;
+        return `<div class="videoWrapper"><iframe src="${this.generateCanonicalUrl(id)}" width="${size.width}" height="${size.height}" frameborder="0" allowfullscreen="allowfullscreen" sandbox="allow-scripts allow-same-origin allow-popups allow-presentation" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" referrerpolicy="no-referrer" loading="lazy"></iframe></div>`;
     }
 
     private generateCanonicalUrl(id: string) {

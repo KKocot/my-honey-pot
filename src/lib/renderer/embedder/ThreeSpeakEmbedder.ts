@@ -37,6 +37,6 @@ export class ThreeSpeakEmbedder extends AbstractEmbedder {
 
     public processEmbed(id: string, size: {width: number; height: number}): string {
         const embedUrl = `https://3speak.tv/embed?v=${id}`;
-        return `<div class="threeSpeakWrapper"><iframe width="${size.width}" height="${size.height}" src="${embedUrl}" frameborder="0" allowfullscreen></iframe></div>`;
+        return `<div class="threeSpeakWrapper"><iframe width="${size.width}" height="${size.height}" src="${embedUrl}" frameborder="0" allowfullscreen="allowfullscreen" sandbox="allow-scripts allow-same-origin allow-popups allow-presentation" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" referrerpolicy="no-referrer" loading="lazy"></iframe></div>`;
     }
 }

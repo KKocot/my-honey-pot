@@ -54,6 +54,6 @@ export class SpotifyEmbedder extends AbstractEmbedder {
     }
     public processEmbed(id: string, size: {width: number; height: number}): string {
         const url = `https://open.spotify.com/${id}`;
-        return `<div class="videoWrapper"><iframe src="${url}" width="${size.width}" height="${size.height}" frameBorder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen ></iframe></div>`;
+        return `<div class="videoWrapper"><iframe src="${url}" width="${size.width}" height="${size.height}" frameborder="0" allowfullscreen="allowfullscreen" referrerpolicy="no-referrer" loading="lazy"></iframe></div>`;
     }
 }

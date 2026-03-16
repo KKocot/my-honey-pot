@@ -82,7 +82,7 @@ export class TagTransformingSanitizer {
       // SEE https://www.owasp.org/index.php/XSS_Filter_Evasion_Cheat_Sheet
       allowedAttributes: {
         // "src" MUST pass a whitelist (below)
-        iframe: ['src', 'width', 'height', 'frameborder', 'allowfullscreen', 'webkitallowfullscreen', 'mozallowfullscreen'],
+        iframe: ['src', 'width', 'height', 'frameborder', 'allowfullscreen', 'webkitallowfullscreen', 'mozallowfullscreen', 'sandbox', 'allow', 'referrerpolicy', 'loading'],
 
         // class attribute is strictly whitelisted (below)
         // and title is only set in the case of a phishing warning
@@ -112,18 +112,24 @@ export class TagTransformingSanitizer {
               if (!src) {
                 break;
               }
-              const iframeToBeReturned: sanitize.Tag = {
-                tagName: 'iframe',
-                attribs: {
+              const attribs: sanitize.Attributes = {
                   src,
                   width: this.options.iframeWidth + '',
                   height: this.options.iframeHeight + '',
-                  // some of there are deprecated but required for some embeds
                   frameborder: '0',
                   allowfullscreen: 'allowfullscreen',
-                  webkitallowfullscreen: 'webkitallowfullscreen',
-                  mozallowfullscreen: 'mozallowfullscreen'
-                }
+                  referrerpolicy: 'no-referrer',
+                  loading: 'lazy'
+              };
+              if (attributes.sandbox) {
+                  attribs.sandbox = attributes.sandbox;
+              }
+              if (attributes.allow) {
+                  attribs.allow = attributes.allow;
+              }
+              const iframeToBeReturned: sanitize.Tag = {
+                tagName: 'iframe',
+                attribs
               };
               return iframeToBeReturned;
             }

@@ -33,7 +33,7 @@ export class TwitchEmbedder extends AbstractEmbedder {
 
     public processEmbed(id: string, size: {width: number; height: number}): string {
         const url = `https://player.twitch.tv/${id}&parent=${this.domain}`;
-        return `<div class="videoWrapper"><iframe src=${url} width=${size.width} height=${size.height} frameBorder="0" allowFullScreen></iframe></div>`;
+        return `<div class="videoWrapper"><iframe src="${url}" width="${size.width}" height="${size.height}" frameborder="0" allowfullscreen="allowfullscreen" sandbox="allow-scripts allow-same-origin allow-popups allow-presentation" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" referrerpolicy="no-referrer" loading="lazy"></iframe></div>`;
     }
 
     private twitchId(data: unknown): { id: string; url: string; canonical: string } | null {

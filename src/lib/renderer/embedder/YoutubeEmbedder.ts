@@ -52,6 +52,6 @@ export class YoutubeEmbedder extends AbstractEmbedder {
 
     public processEmbed(id: string, size: {width: number; height: number}): string {
         const ytUrl = `https://www.youtube.com/embed/${id}`;
-        return `<div class="videoWrapper"><iframe width="${size.width}" height="${size.height}" src="${ytUrl}" allowfullscreen="allowfullscreen" webkitallowfullscreen="webkitallowfullscreen" mozallowfullscreen="mozallowfullscreen" frameborder="0"></iframe></div>`;
+        return `<div class="videoWrapper"><iframe width="${size.width}" height="${size.height}" src="${ytUrl}" frameborder="0" allowfullscreen="allowfullscreen" sandbox="allow-scripts allow-same-origin allow-popups allow-presentation" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" referrerpolicy="no-referrer" loading="lazy"></iframe></div>`;
     }
 }
