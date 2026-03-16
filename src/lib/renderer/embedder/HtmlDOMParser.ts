@@ -52,6 +52,7 @@ export class HtmlDOMParser {
                 imageProxyFn: this.options.imageProxyFn,
                 hashtagUrlFn: this.options.hashtagUrlFn,
                 usertagUrlFn: this.options.usertagUrlFn,
+                communityUrlFn: this.options.communityUrlFn,
                 baseUrl: this.options.baseUrl
             },
             localization
@@ -62,7 +63,8 @@ export class HtmlDOMParser {
             usertags: new Set(),
             htmltags: new Set(),
             images: new Set(),
-            links: new Set()
+            links: new Set(),
+            communities: new Set()
         };
     }
 
@@ -90,7 +92,8 @@ export class HtmlDOMParser {
             usertags: new Set(),
             htmltags: new Set(),
             images: new Set(),
-            links: new Set()
+            links: new Set(),
+            communities: new Set()
         };
 
         try {
@@ -424,10 +427,11 @@ export class HtmlDOMParser {
     /**
      * Processes text content to convert various elements into clickable links.
      *
-     * This method handles three types of conversions:
+     * This method handles four types of conversions:
      * 1. Plain text URLs into clickable links or images
      * 2. Hashtags (#tag) into links to tag pages
      * 3. User mentions (@user) into links to user profiles
+     * 4. Community identifiers (hive-XXXXXX) into links to community pages
      *
      * Processing rules:
      * - URLs:
@@ -445,6 +449,10 @@ export class HtmlDOMParser {
      *   - Must be valid account names
      *   - Converted to links using usertagUrlFn
      *   - Invalid usernames remain as plain text
+     *
+     * - Communities:
+     *   - Must match pattern hive-XXXXXX (1-8 digits)
+     *   - Converted to links using communityUrlFn
      *
      * @param content - The text content to process
      * @returns Processed content with converted links
@@ -525,6 +533,16 @@ export class HtmlDOMParser {
 
                 const userTagUrl = this.options.usertagUrlFn(userLower);
                 return valid ? `${preceedings}<a href="${userTagUrl}">@${user}</a>` : `${preceedings}@${user}`;
+            });
+
+            // community (hive-XXXXXX)
+            content = content.replace(/(^|\s)(hive-\d{1,8})\b/g, (_match, preceding: string, community: string) => {
+                this.state.communities.add(community);
+                if (!this.mutate) {
+                    return `${preceding}${community}`;
+                }
+                const community_url = this.options.communityUrlFn(community);
+                return `${preceding}<a href="${community_url}">${community}</a>`;
             });
         } catch (error) {
             console.error('[HtmlDOMParser] Regex error in linkify:', error);
@@ -671,6 +689,7 @@ export interface State {
     htmltags: Set<string>;
     images: Set<string>;
     links: Set<string>;
+    communities: Set<string>;
 }
 
 export class HtmlDOMParserError extends Error {

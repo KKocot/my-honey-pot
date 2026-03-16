@@ -61,6 +61,7 @@ export class DefaultRenderer {
                 imageProxyFn: this.options.imageProxyFn,
                 hashtagUrlFn: this.options.hashtagUrlFn,
                 usertagUrlFn: this.options.usertagUrlFn,
+                communityUrlFn: this.options.communityUrlFn,
                 hideImages: this.options.doNotShowImages
             },
             localization
@@ -237,6 +238,7 @@ export class DefaultRenderer {
         if (typeof o.imageProxyFn !== 'function') throw new Error('RendererOptions.imageProxyFn must be a function');
         if (typeof o.hashtagUrlFn !== 'function') throw new Error('RendererOptions.hashtagUrlFn must be a function');
         if (typeof o.usertagUrlFn !== 'function') throw new Error('RendererOptions.usertagUrlFn must be a function');
+        if (typeof o.communityUrlFn !== 'function') throw new Error('RendererOptions.communityUrlFn must be a function');
         if (typeof o.isLinkSafeFn !== 'function') throw new Error('RendererOptions.isLinkSafeFn must be a function');
         if (typeof o.addExternalCssClassToMatchingLinksFn !== 'function') throw new Error('RendererOptions.addExternalCssClassToMatchingLinksFn must be a function');
     }
@@ -276,6 +278,8 @@ export interface RendererOptions {
     hashtagUrlFn: (hashtag: string) => string;
     /** Function to generate user profile URLs */
     usertagUrlFn: (account: string) => string;
+    /** Function to generate community URLs */
+    communityUrlFn: (community: string) => string;
     /** Function to check if a link is safe */
     isLinkSafeFn: (url: string) => boolean;
     /** Function to determine if external CSS class should be added */
