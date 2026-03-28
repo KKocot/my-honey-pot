@@ -130,9 +130,14 @@ export interface FetchPostRepliesResult {
  * Fetch user profile from Hive blockchain
  */
 export async function fetch_profile(username: string): Promise<IProfile | null> {
-  const chain = await getWax();
-  const data_provider = new DataProvider(chain);
-  return data_provider.getProfile(username);
+  try {
+    const chain = await getWax();
+    const data_provider = new DataProvider(chain);
+    return data_provider.getProfile(username);
+  } catch (error) {
+    console.error("fetch_profile failed:", error instanceof Error ? error.message : error);
+    return null;
+  }
 }
 
 /**
@@ -141,18 +146,28 @@ export async function fetch_profile(username: string): Promise<IProfile | null> 
 export async function fetch_database_account(
   username: string
 ): Promise<IDatabaseAccount | null> {
-  const chain = await getWax();
-  const data_provider = new DataProvider(chain);
-  return data_provider.getDatabaseAccount(username);
+  try {
+    const chain = await getWax();
+    const data_provider = new DataProvider(chain);
+    return data_provider.getDatabaseAccount(username);
+  } catch (error) {
+    console.error("fetch_database_account failed:", error instanceof Error ? error.message : error);
+    return null;
+  }
 }
 
 /**
  * Fetch global properties (needed for VESTS to HP conversion)
  */
-export async function fetch_global_properties(): Promise<IGlobalProperties> {
-  const chain = await getWax();
-  const data_provider = new DataProvider(chain);
-  return data_provider.getGlobalProperties();
+export async function fetch_global_properties(): Promise<IGlobalProperties | null> {
+  try {
+    const chain = await getWax();
+    const data_provider = new DataProvider(chain);
+    return data_provider.getGlobalProperties();
+  } catch (error) {
+    console.error("fetch_global_properties failed:", error instanceof Error ? error.message : error);
+    return null;
+  }
 }
 
 /**
@@ -161,10 +176,15 @@ export async function fetch_global_properties(): Promise<IGlobalProperties> {
 export async function fetch_manabars(
   username: string
 ): Promise<IAccountManabars | null> {
-  const chain = await getWax();
-  const data_provider = new DataProvider(chain);
-  const account = await data_provider.bloggingPlatform.getAccount(username);
-  return account.getManabars();
+  try {
+    const chain = await getWax();
+    const data_provider = new DataProvider(chain);
+    const account = await data_provider.bloggingPlatform.getAccount(username);
+    return account.getManabars();
+  } catch (error) {
+    console.error("fetch_manabars failed:", error instanceof Error ? error.message : error);
+    return null;
+  }
 }
 
 /**
@@ -178,54 +198,67 @@ export async function fetch_posts(
   cursor?: IPaginationCursor,
   category_tag?: string | null
 ): Promise<FetchPostsResult> {
-  // Request one extra to detect if more pages exist
-  const safe_limit = Math.min(Math.max(1, limit), 20);
-  const request_limit = safe_limit + 1;
-
-  const posts = await withRetry((chain) =>
-    chain.api.bridge.get_account_posts({
-      sort,
-      account: username,
-      limit: request_limit,
-      observer: "",
-      ...(cursor?.startAuthor && cursor?.startPermlink
-        ? { start_author: cursor.startAuthor, start_permlink: cursor.startPermlink }
-        : {}),
-    })
-  );
-
-  const has_more_raw = posts.length > safe_limit;
-  const all_posts = has_more_raw ? posts.slice(0, safe_limit) : posts;
-
-  // Filter by tag if this is a category tab
-  let filtered_posts = all_posts;
-  if (category_tag) {
-    filtered_posts = all_posts.filter((post) => {
-      const metadata = typeof post.json_metadata === "string"
-        ? JSON.parse(post.json_metadata)
-        : post.json_metadata;
-      return metadata?.tags?.includes(category_tag);
-    });
+  if (!username) {
+    return { posts: [], has_more: false, total_before_filter: 0 };
   }
 
-  // Only enable pagination for non-category tabs
-  let has_more = false;
-  let next_cursor: IPaginationCursor | undefined;
+  try {
+    // Request one extra to detect if more pages exist
+    const safe_limit = Math.min(Math.max(1, limit), 19);
+    const request_limit = safe_limit + 1;
 
-  if (!category_tag) {
-    has_more = has_more_raw;
-    const last_post = all_posts[all_posts.length - 1];
-    if (last_post && has_more) {
-      next_cursor = { startAuthor: last_post.author, startPermlink: last_post.permlink };
+    const posts = await withRetry((chain) =>
+      chain.api.bridge.get_account_posts({
+        sort,
+        account: username,
+        limit: request_limit,
+        observer: "",
+        ...(cursor?.startAuthor && cursor?.startPermlink
+          ? { start_author: cursor.startAuthor, start_permlink: cursor.startPermlink }
+          : {}),
+      })
+    );
+
+    const has_more_raw = posts.length > safe_limit;
+    const all_posts = has_more_raw ? posts.slice(0, safe_limit) : posts;
+
+    // Filter by tag if this is a category tab
+    let filtered_posts = all_posts;
+    if (category_tag) {
+      filtered_posts = all_posts.filter((post) => {
+        try {
+          const metadata = typeof post.json_metadata === "string"
+            ? JSON.parse(post.json_metadata)
+            : post.json_metadata;
+          return metadata?.tags?.includes(category_tag);
+        } catch {
+          return false;
+        }
+      });
     }
-  }
 
-  return {
-    posts: filtered_posts,
-    has_more,
-    next_cursor,
-    total_before_filter: all_posts.length,
-  };
+    // Only enable pagination for non-category tabs
+    let has_more = false;
+    let next_cursor: IPaginationCursor | undefined;
+
+    if (!category_tag) {
+      has_more = has_more_raw;
+      const last_post = all_posts[all_posts.length - 1];
+      if (last_post && has_more) {
+        next_cursor = { startAuthor: last_post.author, startPermlink: last_post.permlink };
+      }
+    }
+
+    return {
+      posts: filtered_posts,
+      has_more,
+      next_cursor,
+      total_before_filter: all_posts.length,
+    };
+  } catch (error) {
+    console.error("fetch_posts failed:", error instanceof Error ? error.message : error);
+    return { posts: [], has_more: false, total_before_filter: 0 };
+  }
 }
 
 /**
@@ -237,16 +270,21 @@ export async function fetch_comments(
   limit: number,
   cursor?: IPaginationCursor
 ): Promise<FetchCommentsResult> {
-  const chain = await getWax();
-  const data_provider = new DataProvider(chain);
+  try {
+    const chain = await getWax();
+    const data_provider = new DataProvider(chain);
 
-  const result = await data_provider.getCommentsPaginated(username, sort, limit, cursor);
+    const result = await data_provider.getCommentsPaginated(username, sort, limit, cursor);
 
-  return {
-    comments: result.items,
-    has_more: result.hasMore,
-    next_cursor: result.nextCursor,
-  };
+    return {
+      comments: result.items,
+      has_more: result.hasMore,
+      next_cursor: result.nextCursor,
+    };
+  } catch (error) {
+    console.error("fetch_comments failed:", error instanceof Error ? error.message : error);
+    return { comments: [], has_more: false };
+  }
 }
 
 // ============================================
@@ -265,9 +303,14 @@ export interface FetchCommunityPostsResult {
  * Uses withRetry for automatic endpoint rotation on timeout.
  */
 export async function fetch_community(name: string): Promise<HiveCommunity | null> {
-  return withRetry((chain) =>
-    chain.api.bridge.get_community({ name, observer: "" })
-  );
+  try {
+    return await withRetry((chain) =>
+      chain.api.bridge.get_community({ name, observer: "" })
+    );
+  } catch (error) {
+    console.error("fetch_community failed:", error instanceof Error ? error.message : error);
+    return null;
+  }
 }
 
 /**
@@ -285,29 +328,34 @@ export async function fetch_community_posts(
   // Build params as variable to allow extra fields not typed in SDK.
   // Hive bridge API accepts limit/start_author/start_permlink but
   // @hiveio/wax-api-jsonrpc GetRankedPosts omits them (SDK limitation).
-  const params = {
-    sort,
-    tag: name,
-    observer: "",
-    limit,
-    ...(start_author && start_permlink
-      ? { start_author, start_permlink }
-      : {}),
-  };
+  try {
+    const params = {
+      sort,
+      tag: name,
+      observer: "",
+      limit,
+      ...(start_author && start_permlink
+        ? { start_author, start_permlink }
+        : {}),
+    };
 
-  const posts = await withRetry((chain) =>
-    chain.api.bridge.get_ranked_posts(params)
-  );
+    const posts = await withRetry((chain) =>
+      chain.api.bridge.get_ranked_posts(params)
+    );
 
-  const has_more = posts.length >= limit;
-  const last_post = posts[posts.length - 1];
+    const has_more = posts.length >= limit;
+    const last_post = posts[posts.length - 1];
 
-  return {
-    posts,
-    has_more,
-    next_author: last_post?.author,
-    next_permlink: last_post?.permlink,
-  };
+    return {
+      posts,
+      has_more,
+      next_author: last_post?.author,
+      next_permlink: last_post?.permlink,
+    };
+  } catch (error) {
+    console.error("fetch_community_posts failed:", error instanceof Error ? error.message : error);
+    return { posts: [], has_more: false };
+  }
 }
 
 /**
@@ -317,9 +365,14 @@ export async function fetch_community_posts(
 export async function fetch_subscribers(
   name: string
 ): Promise<CommunitySubscriber[]> {
-  return withRetry((chain) =>
-    chain.api.bridge.list_subscribers({ community: name })
-  );
+  try {
+    return await withRetry((chain) =>
+      chain.api.bridge.list_subscribers({ community: name })
+    );
+  } catch (error) {
+    console.error("fetch_subscribers failed:", error instanceof Error ? error.message : error);
+    return [];
+  }
 }
 
 /**
@@ -329,9 +382,14 @@ export async function fetch_subscribers(
 export async function fetch_community_roles(
   name: string
 ): Promise<CommunityTeamMember[]> {
-  return withRetry((chain) =>
-    chain.api.bridge.list_community_roles({ community: name })
-  );
+  try {
+    return await withRetry((chain) =>
+      chain.api.bridge.list_community_roles({ community: name })
+    );
+  } catch (error) {
+    console.error("fetch_community_roles failed:", error instanceof Error ? error.message : error);
+    return [];
+  }
 }
 
 // ============================================
@@ -395,51 +453,56 @@ export async function fetch_post_replies(
   author: string,
   permlink: string
 ): Promise<FetchPostRepliesResult> {
-  const discussion = await withRetry((chain) =>
-    chain.api.bridge.get_discussion({ author, permlink, observer: "" })
-  );
+  try {
+    const discussion = await withRetry((chain) =>
+      chain.api.bridge.get_discussion({ author, permlink, observer: "" })
+    );
 
-  const root_key = `${author}/${permlink}`;
+    const root_key = `${author}/${permlink}`;
 
-  // Index all valid, visible comments by their key
-  const comment_map = new Map<string, BridgePost>();
-  for (const [key, entry] of Object.entries(discussion)) {
-    if (key === root_key) continue;
-    if (!is_bridge_post(entry)) continue;
-    if (should_hide_comment(entry)) continue;
-    comment_map.set(key, entry);
-  }
-
-  // Build children lookup: parent_key -> list of child BridgePosts
-  const children_map = new Map<string, BridgePost[]>();
-  for (const [, comment] of comment_map) {
-    const parent_key = `${comment.parent_author}/${comment.parent_permlink}`;
-    const siblings = children_map.get(parent_key);
-    if (siblings) {
-      siblings.push(comment);
-    } else {
-      children_map.set(parent_key, [comment]);
+    // Index all valid, visible comments by their key
+    const comment_map = new Map<string, BridgePost>();
+    for (const [key, entry] of Object.entries(discussion)) {
+      if (key === root_key) continue;
+      if (!is_bridge_post(entry)) continue;
+      if (should_hide_comment(entry)) continue;
+      comment_map.set(key, entry);
     }
+
+    // Build children lookup: parent_key -> list of child BridgePosts
+    const children_map = new Map<string, BridgePost[]>();
+    for (const [, comment] of comment_map) {
+      const parent_key = `${comment.parent_author}/${comment.parent_permlink}`;
+      const siblings = children_map.get(parent_key);
+      if (siblings) {
+        siblings.push(comment);
+      } else {
+        children_map.set(parent_key, [comment]);
+      }
+    }
+
+    function build_subtree(parent_key: string, depth = 0): CommentTreeNode[] {
+      if (depth > 50) return [];
+
+      const direct_children = children_map.get(parent_key);
+      if (!direct_children) return [];
+
+      const sorted = sort_newest_first(direct_children);
+
+      return sorted.map((child) => {
+        const child_key = `${child.author}/${child.permlink}`;
+        return {
+          comment: child,
+          children: build_subtree(child_key, depth + 1),
+        };
+      });
+    }
+
+    const tree = build_subtree(root_key);
+
+    return { tree, total_count: comment_map.size };
+  } catch (error) {
+    console.error("fetch_post_replies failed:", error instanceof Error ? error.message : error);
+    return { tree: [], total_count: 0 };
   }
-
-  function build_subtree(parent_key: string, depth = 0): CommentTreeNode[] {
-    if (depth > 50) return [];
-
-    const direct_children = children_map.get(parent_key);
-    if (!direct_children) return [];
-
-    const sorted = sort_newest_first(direct_children);
-
-    return sorted.map((child) => {
-      const child_key = `${child.author}/${child.permlink}`;
-      return {
-        comment: child,
-        children: build_subtree(child_key, depth + 1),
-      };
-    });
-  }
-
-  const tree = build_subtree(root_key);
-
-  return { tree, total_count: comment_map.size };
 }

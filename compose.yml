@@ -8,6 +8,18 @@ services:
       - HOST=0.0.0.0
       - PORT=4321
       - HIVE_USERNAME=${HIVE_USERNAME}
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:4321/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
     expose:
       - "4321"
     networks:
