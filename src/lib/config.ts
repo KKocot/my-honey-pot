@@ -100,6 +100,11 @@ export const HIVE_API_ENDPOINTS = MAINNET_FALLBACK_ENDPOINTS.includes(
   ? MAINNET_FALLBACK_ENDPOINTS
   : [HIVE_API_ENDPOINT];
 
+// Config comment identification
+export const APPEARANCE_CONFIG_PREFIX = "!hive-blog-appearance";
+export const APPEARANCE_CONFIG_TYPE = "blog_appearance_config";
+export const LEGACY_CONFIG_APP = "hive-blog-config/1.0";
+
 // Layout Constants
 export const LAYOUT_CONSTANTS = {
   HEADER_MAX_WIDTH_PX: { min: 800, max: 1920, default: 1280 },

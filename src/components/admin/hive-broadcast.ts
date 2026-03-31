@@ -3,7 +3,15 @@
 
 import { ReplyOperation } from '@hiveio/wax'
 import { configureEndpoints, DataProvider, getWax } from '@hiveio/workerbee/blog-logic'
-import { CONFIG_PARENT_AUTHOR, CONFIG_PARENT_PERMLINK, HIVE_API_ENDPOINTS, IS_COMMUNITY } from '../../lib/config'
+import {
+  CONFIG_PARENT_AUTHOR,
+  CONFIG_PARENT_PERMLINK,
+  HIVE_API_ENDPOINTS,
+  IS_COMMUNITY,
+  APPEARANCE_CONFIG_TYPE,
+  APPEARANCE_CONFIG_PREFIX,
+  LEGACY_CONFIG_APP,
+} from '../../lib/config'
 import { get_broadcast_chain } from '../../lib/broadcast-chain'
 
 // Configure workerbee to use our custom Hive API endpoints
@@ -36,20 +44,31 @@ async function findExistingConfig(username: string): Promise<{ permlink: string;
     )
 
     // Find this user's config comment
+    // Primary: match by json_metadata.type === APPEARANCE_CONFIG_TYPE
+    // Fallback (backwards compat): match by legacy app field + body format
+    let legacy_match: { permlink: string; body: string } | null = null
+
     for (const replyId of repliesIds) {
-      if (replyId.author === username) {
-        // Get the cached comment data
-        const comment = dataProvider.getComment(replyId)
-        if (comment?.body.includes('```json')) {
-          return {
-            permlink: comment.permlink,
-            body: comment.body
-          }
-        }
+      if (replyId.author !== username) continue
+
+      const comment = dataProvider.getComment(replyId)
+      if (!comment) continue
+
+      const metadata = comment.json_metadata
+      if (metadata?.type === APPEARANCE_CONFIG_TYPE && comment.body.startsWith(APPEARANCE_CONFIG_PREFIX)) {
+        return { permlink: comment.permlink, body: comment.body }
+      }
+
+      if (
+        !legacy_match &&
+        metadata?.app === LEGACY_CONFIG_APP &&
+        comment.body.includes('```json')
+      ) {
+        legacy_match = { permlink: comment.permlink, body: comment.body }
       }
     }
 
-    return null
+    return legacy_match
   } catch (error) {
     if (import.meta.env.DEV) console.error('Error finding existing config:', error)
     return null
@@ -89,8 +108,11 @@ export async function broadcastConfigToHive(
     const configBody = JSON.stringify(settings, null, 2)
     const timestamp = new Date().toISOString()
 
+    // Escape backticks in config body to prevent breaking the markdown code block
+    const safe_config_body = configBody.replaceAll('```', '\\`\\`\\`');
+
     // Validate config size (Hive has 64KB limit on comment body)
-    const fullBody = `# Blog Configuration for @${username}\n\nLast updated: ${timestamp}\n\n\`\`\`json\n${configBody}\n\`\`\``
+    const fullBody = `${APPEARANCE_CONFIG_PREFIX}\n# Blog Configuration for @${username}\n\nLast updated: ${timestamp}\n\n\`\`\`json\n${safe_config_body}\n\`\`\``
     const bodySize = new Blob([fullBody]).size
     if (bodySize > MAX_BODY_SIZE) {
       throw new Error(`Configuration too large (${Math.round(bodySize / 1024)}KB). Maximum size is 64KB. Try reducing custom settings.`)
@@ -108,7 +130,8 @@ export async function broadcastConfigToHive(
       body: fullBody,
       permlink: permlink,
       jsonMetadata: {
-        app: 'hive-blog-config/1.0',
+        app: LEGACY_CONFIG_APP,
+        type: APPEARANCE_CONFIG_TYPE,
         format: 'markdown',
         tags: ['hive-blog-config'],
         config_version: '1.0',
