@@ -12,81 +12,42 @@ import {
   PlusIcon,
 } from "../admin/editors/LayoutEditor/icons";
 import { WifLogin } from "./WifLogin";
+import { ErrorIcon, SpinnerIcon, LockIcon, UserIcon, TrashIcon } from "./icons";
+import { is_valid_hive_username } from "./constants";
 
 interface HBAuthLoginProps {
+  mode: "login" | "register";
   onSuccess?: (user: {
     username: string;
     privateKey: string;
     keyType: "posting" | "active";
+    loginType: "hbauth" | "keychain" | "wif";
   }) => void;
   onError?: (error: Error) => void;
   class?: string;
 }
 
-/** Inline icon components used only in this file */
-function ErrorIcon(props: { class?: string }) {
+/** Toggle button for password/key visibility. Defined at module level to avoid re-creating on each render. */
+function VisibilityToggle(toggle_props: {
+  visible: boolean;
+  onToggle: () => void;
+}) {
   return (
-    <svg
-      class={props.class}
-      fill="none"
-      stroke="currentColor"
-      viewBox="0 0 24 24"
+    <button
+      type="button"
+      onClick={toggle_props.onToggle}
+      class="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-text"
     >
-      <path
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        stroke-width="2"
-        d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-      />
-    </svg>
+      {toggle_props.visible ? (
+        <EyeOffIcon class="h-4 w-4" />
+      ) : (
+        <EyeIcon class="h-4 w-4" />
+      )}
+    </button>
   );
 }
 
-function LockIcon(props: { class?: string }) {
-  return (
-    <svg
-      class={props.class}
-      fill="none"
-      stroke="currentColor"
-      viewBox="0 0 24 24"
-    >
-      <path
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        stroke-width="2"
-        d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-      />
-    </svg>
-  );
-}
-
-function SpinnerIcon(props: { class?: string }) {
-  return (
-    <svg class={props.class} fill="none" viewBox="0 0 24 24">
-      <circle
-        class="opacity-25"
-        cx="12"
-        cy="12"
-        r="10"
-        stroke="currentColor"
-        stroke-width="4"
-      />
-      <path
-        class="opacity-75"
-        fill="currentColor"
-        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-      />
-    </svg>
-  );
-}
-
-/**
- * HB-Auth Login Component
- * On mainnet: uses official @hiveio/hb-auth for key storage (IndexedDB via Web Worker)
- * On non-mainnet: delegates to WifLogin for direct WIF key login
- */
 export function HBAuthLogin(props: HBAuthLoginProps) {
-  const [mode, setMode] = createSignal<"login" | "register">("login");
   const [username, setUsername] = createSignal("");
   const [password, setPassword] = createSignal("");
   const [private_key, setPrivateKey] = createSignal("");
@@ -98,9 +59,13 @@ export function HBAuthLogin(props: HBAuthLoginProps) {
   const [stored_users, setStoredUsers] = createSignal<HBAuthUser[]>([]);
   const [auth_client, setAuthClient] = createSignal<OnlineClient | null>(null);
 
-  // Initialize HB-Auth client and load registered users (mainnet only)
+  let username_ref: HTMLInputElement | undefined;
+  let password_ref: HTMLInputElement | undefined;
+
   onMount(async () => {
     if (IS_NOT_MAINNET) return;
+
+    username_ref?.focus();
 
     try {
       const client = await getOnlineClient();
@@ -116,23 +81,27 @@ export function HBAuthLogin(props: HBAuthLoginProps) {
     }
   });
 
-  const check_stored_key = () => {
-    const user = username().trim().toLowerCase();
-    const found = stored_users().find(
-      (u) => u.username.toLowerCase() === user
-    );
-    if (found) {
-      setMode("login");
-    }
-  };
+  function is_submit_disabled(): boolean {
+    const user = username().trim();
+    const pass = password().trim();
+    if (!user || !pass) return true;
+    if (props.mode === "register" && !private_key().trim()) return true;
+    return is_loading();
+  }
 
-  /** Login - authenticate with HB-Auth (unlock stored key) */
   async function handle_login() {
     const user = username().trim().toLowerCase();
     const pass = password();
 
     if (!user || !pass) {
       setError("Please fill in all fields");
+      return;
+    }
+
+    if (!is_valid_hive_username(user)) {
+      setError(
+        "Invalid username format. Must be 3-16 characters: lowercase letters, digits and hyphens."
+      );
       return;
     }
 
@@ -146,8 +115,7 @@ export function HBAuthLogin(props: HBAuthLoginProps) {
       (u) => u.username.toLowerCase() === user
     );
     if (!stored_user) {
-      setError("No key stored for this user. Please register first.");
-      setMode("register");
+      setError("No key stored for this user. Please switch to Register Key tab.");
       return;
     }
 
@@ -164,6 +132,7 @@ export function HBAuthLogin(props: HBAuthLoginProps) {
         username: user,
         privateKey: HBAUTH_MANAGED_MARKER,
         keyType: key_type,
+        loginType: "hbauth",
       });
     } catch (err) {
       const error = err instanceof Error ? err : new Error("Login failed");
@@ -178,6 +147,7 @@ export function HBAuthLogin(props: HBAuthLoginProps) {
           username: user,
           privateKey: HBAUTH_MANAGED_MARKER,
           keyType: key_type,
+          loginType: "hbauth",
         });
         return;
       } else {
@@ -189,7 +159,6 @@ export function HBAuthLogin(props: HBAuthLoginProps) {
     }
   }
 
-  /** Register - store new key in HB-Auth */
   async function handle_register() {
     const user = username().trim().toLowerCase();
     const pass = password();
@@ -197,6 +166,13 @@ export function HBAuthLogin(props: HBAuthLoginProps) {
 
     if (!user || !pass || !key) {
       setError("Please fill in all fields");
+      return;
+    }
+
+    if (!is_valid_hive_username(user)) {
+      setError(
+        "Invalid username format. Must be 3-16 characters: lowercase letters, digits and hyphens."
+      );
       return;
     }
 
@@ -229,9 +205,8 @@ export function HBAuthLogin(props: HBAuthLoginProps) {
           username: user,
           privateKey: HBAUTH_MANAGED_MARKER,
           keyType: key_type,
+          loginType: "hbauth",
         });
-      } else {
-        setMode("login");
       }
     } catch (err) {
       const error =
@@ -243,7 +218,6 @@ export function HBAuthLogin(props: HBAuthLoginProps) {
     }
   }
 
-  /** Logout user from HB-Auth session and remove from quick access list */
   async function handle_remove_key(user: string) {
     if (!confirm(`Logout and remove @${user} from quick access list?`)) return;
 
@@ -265,24 +239,12 @@ export function HBAuthLogin(props: HBAuthLoginProps) {
     }
   }
 
-  /** Toggle button for password/key visibility */
-  function VisibilityToggle(toggle_props: {
-    visible: boolean;
-    onToggle: () => void;
-  }) {
-    return (
-      <button
-        type="button"
-        onClick={toggle_props.onToggle}
-        class="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-foreground"
-      >
-        {toggle_props.visible ? (
-          <EyeOffIcon class="h-4 w-4" />
-        ) : (
-          <EyeIcon class="h-4 w-4" />
-        )}
-      </button>
-    );
+  function handle_submit() {
+    if (props.mode === "login") {
+      handle_login();
+    } else {
+      handle_register();
+    }
   }
 
   return (
@@ -296,103 +258,100 @@ export function HBAuthLogin(props: HBAuthLoginProps) {
         />
       }
     >
-      <div class={`w-full max-w-sm ${props.class || ""}`}>
-        {/* Mode Toggle - Login/Register */}
-        <div class="flex rounded-xl bg-bg-secondary border border-border p-1 mb-6">
-          <button
-            onClick={() => {
-              setMode("login");
-              setError(null);
-            }}
-            class={`flex-1 rounded-lg py-2.5 px-4 text-sm font-medium transition-all ${
-              mode() === "login"
-                ? "bg-primary text-white shadow-md"
-                : "text-text-muted hover:text-text hover:bg-bg-card"
-            }`}
-          >
-            Login
-          </button>
-          <button
-            onClick={() => {
-              setMode("register");
-              setError(null);
-            }}
-            class={`flex-1 rounded-lg py-2.5 px-4 text-sm font-medium transition-all ${
-              mode() === "register"
-                ? "bg-primary text-white shadow-md"
-                : "text-text-muted hover:text-text hover:bg-bg-card"
-            }`}
-          >
-            Register Key
-          </button>
-        </div>
-
+      <div class={`w-full max-w-sm ${props.class ?? ""}`}>
         <div class="space-y-4">
-          {/* Stored Users Quick Select */}
-          <Show when={stored_users().length > 0 && mode() === "login"}>
+          {/* Stored Users List */}
+          <Show when={stored_users().length > 0 && props.mode === "login"}>
             <div>
-              <label class="block text-sm font-medium mb-1.5 text-foreground">
+              <label class="block text-sm font-medium mb-1.5 text-text">
                 Stored Accounts
               </label>
-              <div class="flex flex-wrap gap-2">
+              <div class="rounded-lg border border-border overflow-hidden">
                 <For each={stored_users()}>
                   {(user) => (
-                    <div class="flex items-center gap-1 bg-muted rounded-full px-3 py-1">
-                      <button
-                        onClick={() => setUsername(user.username)}
-                        class={`text-sm ${username() === user.username ? "text-accent font-medium" : "text-foreground"}`}
+                    <div
+                      class={`flex items-center gap-3 px-3 py-2.5 cursor-pointer transition-colors ${
+                        username() === user.username
+                          ? "bg-accent/10 border-l-2 border-l-accent"
+                          : "bg-bg-card hover:bg-bg-secondary border-l-2 border-l-transparent"
+                      }`}
+                      onClick={() => setUsername(user.username)}
+                    >
+                      <UserIcon class="h-4 w-4 text-text-muted flex-shrink-0" />
+                      <span
+                        class={`text-sm flex-1 ${
+                          username() === user.username
+                            ? "text-accent font-medium"
+                            : "text-text"
+                        }`}
                       >
                         @{user.username}
-                      </button>
+                      </span>
                       <button
-                        onClick={() => handle_remove_key(user.username)}
-                        class="text-muted hover:text-error ml-1"
-                        title="Logout from quick access"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handle_remove_key(user.username);
+                        }}
+                        class="text-text-muted hover:text-error transition-colors p-1 rounded"
+                        title="Remove from quick access"
                       >
-                        x
+                        <TrashIcon class="h-3.5 w-3.5" />
                       </button>
                     </div>
                   )}
                 </For>
               </div>
             </div>
+
+            <div class="border-t border-border" />
           </Show>
 
           {/* Username */}
           <div>
-            <label class="block text-sm font-medium mb-1.5 text-foreground">
+            <label for="hbauth-username" class="block text-sm font-medium mb-1.5 text-text">
               Username
             </label>
             <input
+              id="hbauth-username"
+              ref={username_ref}
               type="text"
               value={username()}
-              onInput={(e) => {
-                setUsername(e.currentTarget.value.toLowerCase());
-                check_stored_key();
+              onInput={(e) => setUsername(e.currentTarget.value.toLowerCase())}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  if (props.mode === "register") {
+                    password_ref?.focus();
+                  } else {
+                    handle_submit();
+                  }
+                }
               }}
               placeholder="Enter your username"
-              class="w-full px-3 py-2.5 rounded-lg border border-border bg-card text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/50"
+              class="w-full px-3 py-2.5 rounded-lg border border-border bg-bg-card text-text placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/50"
             />
           </div>
 
           {/* Password */}
           <div>
-            <label class="block text-sm font-medium mb-1.5 text-foreground">
-              {mode() === "register" ? "Create Password" : "Password"}
+            <label for="hbauth-password" class="block text-sm font-medium mb-1.5 text-text">
+              {props.mode === "register" ? "Create Password" : "Password"}
             </label>
             <div class="relative">
               <input
+                id="hbauth-password"
+                ref={password_ref}
                 type={show_password() ? "text" : "password"}
                 value={password()}
                 onInput={(e) => setPassword(e.currentTarget.value)}
                 onKeyDown={(e) => {
-                  if (e.key === "Enter" && mode() === "login") {
+                  if (e.key === "Enter") {
                     e.preventDefault();
-                    handle_login();
+                    handle_submit();
                   }
                 }}
                 placeholder="Enter password"
-                class="w-full px-3 py-2.5 pr-10 rounded-lg border border-border bg-card text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/50"
+                class="w-full px-3 py-2.5 pr-10 rounded-lg border border-border bg-bg-card text-text placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/50"
               />
               <VisibilityToggle
                 visible={show_password()}
@@ -402,13 +361,14 @@ export function HBAuthLogin(props: HBAuthLoginProps) {
           </div>
 
           {/* Private Key (only for register) */}
-          <Show when={mode() === "register"}>
+          <Show when={props.mode === "register"}>
             <div>
-              <label class="block text-sm font-medium mb-1.5 text-foreground">
+              <label for="hbauth-private-key" class="block text-sm font-medium mb-1.5 text-text">
                 Private Key (WIF)
               </label>
               <div class="relative">
                 <input
+                  id="hbauth-private-key"
                   type={show_key() ? "text" : "password"}
                   value={private_key()}
                   onInput={(e) => setPrivateKey(e.currentTarget.value)}
@@ -419,14 +379,14 @@ export function HBAuthLogin(props: HBAuthLoginProps) {
                     }
                   }}
                   placeholder="5..."
-                  class="w-full px-3 py-2.5 pr-10 rounded-lg border border-border bg-card text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/50 font-mono text-sm"
+                  class="w-full px-3 py-2.5 pr-10 rounded-lg border border-border bg-bg-card text-text placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/50 font-mono text-sm"
                 />
                 <VisibilityToggle
                   visible={show_key()}
                   onToggle={() => setShowKey(!show_key())}
                 />
               </div>
-              <p class="mt-1 text-xs text-muted">
+              <p class="mt-1 text-xs text-text-muted">
                 Your key will be encrypted and stored securely by HB-Auth
               </p>
             </div>
@@ -435,22 +395,20 @@ export function HBAuthLogin(props: HBAuthLoginProps) {
           {/* Error Message */}
           <Show when={error()}>
             <div class="flex items-center gap-2 text-sm text-error">
-              <ErrorIcon class="h-4 w-4" />
+              <ErrorIcon class="h-4 w-4 flex-shrink-0" />
               {error()}
             </div>
           </Show>
 
           {/* Submit Button */}
           <button
-            onClick={() =>
-              mode() === "login" ? handle_login() : handle_register()
-            }
-            disabled={is_loading()}
-            class="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-accent text-white font-medium hover:opacity-90 disabled:opacity-50 transition-opacity"
+            onClick={handle_submit}
+            disabled={is_submit_disabled()}
+            class="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-accent text-primary-text font-medium hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
           >
             {is_loading() ? (
               <SpinnerIcon class="h-5 w-5 animate-spin" />
-            ) : mode() === "login" ? (
+            ) : props.mode === "login" ? (
               <>
                 <LockIcon class="h-5 w-5" />
                 Unlock Blog
@@ -464,8 +422,8 @@ export function HBAuthLogin(props: HBAuthLoginProps) {
           </button>
 
           {/* Security Note */}
-          <div class="rounded-lg border border-success/20 bg-success/5 p-3">
-            <p class="text-xs text-success">
+          <div class="rounded-lg border border-info/20 bg-info/5 p-3">
+            <p class="text-xs text-info">
               <strong>Safe Storage:</strong> Your key is encrypted by HB-Auth
               and stored in browser's IndexedDB. Never transmitted over the
               network.
