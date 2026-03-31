@@ -35,6 +35,9 @@ importers:
       '@hiveio/wax-signers-beekeeper':
         specifier: ^1.28.4-rc0
         version: 1.28.4-rc0
+      '@hiveio/wax-signers-keychain':
+        specifier: 1.28.6-rc10
+        version: 1.28.6-rc10
       '@hiveio/workerbee':
         specifier: ^1.28.4-rc0-stable.260203140905
         version: 1.28.4-rc0-stable.260203140905(@hiveio/wax@1.28.4-rc0)
@@ -407,8 +410,15 @@ packages:
   '@hiveio/wax-signers-beekeeper@1.28.4-rc0':
     resolution: {integrity: sha512-KHvUGGwez8NY1xwkLTvEo7SgGl8utWQFPHAJqPZ/Elrx9hPFttAaybvdQLMaeTpyp72J6lOT5AWAN3cIdsAEJg==}
 
+  '@hiveio/wax-signers-keychain@1.28.6-rc10':
+    resolution: {integrity: sha1-C5F4gXqKPZiyjqeTNmzzs3KnR1g=, tarball: https://gitlab.syncad.com/api/v4/projects/419/packages/npm/@hiveio/wax-signers-keychain/-/@hiveio/wax-signers-keychain-1.28.6-rc10.tgz}
+
   '@hiveio/wax@1.28.4-rc0':
     resolution: {integrity: sha512-CjYfSa4abzkASNgZtA2D50+6T7rmsw/hZIUGDOec+Haz1yuk5gbCgBi91nHUtP2mXlzXuv6VGESlYpKsd+V+kw==}
+    engines: {node: ^20.11 || >= 21.2}
+
+  '@hiveio/wax@1.28.6-rc10':
+    resolution: {integrity: sha1-u1rHTJY2Hs0iOafgD8LMx6mGc+w=, tarball: https://gitlab.syncad.com/api/v4/projects/419/packages/npm/@hiveio/wax/-/@hiveio/wax-1.28.6-rc10.tgz}
     engines: {node: ^20.11 || >= 21.2}
 
   '@hiveio/workerbee@1.28.4-rc0-stable.260203140905':
@@ -2665,7 +2675,15 @@ snapshots:
       '@hiveio/beekeeper': 1.28.4-rc0
       '@hiveio/wax': 1.28.4-rc0
 
+  '@hiveio/wax-signers-keychain@1.28.6-rc10':
+    dependencies:
+      '@hiveio/wax': 1.28.6-rc10
+
   '@hiveio/wax@1.28.4-rc0':
+    dependencies:
+      events: 3.3.0
+
+  '@hiveio/wax@1.28.6-rc10':
     dependencies:
       events: 3.3.0
 

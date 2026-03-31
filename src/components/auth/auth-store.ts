@@ -3,10 +3,13 @@
 
 import { createSignal } from 'solid-js'
 
+export type LoginType = 'hbauth' | 'keychain' | 'wif'
+
 export interface AuthUser {
   username: string
   privateKey: string
   keyType: 'posting' | 'active'
+  loginType: LoginType
 }
 
 // Session storage key - only stores username, NEVER the private key
@@ -27,6 +30,23 @@ let timeoutCheckInterval: ReturnType<typeof setInterval> | null = null
 interface StoredSession {
   username: string
   keyType: 'posting' | 'active'
+  loginType: LoginType
+}
+
+const VALID_KEY_TYPES = new Set(['posting', 'active'])
+const VALID_LOGIN_TYPES = new Set<string>(['hbauth', 'keychain', 'wif'])
+
+function is_stored_session(value: unknown): value is StoredSession {
+  if (typeof value !== 'object' || value === null) return false
+  if (!('username' in value) || !('keyType' in value) || !('loginType' in value))
+    return false
+  return (
+    typeof value.username === 'string' &&
+    typeof value.keyType === 'string' &&
+    VALID_KEY_TYPES.has(value.keyType) &&
+    typeof value.loginType === 'string' &&
+    VALID_LOGIN_TYPES.has(value.loginType)
+  )
 }
 
 // Check if session has expired due to inactivity
@@ -88,7 +108,12 @@ function getStoredSession(): StoredSession | null {
   if (!session) return null
 
   try {
-    return JSON.parse(session) as StoredSession
+    const parsed: unknown = JSON.parse(session)
+    if (!is_stored_session(parsed)) {
+      sessionStorage.removeItem(SESSION_KEY)
+      return null
+    }
+    return parsed
   } catch {
     sessionStorage.removeItem(SESSION_KEY)
     return null
@@ -129,6 +154,7 @@ export function login(user: AuthUser) {
     const sessionInfo: StoredSession = {
       username: user.username,
       keyType: user.keyType,
+      loginType: user.loginType,
     }
     sessionStorage.setItem(SESSION_KEY, JSON.stringify(sessionInfo))
   }

@@ -17,8 +17,7 @@ import { get_broadcast_chain } from '../../lib/broadcast-chain'
 // Configure workerbee to use our custom Hive API endpoints
 configureEndpoints(HIVE_API_ENDPOINTS)
 
-import { getOnlineClient } from '../../lib/hbauth-service'
-import { is_raw_wif, sign_with_wif } from '../../lib/wif-signer'
+import { sign_transaction } from '../../lib/transaction-signer'
 import type { SettingsData } from './types/index'
 import { defaultSettings, strip_community_fields } from './types/index'
 import { settings_schema } from './types/settings-schema'
@@ -139,29 +138,8 @@ export async function broadcastConfigToHive(
       }
     }))
 
-    // Get the transaction digest for signing
-    const digest = tx.sigDigest
-
-    let signature: string
-
-    if (is_raw_wif(privateKey)) {
-      // Direct WIF signing via beekeeper (dev/mirrornet mode)
-      signature = await sign_with_wif(privateKey, digest)
-    } else {
-      // HB-Auth signing (production mode -- key managed in IndexedDB)
-      const authClient = await getOnlineClient()
-      const registeredUser = await authClient.getRegisteredUserByUsername(username)
-      if (!registeredUser) {
-        throw new Error('User not registered in HB-Auth. Please login first.')
-      }
-      if (!registeredUser.unlocked) {
-        throw new Error('Wallet is locked. Please unlock with your password first.')
-      }
-      signature = await authClient.sign(username, digest, 'posting')
-    }
-
-    // Add signature to transaction
-    tx.addSignature(signature)
+    // Sign transaction (Keychain / WIF / HB-Auth)
+    await sign_transaction(tx, username, privateKey)
 
     // Broadcast with retry logic (max 3 attempts with exponential backoff)
     await with_retry(

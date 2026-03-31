@@ -25,6 +25,7 @@
     "@hiveio/wax-api-hafbe": "^1.27.12",
     "@hiveio/wax-api-jsonrpc": "^1.28.4",
     "@hiveio/wax-signers-beekeeper": "^1.28.4-rc0",
+    "@hiveio/wax-signers-keychain": "1.28.6-rc10",
     "@hiveio/workerbee": "^1.28.4-rc0-stable.260203140905",
     "@tailwindcss/typography": "^0.5.19",
     "@tailwindcss/vite": "^4.1.18",
@@ -46,6 +47,9 @@
     "@types/sanitize-html": "^2.16.0"
   },
   "pnpm": {
-    "onlyBuiltDependencies": ["esbuild", "sharp"]
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "sharp"
+    ]
   }
 }

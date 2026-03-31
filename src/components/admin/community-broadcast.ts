@@ -5,8 +5,7 @@ import { CommunityOperation } from "@hiveio/wax";
 import { configureEndpoints } from "@hiveio/workerbee/blog-logic";
 import { HIVE_API_ENDPOINTS } from "../../lib/config";
 import { get_broadcast_chain } from "../../lib/broadcast-chain";
-import { getOnlineClient } from "../../lib/hbauth-service";
-import { is_raw_wif, sign_with_wif } from "../../lib/wif-signer";
+import { sign_transaction } from "../../lib/transaction-signer";
 import { with_retry } from "../../lib/retry";
 import { currentUser } from "../auth/auth-store";
 
@@ -63,32 +62,9 @@ async function broadcast_community_operation(
       return { success: false, error: "Not logged in. Please login first." };
     }
     const private_key = user.privateKey;
-    const digest = tx.sigDigest;
 
-    let signature: string;
-
-    if (is_raw_wif(private_key)) {
-      // Direct WIF signing via beekeeper (dev/mirrornet mode)
-      signature = await sign_with_wif(private_key, digest);
-    } else {
-      // HB-Auth signing (production mode -- key managed in IndexedDB)
-      const auth_client = await getOnlineClient();
-      const registered_user =
-        await auth_client.getRegisteredUserByUsername(username);
-      if (!registered_user) {
-        throw new Error(
-          "User not registered in HB-Auth. Please login first."
-        );
-      }
-      if (!registered_user.unlocked) {
-        throw new Error(
-          "Wallet is locked. Please unlock with your password first."
-        );
-      }
-      signature = await auth_client.sign(username, digest, "posting");
-    }
-
-    tx.addSignature(signature);
+    // Sign transaction (Keychain / WIF / HB-Auth)
+    await sign_transaction(tx, username, private_key);
 
     // Broadcast with retry logic
     await with_retry(async () => await chain.broadcast(tx), 3, 1000);

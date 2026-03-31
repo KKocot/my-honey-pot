@@ -11,12 +11,18 @@ import createBeekeeper, {
   type IBeekeeperInstance,
   type TSignature,
 } from "@hiveio/beekeeper";
+import { KEYCHAIN_MANAGED_MARKER } from "../components/auth/constants";
 
 export const HBAUTH_MANAGED_MARKER = "__HBAUTH_MANAGED__";
 
-/** Check whether a privateKey value represents a raw WIF (not HB-Auth managed) */
+const MANAGED_MARKERS = new Set([
+  HBAUTH_MANAGED_MARKER,
+  KEYCHAIN_MANAGED_MARKER,
+]);
+
+/** Check whether a privateKey value represents a raw WIF (not managed by HB-Auth or Keychain) */
 export function is_raw_wif(private_key: string): boolean {
-  return private_key !== HBAUTH_MANAGED_MARKER;
+  return !MANAGED_MARKERS.has(private_key);
 }
 
 /** Validate WIF format (basic check: starts with '5', 51 chars) */
