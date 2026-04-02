@@ -105,6 +105,10 @@ export const APPEARANCE_CONFIG_PREFIX = "!hive-blog-appearance";
 export const APPEARANCE_CONFIG_TYPE = "blog_appearance_config";
 export const LEGACY_CONFIG_APP = "hive-blog-config/1.0";
 
+// Docker service config identification (created by hive-blog-service)
+export const DOCKER_CONFIG_TYPE = "blog_docker_config";
+export const DOCKER_CONFIG_PREFIX = "!hive-blog-docker";
+
 // Layout Constants
 export const LAYOUT_CONSTANTS = {
   HEADER_MAX_WIDTH_PX: { min: 800, max: 1920, default: 1280 },

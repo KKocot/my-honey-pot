@@ -11,6 +11,8 @@ import {
   APPEARANCE_CONFIG_TYPE,
   APPEARANCE_CONFIG_PREFIX,
   LEGACY_CONFIG_APP,
+  DOCKER_CONFIG_TYPE,
+  DOCKER_CONFIG_PREFIX,
 } from '../../lib/config'
 import { get_broadcast_chain } from '../../lib/broadcast-chain'
 
@@ -25,11 +27,23 @@ import { with_retry } from '../../lib/retry'
 
 const MAX_BODY_SIZE = 64 * 1024 // 64KB in bytes
 
+/** Result from findExistingConfig with parsed json_metadata for merge logic */
+interface ExistingConfigResult {
+  permlink: string
+  body: string
+  json_metadata: Record<string, unknown>
+}
+
 /**
- * Find existing config comment from a user under the config post using Blog Logic
- * Returns the permlink and body if found, null otherwise
+ * Find existing config comment from a user under the config post using Blog Logic.
+ * Returns the permlink, body and parsed json_metadata if found, null otherwise.
+ *
+ * Search priority:
+ * 1. Our own appearance config (type === APPEARANCE_CONFIG_TYPE, prefix !hive-blog-appearance)
+ * 2. Docker service config (type === DOCKER_CONFIG_TYPE, prefix !hive-blog-docker)
+ * 3. Legacy match (backwards compat: app field + json code block)
  */
-async function findExistingConfig(username: string): Promise<{ permlink: string; body: string } | null> {
+async function findExistingConfig(username: string): Promise<ExistingConfigResult | null> {
   try {
     const chain = await getWax()
     const dataProvider = new DataProvider(chain)
@@ -43,9 +57,9 @@ async function findExistingConfig(username: string): Promise<{ permlink: string;
     )
 
     // Find this user's config comment
-    // Primary: match by json_metadata.type === APPEARANCE_CONFIG_TYPE
-    // Fallback (backwards compat): match by legacy app field + body format
-    let legacy_match: { permlink: string; body: string } | null = null
+    // Priority: appearance config > docker service config > legacy match
+    let docker_match: ExistingConfigResult | null = null
+    let legacy_match: ExistingConfigResult | null = null
 
     for (const replyId of repliesIds) {
       if (replyId.author !== username) continue
@@ -53,21 +67,33 @@ async function findExistingConfig(username: string): Promise<{ permlink: string;
       const comment = dataProvider.getComment(replyId)
       if (!comment) continue
 
-      const metadata = comment.json_metadata
-      if (metadata?.type === APPEARANCE_CONFIG_TYPE && comment.body.startsWith(APPEARANCE_CONFIG_PREFIX)) {
-        return { permlink: comment.permlink, body: comment.body }
+      const metadata: Record<string, unknown> = comment.json_metadata ?? {}
+
+      // Priority 1: our own appearance config
+      if (metadata.type === APPEARANCE_CONFIG_TYPE && comment.body.startsWith(APPEARANCE_CONFIG_PREFIX)) {
+        return { permlink: comment.permlink, body: comment.body, json_metadata: metadata }
       }
 
+      // Priority 2: docker service config (created by hive-blog-service)
+      if (
+        !docker_match &&
+        metadata.type === DOCKER_CONFIG_TYPE &&
+        comment.body.startsWith(DOCKER_CONFIG_PREFIX)
+      ) {
+        docker_match = { permlink: comment.permlink, body: comment.body, json_metadata: metadata }
+      }
+
+      // Priority 3: legacy match (backwards compat)
       if (
         !legacy_match &&
-        metadata?.app === LEGACY_CONFIG_APP &&
+        metadata.app === LEGACY_CONFIG_APP &&
         comment.body.includes('```json')
       ) {
-        legacy_match = { permlink: comment.permlink, body: comment.body }
+        legacy_match = { permlink: comment.permlink, body: comment.body, json_metadata: metadata }
       }
     }
 
-    return legacy_match
+    return docker_match ?? legacy_match
   } catch (error) {
     if (import.meta.env.DEV) console.error('Error finding existing config:', error)
     return null
@@ -120,6 +146,25 @@ export async function broadcastConfigToHive(
     // Create transaction
     const tx = await chain.createTransaction()
 
+    // Build json_metadata, preserving docker service fields when overwriting
+    // a comment originally created by hive-blog-service
+    const base_metadata: Record<string, unknown> = {
+      app: LEGACY_CONFIG_APP,
+      type: APPEARANCE_CONFIG_TYPE,
+      format: 'markdown',
+      tags: ['hive-blog-config'],
+      config_version: '1.0',
+      updated_at: timestamp,
+    }
+
+    // If we're overwriting a docker service comment, preserve its infra fields
+    if (existingConfig?.json_metadata.type === DOCKER_CONFIG_TYPE) {
+      const docker_meta = existingConfig.json_metadata
+      if (docker_meta.container !== undefined) base_metadata.container = docker_meta.container
+      if (docker_meta.subdomain !== undefined) base_metadata.subdomain = docker_meta.subdomain
+      if (docker_meta.instance_type !== undefined) base_metadata.instance_type = docker_meta.instance_type
+    }
+
     // Add reply operation - same operation for create and update
     // In Hive, posting a comment with the same author+permlink updates it
     tx.pushOperation(new ReplyOperation({
@@ -128,14 +173,7 @@ export async function broadcastConfigToHive(
       author: username,
       body: fullBody,
       permlink: permlink,
-      jsonMetadata: {
-        app: LEGACY_CONFIG_APP,
-        type: APPEARANCE_CONFIG_TYPE,
-        format: 'markdown',
-        tags: ['hive-blog-config'],
-        config_version: '1.0',
-        updated_at: timestamp,
-      }
+      jsonMetadata: base_metadata,
     }))
 
     // Sign transaction (Keychain / WIF / HB-Auth)
