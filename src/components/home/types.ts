@@ -18,6 +18,14 @@ export type {
   PageSlotPosition,
   PageLayoutSection,
   PageLayout,
+  PageLayoutConfig,
+  LayoutTemplate,
+  SidebarConfig,
+  SidebarElement,
+  ContainerConfig,
+  ContainerElement,
+  LayoutElementId,
+  ContainerName,
   ThemeColors,
   NavigationTab,
 } from '../admin/types/index'
@@ -56,3 +64,5 @@ export interface HomePageData {
 export const defaultLayoutSections = defaultSettings.layoutSections;
 export const defaultPageLayout = defaultSettings.pageLayout;
 export const defaultCommunityPageLayout = defaultCommunitySettings.pageLayout;
+export const defaultPageLayoutConfig = defaultSettings.pageLayoutConfig;
+export const defaultCommunityPageLayoutConfig = defaultCommunitySettings.pageLayoutConfig;

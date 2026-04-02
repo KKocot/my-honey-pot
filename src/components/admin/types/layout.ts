@@ -270,3 +270,275 @@ export const COMMUNITY_PAGE_ELEMENT_IDS: ReadonlySet<string> = new Set([
   'posts',
   'footer',
 ])
+
+// ============================================
+// Template-based Page Layout System (v2)
+// Sidebar-only config - kept for migration from v2 to v3
+// ============================================
+
+/**
+ * Layout template defines the overall page structure.
+ * Fixed elements: Header (top), Navigation+Posts (main), Footer (bottom).
+ * Only sidebars are configurable.
+ */
+export type LayoutTemplate = 'no-sidebar' | 'sidebar-left' | 'sidebar-right' | 'both-sidebars'
+
+/**
+ * Single sidebar element with visibility toggle (v2, kept for migration).
+ * Order in the array determines render order.
+ */
+export interface SidebarElement {
+  id: string     // e.g. 'authorProfile', 'communityProfile', 'communitySidebar'
+  active: boolean
+}
+
+/**
+ * Sidebar configuration (v2, kept for migration) - ordered list of elements.
+ */
+export interface SidebarConfig {
+  elements: SidebarElement[]
+}
+
+// Template labels for UI
+export const layoutTemplateLabels: Record<LayoutTemplate, string> = {
+  'no-sidebar': 'Full Width',
+  'sidebar-left': 'Left Sidebar',
+  'sidebar-right': 'Right Sidebar',
+  'both-sidebars': 'Both Sidebars',
+}
+
+// Sidebar element IDs available per mode (v2, kept for LayoutEditor compatibility)
+export const USER_SIDEBAR_ELEMENT_IDS = ['authorProfile'] as const
+export const COMMUNITY_SIDEBAR_ELEMENT_IDS = ['communityProfile', 'communitySidebar'] as const
+
+// Labels for sidebar elements (v2, kept for LayoutEditor compatibility)
+export const sidebarElementLabels: Record<string, string> = {
+  authorProfile: 'Author Profile',
+  communityProfile: 'Community Profile',
+  communitySidebar: 'Community Sidebar',
+}
+
+// Helper: check if template has left sidebar
+export function hasLeftSidebar(template: LayoutTemplate): boolean {
+  return template === 'sidebar-left' || template === 'both-sidebars'
+}
+
+// Helper: check if template has right sidebar
+export function hasRightSidebar(template: LayoutTemplate): boolean {
+  return template === 'sidebar-right' || template === 'both-sidebars'
+}
+
+// Helper: get active elements from sidebar config (v2, kept for LayoutEditor compatibility)
+export function getActiveSidebarElements(config: SidebarConfig): string[] {
+  return config.elements.filter(e => e.active).map(e => e.id)
+}
+
+// ============================================
+// Container-based Page Layout System (v3)
+// Every element can be placed in any container
+// ============================================
+
+/**
+ * Layout element identifiers for the container system.
+ * navigation and posts are fixed in the main area.
+ */
+export type LayoutElementId = 'header' | 'authorProfile' | 'communityProfile' | 'communitySidebar' | 'footer'
+
+/**
+ * Container names corresponding to the page layout areas.
+ */
+export type ContainerName = 'top' | 'sidebarLeft' | 'sidebarRight' | 'bottom'
+
+/**
+ * Single container element with visibility toggle.
+ * Order in the array determines render order within the container.
+ */
+export interface ContainerElement {
+  id: LayoutElementId
+  active: boolean
+}
+
+/**
+ * Container configuration - ordered list of elements assigned to a container.
+ */
+export interface ContainerConfig {
+  elements: ContainerElement[]
+}
+
+/**
+ * Container-based page layout configuration (v3).
+ * Each element can be placed in any container (top, sidebarLeft, sidebarRight, bottom).
+ * Navigation and Posts are always in the main area.
+ */
+export interface PageLayoutConfig {
+  template: LayoutTemplate
+  containers: {
+    top: ContainerConfig
+    sidebarLeft: ContainerConfig
+    sidebarRight: ContainerConfig
+    bottom: ContainerConfig
+  }
+}
+
+// Container element IDs available per mode
+export const USER_CONTAINER_ELEMENT_IDS = ['header', 'authorProfile', 'footer'] as const satisfies readonly LayoutElementId[]
+export const COMMUNITY_CONTAINER_ELEMENT_IDS = ['header', 'communityProfile', 'communitySidebar', 'footer'] as const satisfies readonly LayoutElementId[]
+
+// Labels for containers
+export const containerLabels: Record<ContainerName, string> = {
+  top: 'Top (Header Area)',
+  sidebarLeft: 'Left Sidebar',
+  sidebarRight: 'Right Sidebar',
+  bottom: 'Bottom (Footer Area)',
+}
+
+// Helper: get active element IDs from a container config
+export function getActiveContainerElements(config: ContainerConfig): LayoutElementId[] {
+  return config.elements.filter(e => e.active).map(e => e.id)
+}
+
+/**
+ * Migrate old PageLayout (slot-based v1) to new PageLayoutConfig (container-based v3).
+ * Maps slot positions to container names and filters out fixed elements (navigation, posts).
+ */
+export function migratePageLayoutToConfig(old: PageLayout): PageLayoutConfig {
+  // Collect elements per slot (excluding navigation and posts which are fixed in main)
+  const fixedIds = new Set(['navigation', 'posts'])
+  const VALID_ELEMENT_IDS: Set<string> = new Set(['header', 'authorProfile', 'communityProfile', 'communitySidebar', 'footer'])
+
+  const mapSlotToContainer = (slot: PageSlotPosition): ContainerConfig => {
+    const elements: ContainerElement[] = []
+    for (const section of old.sections.filter(s => s.slot === slot)) {
+      for (const id of section.elements) {
+        if (fixedIds.has(id)) continue
+        if (!VALID_ELEMENT_IDS.has(id)) continue
+        elements.push({ id: id as LayoutElementId, active: section.active !== false })
+      }
+    }
+    return { elements }
+  }
+
+  const topContainer = mapSlotToContainer('top')
+  const leftContainer = mapSlotToContainer('sidebar-left')
+  const rightContainer = mapSlotToContainer('sidebar-right')
+  const bottomContainer = mapSlotToContainer('bottom')
+
+  const hasLeft = leftContainer.elements.length > 0
+  const hasRight = rightContainer.elements.length > 0
+
+  let template: LayoutTemplate = 'no-sidebar'
+  if (hasLeft && hasRight) template = 'both-sidebars'
+  else if (hasLeft) template = 'sidebar-left'
+  else if (hasRight) template = 'sidebar-right'
+
+  return {
+    template,
+    containers: {
+      top: topContainer,
+      sidebarLeft: leftContainer,
+      sidebarRight: rightContainer,
+      bottom: bottomContainer,
+    },
+  }
+}
+
+/**
+ * Migrate v2 PageLayoutConfig (with sidebarLeft/sidebarRight) to v3 (with containers).
+ * Header goes to top, footer goes to bottom, sidebar elements stay in their sidebars.
+ */
+export function migratePageLayoutConfigV2ToV3(old: {
+  template: LayoutTemplate
+  sidebarLeft: { elements: Array<{ id: string; active: boolean }> }
+  sidebarRight: { elements: Array<{ id: string; active: boolean }> }
+}): PageLayoutConfig {
+  return {
+    template: old.template,
+    containers: {
+      top: { elements: [{ id: 'header' as LayoutElementId, active: true }] },
+      sidebarLeft: {
+        elements: (old.sidebarLeft?.elements || []).map(e => ({
+          id: e.id as LayoutElementId,
+          active: e.active,
+        })),
+      },
+      sidebarRight: {
+        elements: (old.sidebarRight?.elements || []).map(e => ({
+          id: e.id as LayoutElementId,
+          active: e.active,
+        })),
+      },
+      bottom: { elements: [{ id: 'footer' as LayoutElementId, active: true }] },
+    },
+  }
+}
+
+/**
+ * Convert PageLayoutConfig (v3) back to legacy PageLayout format.
+ * Used by renderers during migration period.
+ */
+export function pageLayoutConfigToLegacy(config: PageLayoutConfig): PageLayout {
+  const sections: PageLayoutSection[] = []
+
+  // Top container -> slot 'top'
+  const topElements = getActiveContainerElements(config.containers.top)
+  if (topElements.length > 0) {
+    sections.push({
+      id: 'page-sec-top',
+      slot: 'top',
+      orientation: 'horizontal',
+      elements: topElements,
+      active: true,
+    })
+  }
+
+  // Left sidebar container -> slot 'sidebar-left'
+  if (hasLeftSidebar(config.template)) {
+    const elements = getActiveContainerElements(config.containers.sidebarLeft)
+    if (elements.length > 0) {
+      sections.push({
+        id: 'page-sec-sidebar-left',
+        slot: 'sidebar-left',
+        orientation: 'vertical',
+        elements,
+        active: true,
+      })
+    }
+  }
+
+  // Main is always navigation + posts
+  sections.push({
+    id: 'page-sec-main',
+    slot: 'main',
+    orientation: 'vertical',
+    elements: ['navigation', 'posts'],
+    active: true,
+  })
+
+  // Right sidebar container -> slot 'sidebar-right'
+  if (hasRightSidebar(config.template)) {
+    const elements = getActiveContainerElements(config.containers.sidebarRight)
+    if (elements.length > 0) {
+      sections.push({
+        id: 'page-sec-sidebar-right',
+        slot: 'sidebar-right',
+        orientation: 'vertical',
+        elements,
+        active: true,
+      })
+    }
+  }
+
+  // Bottom container -> slot 'bottom'
+  const bottomElements = getActiveContainerElements(config.containers.bottom)
+  if (bottomElements.length > 0) {
+    sections.push({
+      id: 'page-sec-bottom',
+      slot: 'bottom',
+      orientation: 'horizontal',
+      elements: bottomElements,
+      active: true,
+    })
+  }
+
+  return { sections }
+}

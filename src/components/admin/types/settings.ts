@@ -6,7 +6,7 @@
 // ============================================
 
 import type { ThemeColors } from './theme'
-import type { LayoutSection, CardLayout, PageLayout } from './layout'
+import type { LayoutSection, CardLayout, PageLayout, PageLayoutConfig } from './layout'
 import type { NavigationTab } from './navigation'
 import type { SocialLink } from './social'
 
@@ -95,8 +95,10 @@ export interface SettingsData {
   postCardLayout: CardLayout
   commentCardLayout: CardLayout
   authorProfileLayout2: CardLayout
-  // Page layout with sections (drag & drop)
+  // Page layout - legacy slot-based (kept for migration)
   pageLayout: PageLayout
+  // Page layout - template-based (v2)
+  pageLayoutConfig: PageLayoutConfig
   // Sorting settings
   postsSortOrder: 'blog' | 'posts'
   includeReblogs: boolean
@@ -262,6 +264,15 @@ export const defaultSettings: SettingsData = {
       { id: 'page-sec-4', slot: 'bottom', orientation: 'horizontal', elements: ['footer'], active: true },
     ],
   },
+  pageLayoutConfig: {
+    template: 'sidebar-left',
+    containers: {
+      top: { elements: [{ id: 'header', active: true }] },
+      sidebarLeft: { elements: [{ id: 'authorProfile', active: true }] },
+      sidebarRight: { elements: [] },
+      bottom: { elements: [{ id: 'footer', active: true }] },
+    },
+  },
   postsSortOrder: 'blog',
   includeReblogs: false,
   cardHoverEffect: 'shadow',
@@ -379,6 +390,20 @@ export const defaultCommunitySettings: SettingsData = {
         active: true,
       },
     ],
+  },
+  pageLayoutConfig: {
+    template: "sidebar-left",
+    containers: {
+      top: { elements: [{ id: "header", active: true }] },
+      sidebarLeft: {
+        elements: [
+          { id: "communityProfile", active: true },
+          { id: "communitySidebar", active: true },
+        ],
+      },
+      sidebarRight: { elements: [] },
+      bottom: { elements: [{ id: "footer", active: true }] },
+    },
   },
 };
 

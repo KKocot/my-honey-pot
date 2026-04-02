@@ -108,8 +108,25 @@ export const settings_schema = z
     commentCardLayout: z.unknown().optional(),
     authorProfileLayout2: z.unknown().optional(),
 
-    // Page layout (complex nested structure - validate loosely)
+    // Page layout - legacy (complex nested structure - validate loosely)
     pageLayout: z.unknown().optional(),
+
+    // Page layout - container-based (v3)
+    pageLayoutConfig: z.object({
+      template: z.enum(['no-sidebar', 'sidebar-left', 'sidebar-right', 'both-sidebars']),
+      containers: (() => {
+        const containerElementSchema = z.object({
+          id: z.enum(['header', 'authorProfile', 'communityProfile', 'communitySidebar', 'footer']),
+          active: z.boolean(),
+        })
+        return z.object({
+          top: z.object({ elements: z.array(containerElementSchema) }),
+          sidebarLeft: z.object({ elements: z.array(containerElementSchema) }),
+          sidebarRight: z.object({ elements: z.array(containerElementSchema) }),
+          bottom: z.object({ elements: z.array(containerElementSchema) }),
+        })
+      })(),
+    }).optional(),
 
     // Sorting settings
     postsSortOrder: z.enum(["blog", "posts"]).optional().default("blog"),
