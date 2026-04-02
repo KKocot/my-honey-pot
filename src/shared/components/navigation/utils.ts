@@ -43,18 +43,23 @@ export function buildNavigationItems(settings: NavigationSettings): NavigationIt
     .filter(tab => tab.enabled)
     .map(tab => {
       const count = getTabCount(tab, settings.postsCount, settings.commentsCount)
-      // Threads are work in progress
-      const disabled = tab.id === 'threads'
-
       return {
         id: tab.id,
         label: tab.label,
         count,
         href: buildNavHref(tab),
-        disabled,
-        tooltip: disabled ? 'Work in Progress' : tab.tooltip,
+        disabled: false,
+        tooltip: tab.tooltip,
       }
     })
+}
+
+/**
+ * Check if any navigation tabs are enabled
+ */
+export function hasEnabledTabs(tabs?: NavigationTabConfig[]): boolean {
+  const resolved = tabs && tabs.length > 0 ? tabs : defaultNavigationTabs
+  return resolved.some(tab => tab.enabled)
 }
 
 /**

@@ -44,5 +44,6 @@ export interface NavigationSettings {
  */
 export const defaultNavigationTabs: NavigationTabConfig[] = [
   { id: 'posts', label: 'Posts', enabled: true, showCount: false },
+  { id: 'threads', label: 'Hive Threads', enabled: false, showCount: false },
   { id: 'comments', label: 'Comments', enabled: true, showCount: false },
 ]

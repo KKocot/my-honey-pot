@@ -18,6 +18,7 @@ export {
   buildNavHref,
   buildNavigationItems,
   createNavigationSettings,
+  hasEnabledTabs,
 } from './utils'
 
 export {

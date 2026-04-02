@@ -9,6 +9,7 @@ import type { NavigationTabConfig } from '../../../shared/components/navigation'
 import {
   createNavigationSettings,
   renderNavigation,
+  hasEnabledTabs,
 } from '../../../shared/components/navigation'
 
 interface Props {
@@ -20,14 +21,16 @@ interface Props {
 
 const { activeTab = 'posts', postsCount = 0, commentsCount = 0, navigationTabs } = Astro.props
 
-const settings = createNavigationSettings({
+const showNavigation = hasEnabledTabs(navigationTabs)
+
+const navSettings = showNavigation ? createNavigationSettings({
   navigationTabs,
   activeTab,
   postsCount,
   commentsCount,
-})
+}) : null
 
-const navigationHtml = renderNavigation(settings)
+const navigationHtml = navSettings ? renderNavigation(navSettings) : ''
 ---
 
-<Fragment set:html={navigationHtml} />
+{showNavigation && <Fragment set:html={navigationHtml} />}

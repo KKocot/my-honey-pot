@@ -79,8 +79,7 @@ export function TabItem(props: TabItemProps) {
           type="checkbox"
           checked={props.tab.enabled}
           onChange={(e) => props.onUpdate(props.tab.id, { enabled: e.currentTarget.checked })}
-          disabled={props.tab.id === 'threads'}
-          class={`w-4 h-4 rounded border-border text-primary focus:ring-primary ${props.tab.id === 'threads' ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+          class="w-4 h-4 rounded border-border text-primary focus:ring-primary cursor-pointer"
         />
 
         {/* Tab info */}
@@ -93,8 +92,11 @@ export function TabItem(props: TabItemProps) {
                   {props.tab.label}
                 </span>
                 <Show when={props.tab.id === 'threads'}>
-                  <span class="text-[10px] px-1.5 py-0.5 bg-warning/20 text-warning rounded">
-                    Work in Progress
+                  <span
+                    class="text-[10px] px-1.5 py-0.5 bg-primary/10 text-primary rounded cursor-help"
+                    title="Create a post titled 'My Threads' on your profile and write comments under it. Those comments will be displayed as threads (short posts with full content)."
+                  >
+                    ?
                   </span>
                 </Show>
               </div>
