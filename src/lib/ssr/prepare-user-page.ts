@@ -11,8 +11,10 @@ import {
   fetch_manabars,
   fetch_posts,
   fetch_comments,
+  fetch_post_replies,
   type FetchPostsResult,
   type FetchCommentsResult,
+  type FetchPostRepliesResult,
 } from "../queries";
 import { dehydrate_to_json } from "../dehydrate";
 import type {
@@ -55,8 +57,14 @@ function resolve_tabs(
     ? tab_from_url
     : "posts";
 
-  const active_tab =
-    validated_tab === "comments" && !show_comments_tab ? "posts" : validated_tab;
+  const threads_tab_config = settings.navigationTabs?.find(
+    (tab) => tab.id === "threads"
+  );
+  const show_threads_tab = threads_tab_config?.enabled === true;
+
+  let active_tab = validated_tab;
+  if (active_tab === "comments" && !show_comments_tab) active_tab = "posts";
+  if (active_tab === "threads" && !show_threads_tab) active_tab = "posts";
 
   const active_category_tab = settings.navigationTabs?.find(
     (tab) => tab.id === active_tab && tab.tag
@@ -126,6 +134,7 @@ export async function prepare_user_page(
 
   let blog_logic_posts: BridgePost[] = [];
   let hive_comments: readonly BridgeComment[] = [];
+  let threads: FetchPostRepliesResult | null = null;
   let has_more_posts = false;
   let has_more_comments = false;
   let next_posts_cursor: IPaginationCursor | undefined;
@@ -153,8 +162,12 @@ export async function prepare_user_page(
       }),
     ]);
 
-    // Fetch posts or comments based on active tab
-    if (active_tab === "comments" && show_comments_tab) {
+    // Fetch content based on active tab
+    if (active_tab === "threads") {
+      // Threads = comments under the author's "my-threads" post
+      const threads_result = await fetch_post_replies(hive_username, "my-threads");
+      threads = threads_result;
+    } else if (active_tab === "comments" && show_comments_tab) {
       await query_client.prefetchQuery({
         queryKey: query_keys.comments(
           hive_username,
@@ -257,6 +270,7 @@ export async function prepare_user_page(
     next_posts_cursor,
     next_comments_cursor,
     total_fetched_before_filter,
+    threads,
     error,
   };
 }

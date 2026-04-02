@@ -15,4 +15,5 @@ export {
   is_sidebar,
   is_main_posts_view,
   is_main_comments_view,
+  is_main_threads_view,
 } from './utils'

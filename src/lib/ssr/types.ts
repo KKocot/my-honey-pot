@@ -12,6 +12,7 @@ import type {
   CommentSortOption,
   IPaginationCursor,
 } from "@hiveio/workerbee/blog-logic";
+import type { FetchPostRepliesResult } from "../queries";
 import type { SiteSettings } from "../../components/home/types";
 import type { HiveCommunity } from "../types/community";
 import type { CommunitySortOrder } from "../queries";
@@ -66,5 +67,6 @@ export interface UserPageData {
   next_posts_cursor: IPaginationCursor | undefined;
   next_comments_cursor: IPaginationCursor | undefined;
   total_fetched_before_filter: number;
+  threads: FetchPostRepliesResult | null;
   error: string | null;
 }

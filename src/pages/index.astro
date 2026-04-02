@@ -146,6 +146,7 @@ const hasMoreComments = user_page?.has_more_comments ?? false
 const nextPostsCursor = user_page?.next_posts_cursor
 const nextCommentsCursor = user_page?.next_comments_cursor
 const totalFetchedBeforeFilter = user_page?.total_fetched_before_filter ?? 0
+const threads = user_page?.threads ?? null
 
 // Shared props for AuthorProfile to reduce duplication
 const authorProfileBaseProps = {
@@ -213,6 +214,7 @@ const slotRendererProps = {
   nextPostsPageUrl,
   hasMoreComments,
   nextCommentsPageUrl,
+  threads,
   communityData,
 }
 ---

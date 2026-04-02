@@ -70,7 +70,7 @@ export function is_sidebar(slot: PageSlotPosition): boolean {
  * Check if rendering in main content area with posts view
  */
 export function is_main_posts_view(slot: PageSlotPosition, active_tab: string): boolean {
-  return slot === 'main' && active_tab !== 'comments'
+  return slot === 'main' && active_tab !== 'comments' && active_tab !== 'threads'
 }
 
 /**
@@ -82,4 +82,14 @@ export function is_main_comments_view(
   has_comments: boolean
 ): boolean {
   return slot === 'main' && active_tab === 'comments' && has_comments
+}
+
+/**
+ * Check if rendering in main content area with threads view
+ */
+export function is_main_threads_view(
+  slot: PageSlotPosition,
+  active_tab: string
+): boolean {
+  return slot === 'main' && active_tab === 'threads'
 }

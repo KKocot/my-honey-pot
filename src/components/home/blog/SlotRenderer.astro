@@ -24,10 +24,12 @@ import {
   is_sidebar,
   is_main_posts_view,
   is_main_comments_view,
+  is_main_threads_view,
 } from '../../../shared/components/page-layout'
 
 import type { SiteSettings, CardLayout, SocialLink, PageLayoutSection } from '../types'
 import type { BridgePost, BridgeComment, IDatabaseAccount, IProfile, IGlobalProperties, IAccountManabars } from '@hiveio/workerbee/blog-logic'
+import type { FetchPostRepliesResult } from '../../../lib/queries'
 import type { HiveCommunity } from '../../../lib/types/community'
 
 interface AuthorProfileBaseProps {
@@ -79,6 +81,8 @@ interface Props {
   nextPostsPageUrl: string | null
   hasMoreComments: boolean
   nextCommentsPageUrl: string | null
+  // Threads data (comments under author's "my-threads" post)
+  threads?: FetchPostRepliesResult | null
   // Community data (passed through for communityProfile/communitySidebar elements)
   communityData?: HiveCommunity | null
 }
@@ -107,6 +111,7 @@ const {
   nextPostsPageUrl,
   hasMoreComments,
   nextCommentsPageUrl,
+  threads,
   communityData,
 } = Astro.props
 
@@ -229,7 +234,36 @@ const activeSections = sections.filter(s => s.active !== false && s.elements.len
             </div>
           </>
         )}
-        {!is_sidebar(context) && !is_main_posts_view(context, activeTab) && !is_main_comments_view(context, activeTab, hiveComments.length > 0) && (
+        {is_main_threads_view(context, activeTab) && (
+          <>
+            {threads && threads.tree.length > 0 ? (
+              <div class="space-y-4">
+                {threads.tree.map(node => (
+                  <article class="bg-bg-card rounded-xl border border-border p-4">
+                    <div class="prose prose-sm max-w-none text-text" set:html={node.comment.body} />
+                    <div class="flex items-center gap-3 mt-3 pt-3 border-t border-border text-xs text-text-muted">
+                      <time>{new Date(node.comment.created).toLocaleDateString()}</time>
+                      {node.comment.children > 0 && (
+                        <span>{node.comment.children} {node.comment.children === 1 ? 'reply' : 'replies'}</span>
+                      )}
+                      {node.comment.stats?.total_votes > 0 && (
+                        <span>{node.comment.stats.total_votes} {node.comment.stats.total_votes === 1 ? 'vote' : 'votes'}</span>
+                      )}
+                    </div>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <div class="text-center py-8 bg-bg-card rounded-xl border border-border">
+                <p class="text-text-muted">No threads found</p>
+                <p class="text-text-muted text-xs mt-2">
+                  Create a post titled "My Threads" on your profile and write comments under it.
+                </p>
+              </div>
+            )}
+          </>
+        )}
+        {!is_sidebar(context) && !is_main_posts_view(context, activeTab) && !is_main_comments_view(context, activeTab, hiveComments.length > 0) && !is_main_threads_view(context, activeTab) && (
           <>
             {blogLogicPosts.length > 0 ? (
               <BlogLogicPostsGrid posts={blogLogicPosts} settings={settings} />

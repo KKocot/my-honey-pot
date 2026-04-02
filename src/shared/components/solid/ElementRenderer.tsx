@@ -23,6 +23,7 @@ import {
 } from '../comment-card'
 import {
   renderNavigationButtons,
+  hasEnabledTabs,
   type NavigationSettings,
 } from '../navigation'
 import {
@@ -219,16 +220,37 @@ function CommentsSection(props: { data: Accessor<HiveData | null> }) {
   )
 }
 
-// Threads placeholder section (Hive short posts)
-function ThreadsSection() {
+// Threads section - displays comments from author's "My Threads" post as short posts
+function ThreadsSection(props: { data: Accessor<HiveData | null> }) {
+  const threads = () => props.data()?.threads || []
+
   return (
     <div class="space-y-4">
-      <div class="text-center py-12 bg-bg-card rounded-xl border border-border">
-        <p class="text-text font-medium">Hive Threads</p>
-        <p class="text-text-muted text-sm mt-1">
-          Krotkie posty z Hive - wkrotce dostepne.
-        </p>
-      </div>
+      <Show when={threads().length > 0} fallback={
+        <div class="text-center py-8 bg-bg-card rounded-xl border border-border">
+          <p class="text-text-muted">No threads found</p>
+          <p class="text-text-muted text-xs mt-2">
+            Create a post titled "My Threads" on your profile and write comments under it.
+          </p>
+        </div>
+      }>
+        <For each={threads()}>
+          {(thread) => (
+            <article class="bg-bg-card rounded-xl border border-border p-4">
+              <div class="prose prose-sm max-w-none text-text" innerHTML={thread.body} />
+              <div class="flex items-center gap-3 mt-3 pt-3 border-t border-border text-xs text-text-muted">
+                <time>{new Date(thread.created).toLocaleDateString()}</time>
+                <Show when={thread.children > 0}>
+                  <span>{thread.children} {thread.children === 1 ? 'reply' : 'replies'}</span>
+                </Show>
+                <Show when={thread.stats?.total_votes > 0}>
+                  <span>{thread.stats.total_votes} {thread.stats.total_votes === 1 ? 'vote' : 'votes'}</span>
+                </Show>
+              </div>
+            </article>
+          )}
+        </For>
+      </Show>
     </div>
   )
 }
@@ -239,16 +261,32 @@ function MainContentSection(props: {
   data: Accessor<HiveData | null>
   community_posts?: BridgePost[]
 }) {
+  const active_category_tag = createMemo(() => {
+    const tab = (settings.navigationTabs || []).find(t => t.id === props.activeTab())
+    return tab?.tag || null
+  })
+
+  const is_posts_or_category = createMemo(() =>
+    props.activeTab() === 'posts' || !!active_category_tag()
+  )
+
+  const filtered_posts = createMemo(() => {
+    const all_posts = props.community_posts ?? props.data()?.posts ?? []
+    const tag = active_category_tag()
+    if (!tag) return all_posts
+    return all_posts.filter(post => post.json_metadata?.tags?.includes(tag))
+  })
+
   return (
     <>
-      <Show when={props.activeTab() === 'posts'}>
-        <PostsSection data={props.data} community_posts={props.community_posts} />
+      <Show when={is_posts_or_category()}>
+        <PostsSection data={props.data} community_posts={filtered_posts()} />
       </Show>
       <Show when={props.activeTab() === 'comments'}>
         <CommentsSection data={props.data} />
       </Show>
       <Show when={props.activeTab() === 'threads'}>
-        <ThreadsSection />
+        <ThreadsSection data={props.data} />
       </Show>
     </>
   )
@@ -256,6 +294,8 @@ function MainContentSection(props: {
 
 // Navigation preview component - uses settings.navigationTabs with shared utilities
 function NavigationPreview(props: { activeTab: Accessor<string>; setActiveTab: (tab: string) => void }) {
+  const showNav = createMemo(() => hasEnabledTabs(settings.navigationTabs))
+
   const navSettings = createMemo((): NavigationSettings => ({
     tabs: (settings.navigationTabs || []).filter(t => t.enabled).map(t => ({
       id: t.id,
@@ -280,7 +320,11 @@ function NavigationPreview(props: { activeTab: Accessor<string>; setActiveTab: (
     }
   }
 
-  return <div onClick={handleNavClick} innerHTML={navHtml()} />
+  return (
+    <Show when={showNav()}>
+      <div onClick={handleNavClick} innerHTML={navHtml()} />
+    </Show>
+  )
 }
 
 export function ElementRenderer(props: ElementRendererProps) {

@@ -3,7 +3,7 @@
 
 import { createSignal, createMemo, createEffect, Show, For, ErrorBoundary, onCleanup, onMount, type Component } from "solid-js";
 import { QueryClientProvider, createQuery, type DehydratedState, hydrate } from "@tanstack/solid-query";
-import { query_keys, fetch_posts, fetch_comments, create_query_client } from "../../../lib/queries";
+import { query_keys, fetch_posts, fetch_comments, fetch_post_replies, create_query_client } from "../../../lib/queries";
 import type { BridgePost, BridgeComment, AccountPostsSortOption, CommentSortOption, IPaginationCursor } from "@hiveio/workerbee/blog-logic";
 import type { SiteSettings, CardLayout } from "../types";
 import {
@@ -301,6 +301,14 @@ const BlogContentInner: Component<BlogContentProps> = (props) => {
     staleTime: 1000 * 60 * 5,
   }));
 
+  // Threads query - fetches comments under author's "my-threads" post
+  const threads_query = createQuery(() => ({
+    queryKey: query_keys.post_replies(props.hive_username, "my-threads"),
+    queryFn: () => fetch_post_replies(props.hive_username, "my-threads"),
+    enabled: active_tab() === "threads",
+    staleTime: 1000 * 60 * 5,
+  }));
+
   // Handle tab switch
   const handle_tab_switch = (tab_id: string) => {
     set_active_tab(tab_id);
@@ -348,7 +356,49 @@ const BlogContentInner: Component<BlogContentProps> = (props) => {
         </Show>
       </Show>
 
-      <Show when={active_tab() !== "comments"}>
+      <Show when={active_tab() === "threads"}>
+        <Show when={threads_query.isLoading}>
+          <div class="text-center py-12 text-text-muted">Loading threads...</div>
+        </Show>
+        <Show when={threads_query.isError}>
+          <div class="bg-error/10 border border-error/30 text-error px-4 py-3 rounded-lg">
+            Error loading threads: {String(threads_query.error)}
+          </div>
+        </Show>
+        <Show when={threads_query.data}>
+          {(data) => (
+            <Show when={data().tree.length > 0} fallback={
+              <div class="text-center py-8 bg-bg-card rounded-xl border border-border">
+                <p class="text-text-muted">No threads found</p>
+                <p class="text-text-muted text-xs mt-2">
+                  Create a post titled "My Threads" on your profile and write comments under it.
+                </p>
+              </div>
+            }>
+              <div class="space-y-4">
+                <For each={data().tree}>
+                  {(node) => (
+                    <article class="bg-bg-card rounded-xl border border-border p-4">
+                      <div class="prose prose-sm max-w-none text-text" innerHTML={node.comment.body} />
+                      <div class="flex items-center gap-3 mt-3 pt-3 border-t border-border text-xs text-text-muted">
+                        <time>{new Date(node.comment.created).toLocaleDateString()}</time>
+                        <Show when={node.comment.children > 0}>
+                          <span>{node.comment.children} {node.comment.children === 1 ? 'reply' : 'replies'}</span>
+                        </Show>
+                        <Show when={node.comment.stats?.total_votes > 0}>
+                          <span>{node.comment.stats.total_votes} {node.comment.stats.total_votes === 1 ? 'vote' : 'votes'}</span>
+                        </Show>
+                      </div>
+                    </article>
+                  )}
+                </For>
+              </div>
+            </Show>
+          )}
+        </Show>
+      </Show>
+
+      <Show when={active_tab() !== "comments" && active_tab() !== "threads"}>
         <Show when={posts_query.isLoading}>
           <div class="text-center py-12 text-text-muted">Loading posts...</div>
         </Show>

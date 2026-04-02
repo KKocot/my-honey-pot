@@ -14,6 +14,7 @@ import {
   configureEndpoints,
   DataProvider,
   getWax,
+  withRetry,
   formatJoinDate,
   calculateEffectiveHP,
   type IProfile,
@@ -313,6 +314,7 @@ export interface HiveData {
   globalProps: IGlobalProperties | null
   posts: BridgePost[]
   comments: BridgePost[]
+  threads: BridgePost[]
 }
 
 // Re-export utilities from blog-logic for convenience
@@ -349,8 +351,8 @@ async function fetchHivePreviewData(username: string, postsPerPage: number): Pro
     // Fetch account object first (needed for profile)
     const account = await dataProvider.bloggingPlatform.getAccount(username)
 
-    // Fetch profile, database account, global props, posts, and comments in parallel
-    const [profile, dbAccount, globalProps, posts, comments] = await Promise.all([
+    // Fetch profile, database account, global props, posts, comments, and threads in parallel
+    const [profile, dbAccount, globalProps, posts, comments, threadsDiscussion] = await Promise.all([
       account.getProfile(),
       dataProvider.getDatabaseAccount(username),
       dataProvider.getGlobalProperties(),
@@ -363,6 +365,10 @@ async function fetchHivePreviewData(username: string, postsPerPage: number): Pro
         { sort: 'comments', account: username },
         { page: 1, pageSize: 20 }
       ),
+      // Fetch threads: comments under {username}/my-threads post
+      withRetry((waxChain) =>
+        waxChain.api.bridge.get_discussion({ author: username, permlink: 'my-threads', observer: '' })
+      ).catch(() => null),
     ])
 
     // Convert posts iterator to array of BridgePost
@@ -383,12 +389,29 @@ async function fetchHivePreviewData(username: string, postsPerPage: number): Pro
       }
     }
 
+    // Extract direct replies from threads discussion (comments under my-threads post)
+    const threadsArray: BridgePost[] = []
+    if (threadsDiscussion) {
+      const rootKey = `${username}/my-threads`
+      for (const [key, entry] of Object.entries(threadsDiscussion)) {
+        if (key === rootKey) continue
+        const post = entry as BridgePost
+        // Only include direct replies to the root post (not nested replies)
+        if (post.parent_author === username && post.parent_permlink === 'my-threads') {
+          threadsArray.push(post)
+        }
+      }
+      // Sort newest first
+      threadsArray.sort((a, b) => new Date(b.created).getTime() - new Date(a.created).getTime())
+    }
+
     return {
       profile,
       dbAccount,
       globalProps,
       posts: postsArray,
       comments: commentsArray,
+      threads: threadsArray,
     }
   } catch (error) {
     if (import.meta.env.DEV) console.error('Failed to fetch Hive preview data:', error)
