@@ -12,7 +12,8 @@ import { CommunityContent } from '../components/community/CommunityContent'
 
 import SlotRenderer from '../components/home/blog/SlotRenderer.astro'
 import NoscriptFallback from '../components/home/blog/NoscriptFallback.astro'
-import { type SiteSettings, type PageLayout, type PageSlotPosition, defaultPageLayout, defaultCommunityPageLayout } from '../components/home/types'
+import { type SiteSettings, type PageLayout, type PageSlotPosition, defaultPageLayout, defaultCommunityPageLayout, defaultPageLayoutConfig, defaultCommunityPageLayoutConfig } from '../components/home/types'
+import { hasLeftSidebar as templateHasLeft, hasRightSidebar as templateHasRight, pageLayoutConfigToLegacy, migratePageLayoutToConfig, migratePageLayoutConfigV2ToV3, type PageLayoutConfig } from '../components/admin/types/layout'
 
 import type { IPaginationCursor } from '@hiveio/workerbee/blog-logic'
 
@@ -58,10 +59,30 @@ const defaultDescription = IS_COMMUNITY
   : 'Posts from Hive blockchain'
 const siteDescription = settings.siteDescription || defaultDescription
 
-// Use new pageLayout format, fallback to mode-appropriate default
-const pageLayout: PageLayout = settings.pageLayout?.sections?.length
-  ? settings.pageLayout
-  : IS_COMMUNITY ? defaultCommunityPageLayout : defaultPageLayout
+// Resolve page layout config: v3 (containers) > v2 (sidebarLeft/sidebarRight) > v1 (slots) > defaults
+const defaultConfig = IS_COMMUNITY ? defaultCommunityPageLayoutConfig : defaultPageLayoutConfig
+
+function resolvePageLayoutConfig(): PageLayoutConfig {
+  const raw = settings.pageLayoutConfig
+  // v3: has containers
+  if (raw?.template && raw?.containers) {
+    return raw as PageLayoutConfig
+  }
+  // v2: has template + sidebarLeft/sidebarRight (no containers)
+  if (raw?.template && 'sidebarLeft' in raw) {
+    return migratePageLayoutConfigV2ToV3(raw as any)
+  }
+  // v1: old slot-based
+  if (settings.pageLayout?.sections?.length) {
+    return migratePageLayoutToConfig(settings.pageLayout as PageLayout)
+  }
+  return defaultConfig
+}
+
+const pageLayoutConfig: PageLayoutConfig = resolvePageLayoutConfig()
+
+// Convert to legacy format for SlotRenderer compatibility
+const pageLayout = pageLayoutConfigToLegacy(pageLayoutConfig)
 
 // Group sections by slot position
 const sectionsBySlot: Record<PageSlotPosition, typeof pageLayout.sections> = {
@@ -77,27 +98,20 @@ pageLayout.sections.forEach(section => {
   }
 })
 
-// Helper: Get all elements in a slot (with null safety)
-function getElementsInSlot(slot: PageSlotPosition): string[] {
-  const sections = sectionsBySlot[slot]
-  if (!sections || !Array.isArray(sections)) return []
-  return sections.flatMap(section => section.elements || [])
-}
-
 // Helper: Check if element exists in a slot
 function hasElementInSlot(slot: PageSlotPosition, elementId: string): boolean {
-  return getElementsInSlot(slot).includes(elementId)
+  const sections = sectionsBySlot[slot]
+  if (!sections || !Array.isArray(sections)) return false
+  return sections.flatMap(section => section.elements || []).includes(elementId)
 }
 
-const hasLeftSidebar = getElementsInSlot('sidebar-left').length > 0
-const hasRightSidebar = getElementsInSlot('sidebar-right').length > 0
+const hasLeftSidebar = templateHasLeft(pageLayoutConfig.template)
+const hasRightSidebar = templateHasRight(pageLayoutConfig.template)
 const hasSidebars = hasLeftSidebar || hasRightSidebar
 
 const showHeader = settings.showHeader !== false
 const showAuthorProfile = settings.showAuthorProfile !== false
 const authorAvatarSizePx = settings.authorAvatarSizePx ?? 64
-const sidebarWidthPx = settings.sidebarWidthPx || 280
-
 // Size settings for Author Profile
 const authorCoverHeight = settings.authorCoverHeightPx ?? 64
 const authorUsernameSize = settings.authorUsernameSizePx ?? 14
@@ -232,7 +246,7 @@ const slotRendererProps = {
           <div class="sidebar-layout">
             {/* Left Sidebar */}
             {hasLeftSidebar && (
-              <aside class="sidebar-left" style={`--sidebar-width: ${sidebarWidthPx}px;`}>
+              <aside class="sidebar-left" style="--sidebar-width: 280px;">
                 <SlotRenderer sections={sectionsBySlot['sidebar-left']} context="sidebar-left" {...slotRendererProps} />
               </aside>
             )}
@@ -261,7 +275,7 @@ const slotRendererProps = {
 
             {/* Right Sidebar */}
             {hasRightSidebar && (
-              <aside class="sidebar-right" style={`--sidebar-width: ${sidebarWidthPx}px;`}>
+              <aside class="sidebar-right" style="--sidebar-width: 280px;">
                 <SlotRenderer sections={sectionsBySlot['sidebar-right']} context="sidebar-right" {...slotRendererProps} />
               </aside>
             )}
@@ -308,7 +322,7 @@ const slotRendererProps = {
           <div class="sidebar-layout">
             {/* Left Sidebar */}
             {hasLeftSidebar && (
-              <aside class="sidebar-left" style={`--sidebar-width: ${sidebarWidthPx}px;`}>
+              <aside class="sidebar-left" style="--sidebar-width: 280px;">
                 <SlotRenderer sections={sectionsBySlot['sidebar-left']} context="sidebar-left" {...slotRendererProps} />
               </aside>
             )}
@@ -358,7 +372,7 @@ const slotRendererProps = {
 
             {/* Right Sidebar */}
             {hasRightSidebar && (
-              <aside class="sidebar-right" style={`--sidebar-width: ${sidebarWidthPx}px;`}>
+              <aside class="sidebar-right" style="--sidebar-width: 280px;">
                 <SlotRenderer sections={sectionsBySlot['sidebar-right']} context="sidebar-right" {...slotRendererProps} />
               </aside>
             )}
