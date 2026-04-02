@@ -13,7 +13,7 @@ import {
   renderPostCardContent,
 } from '../post-card'
 import type { HivePost } from '../../../components/admin/queries'
-import { SHADOW_MAP } from '../../../components/admin/constants'
+import { SHADOW_MAP } from '../../constants'
 import { get_initial_scroll_style, get_visible_scroll_style } from '../../utils/animations'
 
 // ============================================
@@ -103,6 +103,11 @@ export function PostCard(props: PostCardProps) {
     cardBorder: settings.cardBorder !== false,
     maxTags: settings.maxTags || 5,
     postCardLayout: settings.postCardLayout,
+    cardHoverEffect: settings.cardHoverEffect || 'none',
+    cardTransitionDuration: settings.cardTransitionDuration || 200,
+    cardHoverScale: settings.cardHoverScale || 1.02,
+    cardHoverShadow: settings.cardHoverShadow || 'lg',
+    cardHoverBrightness: settings.cardHoverBrightness || 1.05,
   }))
 
   // Render content using shared function
