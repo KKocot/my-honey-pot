@@ -12,7 +12,12 @@ import {
   DialogFooter,
   Button,
 } from '../../../ui'
-import { isValidHexColor, normalizeHexColor, getCurrentColors } from './helpers'
+import {
+  isValidHexColor,
+  normalizeHexColor,
+  getCurrentColors,
+  generate_harmonious_colors,
+} from './helpers'
 import { Shuffle } from 'lucide-solid'
 
 // ============================================
@@ -95,31 +100,7 @@ export function ColorCustomizerContent(props: { onClose: () => void }) {
   }
 
   const generate_random_colors = () => {
-    const random_hex = (): string => {
-      const hex = Math.floor(Math.random() * 16777215)
-        .toString(16)
-        .padStart(6, '0')
-      return `#${hex}`
-    }
-
-    const newColors: ThemeColors = {
-      bg: random_hex(),
-      bgSecondary: random_hex(),
-      bgCard: random_hex(),
-      text: random_hex(),
-      textMuted: random_hex(),
-      primary: random_hex(),
-      primaryHover: random_hex(),
-      primaryText: random_hex(),
-      accent: random_hex(),
-      border: random_hex(),
-      success: random_hex(),
-      error: random_hex(),
-      warning: random_hex(),
-      info: random_hex(),
-    }
-
-    setCustomColors(newColors)
+    setCustomColors(generate_harmonious_colors())
   }
 
   return (
