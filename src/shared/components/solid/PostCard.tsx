@@ -11,6 +11,7 @@ import { settings } from '../../../components/admin/store'
 import {
   createPostCardDataFromBridge,
   renderPostCardContent,
+  type CardLayout,
 } from '../post-card'
 import type { HivePost } from '../../../components/admin/queries'
 import { SHADOW_MAP } from '../../constants'
@@ -24,6 +25,7 @@ interface PostCardProps {
   post: HivePost
   forceVertical: boolean
   index: number
+  layout?: CardLayout
 }
 
 export function PostCard(props: PostCardProps) {
@@ -102,7 +104,7 @@ export function PostCard(props: PostCardProps) {
     summaryMaxLength: settings.summaryMaxLength || 150,
     cardBorder: settings.cardBorder !== false,
     maxTags: settings.maxTags || 5,
-    postCardLayout: settings.postCardLayout,
+    postCardLayout: props.layout || settings.postCardLayout,
     cardHoverEffect: settings.cardHoverEffect || 'none',
     cardTransitionDuration: settings.cardTransitionDuration || 200,
     cardHoverScale: settings.cardHoverScale || 1.02,

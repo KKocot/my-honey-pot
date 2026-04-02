@@ -234,6 +234,7 @@ const CommentCard: Component<{ comment: BridgeComment; settings: SiteSettings }>
     commentShowPayout: props.settings.commentShowPayout,
     commentMaxLength: props.settings.commentMaxLength,
     commentPaddingPx: props.settings.commentPaddingPx,
+    commentCardLayout: props.settings.commentCardLayout,
   });
 
   // Use renderCommentCardContent (same function as FullPreview) - no wrapper

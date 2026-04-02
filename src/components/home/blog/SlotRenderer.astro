@@ -139,7 +139,7 @@ const activeSections = sections.filter(s => s.active !== false && s.elements.len
           <Fragment set:html={renderHeaderBottom(headerData)} />
         )}
         {!is_sidebar(context) && context !== 'bottom' && (
-          <Header siteName={siteName} siteDescription={siteDescription} headerMaxWidthPx={settings.headerMaxWidthPx} />
+          <Header siteName={siteName} siteDescription={siteDescription} />
         )}
       </>
     )}
@@ -157,6 +157,9 @@ const activeSections = sections.filter(s => s.active !== false && s.elements.len
         client:only="solid-js"
         community={communityData}
         show_subscribers={settings.community_show_subscribers !== false}
+        avatar_size_px={settings.community_avatar_size_px}
+        title_size_px={settings.community_title_size_px}
+        about_size_px={settings.community_about_size_px}
       />
     )}
 

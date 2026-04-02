@@ -56,7 +56,6 @@ export interface SettingsData {
   showAuthorRewards: boolean
   postsPerPage: number
   sidebarWidthPx: number
-  headerMaxWidthPx: number
   // Author Profile extended settings
   authorProfileLayout: 'horizontal' | 'vertical'
   showAuthorAbout: boolean
@@ -170,7 +169,6 @@ export const defaultSettings: SettingsData = {
   showAuthorRewards: true,
   postsPerPage: 20,
   sidebarWidthPx: 280,
-  headerMaxWidthPx: 1280,
   authorProfileLayout: 'horizontal',
   showAuthorAbout: true,
   showAuthorLocation: true,

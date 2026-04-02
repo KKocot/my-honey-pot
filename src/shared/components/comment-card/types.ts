@@ -5,6 +5,9 @@
  * CommentCard types - shared between Astro and SolidJS
  */
 
+import type { CardLayout, CardSection, CardSectionChild } from '../post-card/types'
+export type { CardLayout, CardSection, CardSectionChild }
+
 /**
  * Normalized comment data - framework-agnostic
  */
@@ -36,6 +39,7 @@ export interface CommentCardSettings {
   showPayout: boolean
   maxLength: number
   padding: number
+  layout?: CardLayout
 }
 
 /**

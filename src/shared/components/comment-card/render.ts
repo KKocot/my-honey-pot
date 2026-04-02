@@ -5,7 +5,7 @@
  * CommentCard render functions - HTML output for both Astro and SolidJS
  */
 
-import type { CommentCardData, CommentCardSettings } from './types'
+import type { CommentCardData, CommentCardSettings, CardSection, CardSectionChild } from './types'
 import { processCommentBody, formatTimeAgo } from './utils'
 import { escape_html } from '../../formatters'
 import { externalLinkIcon } from '../../icons'
@@ -145,18 +145,106 @@ function renderActionBar(data: CommentCardData, settings: CommentCardSettings): 
   return `<div class="flex items-center gap-6 mt-3 text-text-muted">${parts.join('')}</div>`
 }
 
+function renderLayoutElement(
+  elementId: string,
+  data: CommentCardData,
+  settings: CommentCardSettings
+): string {
+  switch (elementId) {
+    case 'replyContext':
+      return renderReplyContext(data, settings)
+    case 'avatar':
+      return renderAvatar(data, settings)
+    case 'author': {
+      if (!settings.showAuthor) return ''
+      return `<span class="font-semibold text-text">${escape_html(data.author)}</span>`
+    }
+    case 'timestamp': {
+      if (!settings.showTimestamp) return ''
+      return `<time class="text-text-muted text-sm" datetime="${escape_html(data.created)}">${escape_html(formatTimeAgo(data.created))}</time>`
+    }
+    case 'body': {
+      const processedBody = escape_html(processCommentBody(data.body, settings.maxLength))
+      return `<div class="text-text text-sm whitespace-pre-wrap break-words leading-relaxed">${processedBody}</div>`
+    }
+    case 'replies': {
+      if (!settings.showRepliesCount) return ''
+      return `<div class="flex items-center gap-1.5 text-sm text-text-muted">${commentIcon}<span>${data.children}</span></div>`
+    }
+    case 'votes': {
+      if (!settings.showVotes) return ''
+      return `<div class="flex items-center gap-1.5 text-sm text-text-muted">${voteIcon}<span>${data.votesCount}</span></div>`
+    }
+    case 'payout': {
+      if (!settings.showPayout || data.payout <= 0) return ''
+      return `<div class="flex items-center gap-1.5 text-sm text-text-muted">${payoutIcon}<span>$${data.payout.toFixed(2)}</span></div>`
+    }
+    case 'viewLink': {
+      if (!is_valid_url(data.url)) return ''
+      return `<div class="flex items-center gap-1.5 text-sm text-primary">${externalLinkIcon}<span>View</span></div>`
+    }
+    case 'actionBar':
+      return renderActionBar(data, settings)
+    default:
+      return ''
+  }
+}
+
+function renderLayoutChild(
+  child: CardSectionChild,
+  data: CommentCardData,
+  settings: CommentCardSettings
+): string {
+  if (child.type === 'element') {
+    return renderLayoutElement(child.id, data, settings)
+  }
+  return renderLayoutSection(child.section, data, settings, true)
+}
+
+function renderLayoutSection(
+  section: CardSection,
+  data: CommentCardData,
+  settings: CommentCardSettings,
+  isNested: boolean = false
+): string {
+  if (!section.children || section.children.length === 0) return ''
+
+  const childrenHtml = section.children
+    .map(child => renderLayoutChild(child, data, settings))
+    .filter(html => html.length > 0)
+    .join('')
+
+  if (childrenHtml.length === 0) return ''
+
+  const flexClass = section.orientation === 'horizontal'
+    ? 'flex items-center gap-2'
+    : 'flex flex-col gap-1'
+  const nestedClass = isNested ? ' flex-1 min-w-0' : ''
+
+  return `<div class="${flexClass}${nestedClass}">${childrenHtml}</div>`
+}
+
 /**
  * Render comment card content (without article wrapper)
+ * Uses sections-based layout when available, falls back to hardcoded layout
  * @returns Sanitized HTML string (uses escape_html for all user content)
  */
 export function renderCommentCardContent(
   data: CommentCardData,
   settings: CommentCardSettings
 ): string {
+  const layout = settings.layout
+  if (layout && layout.sections && layout.sections.length > 0) {
+    const sectionsHtml = layout.sections
+      .map(section => renderLayoutSection(section, data, settings))
+      .filter(html => html.length > 0)
+      .join('')
+    return `<div style="padding: ${settings.padding}px;">${sectionsHtml}</div>`
+  }
+
   const replyContextHtml = renderReplyContext(data, settings)
   const avatarHtml = renderAvatar(data, settings)
   const authorInfoHtml = renderAuthorInfo(data, settings)
-  // processCommentBody already strips HTML, but escape it to be safe
   const processedBody = escape_html(processCommentBody(data.body, settings.maxLength))
   const actionBarHtml = renderActionBar(data, settings)
 

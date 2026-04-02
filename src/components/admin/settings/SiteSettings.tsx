@@ -2,7 +2,6 @@
 // Copyright (C) 2026 Krzysztof Kocot
 
 import { settings, updateSettings } from '../store'
-import { Slider } from '../../ui'
 import { ThemeSettings } from './ThemeSettings'
 import { createLocalInput } from '../hooks'
 
@@ -56,20 +55,6 @@ export function SiteSettings() {
               />
             </div>
 
-            {/* Header Settings */}
-            <div class="border-t border-border pt-4">
-              <h3 class="text-sm font-medium text-text-muted uppercase tracking-wide mb-4">Header</h3>
-
-              <Slider
-                label="Header max width:"
-                unit="px"
-                min={600}
-                max={1920}
-                step={10}
-                value={settings.headerMaxWidthPx ?? 1280}
-                onChange={(val) => updateSettings({ headerMaxWidthPx: val })}
-              />
-            </div>
           </div>
 
           {/* Preview */}
@@ -77,7 +62,6 @@ export function SiteSettings() {
             <p class="text-xs text-text-muted mb-3 uppercase tracking-wide">Preview</p>
             <div
               class="bg-bg-card rounded-lg border border-border p-4 mx-auto transition-all"
-              style={`max-width: ${Math.min(settings.headerMaxWidthPx ?? 1280, 400)}px;`}
             >
               <h1 class="text-lg font-bold text-text truncate">
                 {settings.siteName || 'Hive Blog'}
@@ -86,9 +70,6 @@ export function SiteSettings() {
                 {settings.siteDescription || 'Posts from Hive blockchain'}
               </p>
             </div>
-            <p class="text-xs text-text-muted text-center mt-3">
-              Header max width: {settings.headerMaxWidthPx ?? 1280}px
-            </p>
           </div>
         </div>
       </div>

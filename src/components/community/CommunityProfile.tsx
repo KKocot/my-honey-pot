@@ -12,6 +12,9 @@ import { hive_avatar_url } from "../../lib/config";
 interface CommunityProfileProps {
   community: HiveCommunity;
   show_subscribers?: boolean;
+  avatar_size_px?: number;
+  title_size_px?: number;
+  about_size_px?: number;
 }
 
 // ============================================
@@ -46,13 +49,16 @@ const CommunityProfile: Component<CommunityProfileProps> = (props) => {
         <img
           src={get_avatar_url(community().name)}
           alt={`${community().title} avatar`}
-          width={48}
-          height={48}
+          width={props.avatar_size_px ?? 48}
+          height={props.avatar_size_px ?? 48}
           class="rounded-full flex-shrink-0"
           loading="lazy"
         />
         <div class="min-w-0">
-          <h2 class="text-text font-semibold text-base leading-tight truncate">
+          <h2
+            class="text-text font-semibold text-base leading-tight truncate"
+            style={props.title_size_px ? { "font-size": `${props.title_size_px}px` } : undefined}
+          >
             {community().title}
           </h2>
           <p class="text-text-muted text-xs mt-0.5">{community().name}</p>
@@ -61,7 +67,10 @@ const CommunityProfile: Component<CommunityProfileProps> = (props) => {
 
       {/* About */}
       <Show when={community().about}>
-        <p class="px-4 pb-3 text-text-muted text-sm leading-relaxed">
+        <p
+          class="px-4 pb-3 text-text-muted text-sm leading-relaxed"
+          style={props.about_size_px ? { "font-size": `${props.about_size_px}px` } : undefined}
+        >
           {community().about}
         </p>
       </Show>

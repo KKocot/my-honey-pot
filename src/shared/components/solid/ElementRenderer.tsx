@@ -28,7 +28,6 @@ import {
 } from '../navigation'
 import {
   createHeaderData,
-  createHeaderSettings,
   renderHeader as renderHeaderHtml,
 } from '../header'
 import {
@@ -66,10 +65,7 @@ function renderHeader(community_title?: string, community?: HiveCommunity | null
     settings.siteName || default_name,
     settings.siteDescription || default_description
   )
-  const header_settings = createHeaderSettings({
-    headerMaxWidthPx: settings.headerMaxWidthPx,
-  })
-  return <header innerHTML={renderHeaderHtml(data, header_settings)} />
+  return <header innerHTML={renderHeaderHtml(data)} />
 }
 
 // Render author profile element using shared components
@@ -146,7 +142,7 @@ function PostsSection(props: { data: Accessor<HiveData | null>; community_posts?
         <Show when={gridSettings().layout === 'list'}>
           <div style={`display: flex; flex-direction: column; gap: ${gridSettings().gap_px}px;`}>
             <For each={posts()}>
-              {(post, index) => <PostCard post={post} forceVertical={false} index={index()} />}
+              {(post, index) => <PostCard post={post} forceVertical={false} index={index()} layout={settings.postCardLayout} />}
             </For>
           </div>
         </Show>
@@ -156,7 +152,7 @@ function PostsSection(props: { data: Accessor<HiveData | null>; community_posts?
             <For each={posts()}>
               {(post, index) => (
                 <div style={`break-inside: avoid; margin-bottom: ${gridSettings().gap_px}px;`}>
-                  <PostCard post={post} forceVertical={true} index={index()} />
+                  <PostCard post={post} forceVertical={true} index={index()} layout={settings.postCardLayout} />
                 </div>
               )}
             </For>
@@ -166,7 +162,7 @@ function PostsSection(props: { data: Accessor<HiveData | null>; community_posts?
         <Show when={gridSettings().layout === 'grid'}>
           <div style={`display: grid; grid-template-columns: repeat(${gridSettings().columns}, 1fr); gap: ${gridSettings().gap_px}px;`}>
             <For each={posts()}>
-              {(post, index) => <PostCard post={post} forceVertical={true} index={index()} />}
+              {(post, index) => <PostCard post={post} forceVertical={true} index={index()} layout={settings.postCardLayout} />}
             </For>
           </div>
         </Show>
@@ -191,6 +187,7 @@ function CommentsSection(props: { data: Accessor<HiveData | null> }) {
     commentShowPayout: settings.commentShowPayout,
     commentMaxLength: settings.commentMaxLength,
     commentPaddingPx: settings.commentPaddingPx,
+    commentCardLayout: settings.commentCardLayout,
   }))
 
   return (
@@ -350,6 +347,9 @@ export function ElementRenderer(props: ElementRendererProps) {
           <CommunityProfile
             community={community()}
             show_subscribers={settings.community_show_subscribers !== false}
+            avatar_size_px={settings.community_avatar_size_px}
+            title_size_px={settings.community_title_size_px}
+            about_size_px={settings.community_about_size_px}
           />
         )}
       </Show>

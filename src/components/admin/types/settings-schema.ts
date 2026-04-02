@@ -61,7 +61,6 @@ export const settings_schema = z
     showAuthorRewards: z.boolean().optional().default(true),
     postsPerPage: z.number().optional().default(20),
     sidebarWidthPx: z.number().optional().default(280),
-    headerMaxWidthPx: z.number().optional().default(1280),
 
     // Author Profile extended settings
     authorProfileLayout: z

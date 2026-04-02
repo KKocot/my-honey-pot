@@ -111,7 +111,6 @@ export const DOCKER_CONFIG_PREFIX = "!hive-blog-docker";
 
 // Layout Constants
 export const LAYOUT_CONSTANTS = {
-  HEADER_MAX_WIDTH_PX: { min: 800, max: 1920, default: 1280 },
   SIDEBAR_WIDTH_PX: { min: 200, max: 400, default: 280 },
   CARD_GAP_PX: { min: 0, max: 64, default: 24 },
   CARD_PADDING_PX: { min: 0, max: 64, default: 24 },

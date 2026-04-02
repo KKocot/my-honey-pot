@@ -28,6 +28,7 @@ import {
   fetch_community,
   fetch_community_posts,
   type FetchCommunityPostsResult,
+  type CommunitySortOrder,
 } from '../../lib/queries'
 import type { HiveCommunity } from '../../lib/types/community'
 import { is_dark_color } from '../../shared/utils/color'
@@ -465,14 +466,15 @@ export interface CommunityPreviewData {
 
 async function fetchCommunityPreviewData(
   community_name: string,
-  posts_per_page: number
+  posts_per_page: number,
+  sort: CommunitySortOrder = 'trending'
 ): Promise<CommunityPreviewData | null> {
   if (!community_name) return null
 
   try {
     const [community, posts_result] = await Promise.all([
       fetch_community(community_name),
-      fetch_community_posts(community_name, 'trending', posts_per_page),
+      fetch_community_posts(community_name, sort, posts_per_page),
     ])
 
     return {
@@ -492,7 +494,8 @@ async function fetchCommunityPreviewData(
 export function useCommunityPreviewQuery(
   community_name: () => string | undefined,
   posts_per_page: () => number,
-  enabled: () => boolean
+  enabled: () => boolean,
+  sort: () => CommunitySortOrder = () => 'trending'
 ) {
   const [debouncedName, setDebouncedName] = createSignal(community_name())
   let debounceTimer: ReturnType<typeof setTimeout> | null = null
@@ -510,8 +513,8 @@ export function useCommunityPreviewQuery(
   })
 
   return createQuery(() => ({
-    queryKey: ['community-preview', debouncedName(), posts_per_page()] as const,
-    queryFn: () => fetchCommunityPreviewData(debouncedName() || '', posts_per_page()),
+    queryKey: ['community-preview', debouncedName(), posts_per_page(), sort()] as const,
+    queryFn: () => fetchCommunityPreviewData(debouncedName() || '', posts_per_page(), sort()),
     enabled: enabled() && !!debouncedName(),
     staleTime: 1000 * 60 * 2,
     retry: 1,

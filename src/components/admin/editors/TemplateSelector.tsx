@@ -278,7 +278,6 @@ export function TemplateSelector() {
 
       // Page Layout
       pageLayout: randomChoice(pageLayoutOptions),
-      headerMaxWidthPx: randomChoice([1024, 1280, 1440, 1600]),
 
       // Author Profile Settings
       showHeader: randomBool(0.9),

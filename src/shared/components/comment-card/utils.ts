@@ -5,7 +5,7 @@
  * CommentCard utilities - data transformation and processing functions
  */
 
-import type { CommentCardData, CommentCardSettings } from './types'
+import type { CommentCardData, CommentCardSettings, CardLayout } from './types'
 import type { BridgePost } from '@hiveio/workerbee/blog-logic'
 import { formatTimeAgo } from '../../formatters'
 import { defaultCommentCardSettings } from './types'
@@ -89,6 +89,7 @@ export function createCommentCardSettings(settings: Partial<{
   commentShowPayout: boolean
   commentMaxLength: number
   commentPaddingPx: number
+  commentCardLayout: CardLayout
 }>): CommentCardSettings {
   return {
     showAuthor: settings.commentShowAuthor ?? defaultCommentCardSettings.showAuthor,
@@ -101,6 +102,7 @@ export function createCommentCardSettings(settings: Partial<{
     showPayout: settings.commentShowPayout ?? defaultCommentCardSettings.showPayout,
     maxLength: settings.commentMaxLength ?? defaultCommentCardSettings.maxLength,
     padding: settings.commentPaddingPx ?? defaultCommentCardSettings.padding,
+    layout: settings.commentCardLayout,
   }
 }
 

@@ -36,7 +36,8 @@ export function FullPreview(props: FullPreviewProps) {
   const communityQuery = useCommunityPreviewQuery(
     () => settings.hiveUsername,
     () => settings.postsPerPage || 20,
-    () => props.open() && in_community_mode()
+    () => props.open() && in_community_mode(),
+    () => settings.community_default_sort ?? 'trending'
   )
 
   // Unified data accessors

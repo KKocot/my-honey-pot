@@ -6,19 +6,18 @@
  * Used by both Astro (set:html) and SolidJS (innerHTML)
  */
 
-import type { HeaderData, HeaderSettings } from './types'
+import type { HeaderData } from './types'
 import { escape_html } from '../../formatters'
 
 /**
  * Render main header - card style (top slot, FullPreview)
  * @returns Sanitized HTML string (uses escape_html for all user content)
  */
-export function renderHeader(data: HeaderData, settings: HeaderSettings): string {
+export function renderHeader(data: HeaderData): string {
   const site_name = escape_html(data.site_name)
   const site_description = escape_html(data.site_description)
-  const max_width = settings.max_width_px
 
-  return `<header class="bg-bg-card rounded-xl shadow-sm border border-border p-6 mb-6" style="max-width: ${max_width}px; margin-left: auto; margin-right: auto;">
+  return `<header class="bg-bg-card rounded-xl shadow-sm border border-border p-6 mb-6">
   <h1 class="text-2xl font-bold text-text">${site_name}</h1>
   <p class="text-text-muted mt-1">${site_description}</p>
 </header>`
