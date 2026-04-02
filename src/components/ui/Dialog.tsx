@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 Krzysztof Kocot
 
-import { createSignal, Show, onMount, onCleanup, type JSX, type Accessor } from 'solid-js'
+import { createSignal, createEffect, Show, onMount, onCleanup, type JSX, type Accessor } from 'solid-js'
 import { Portal } from 'solid-js/web'
 
 // ============================================
@@ -140,6 +140,12 @@ export function DialogContent(props: DialogContentProps & { open: Accessor<boole
     () => dialogRef,
     () => props.open()
   )
+
+  createEffect(() => {
+    if (!props.open()) {
+      focusTrap.deactivate()
+    }
+  })
 
   // Handle escape key
   const handleKeyDown = (e: KeyboardEvent) => {
