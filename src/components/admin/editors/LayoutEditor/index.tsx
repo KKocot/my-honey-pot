@@ -1,230 +1,174 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 Krzysztof Kocot
 
-import { For, Show } from "solid-js";
+import { For, Show, createMemo } from "solid-js";
 import { settings, updateSettings } from "../../store";
 import { is_community_mode } from "../../queries";
 import {
+  type LayoutTemplate,
+  type PageLayoutConfig,
+  type ContainerConfig,
+  type LayoutElementId,
+  type ContainerName,
+  layoutTemplateLabels,
+  containerLabels,
   pageElementLabels,
-  ALL_PAGE_ELEMENT_IDS,
-  USER_PAGE_ELEMENT_IDS,
-  COMMUNITY_PAGE_ELEMENT_IDS,
-  type PageLayout,
-  type PageLayoutSection,
-  type PageSlotPosition,
+  USER_CONTAINER_ELEMENT_IDS,
+  COMMUNITY_CONTAINER_ELEMENT_IDS,
+  hasLeftSidebar,
+  hasRightSidebar,
 } from "../../types/index";
-import { Slider } from "../../../ui";
-import { SlotContainer } from "./SlotContainer";
 import { PageLayoutPreview } from "./PageLayoutPreview";
 
 // ============================================
-// Page Layout Editor - Button-based UI
+// Page Layout Editor - Flat Element List (v4)
 // ============================================
 
-const SLOTS: PageSlotPosition[] = [
-  "top",
+const TEMPLATES: LayoutTemplate[] = [
+  "no-sidebar",
   "sidebar-left",
-  "main",
   "sidebar-right",
+  "both-sidebars",
+];
+
+const ALL_CONTAINERS: ContainerName[] = [
+  "top",
+  "sidebarLeft",
+  "sidebarRight",
   "bottom",
 ];
 
+/** Container names visible per template */
+function get_visible_containers(template: LayoutTemplate): ContainerName[] {
+  const containers: ContainerName[] = ["top"];
+  if (hasLeftSidebar(template)) containers.push("sidebarLeft");
+  if (hasRightSidebar(template)) containers.push("sidebarRight");
+  containers.push("bottom");
+  return containers;
+}
+
 export function LayoutEditor() {
-  // Get sections for a specific slot
-  const getSectionsInSlot = (slot: PageSlotPosition) => {
-    return settings.pageLayout.sections.filter((s) => s.slot === slot);
+  const config = () => settings.pageLayoutConfig;
+
+  /** Available element IDs based on mode (user vs community) */
+  const available_element_ids = createMemo((): readonly LayoutElementId[] =>
+    is_community_mode()
+      ? COMMUNITY_CONTAINER_ELEMENT_IDS
+      : USER_CONTAINER_ELEMENT_IDS,
+  );
+
+  /** Visible containers based on selected template */
+  const visible_containers = createMemo(() =>
+    get_visible_containers(config().template),
+  );
+
+  // ============================================
+  // Helpers - read
+  // ============================================
+
+  /** Find which container an element is assigned to (searches ALL containers) */
+  const find_element_container = (
+    id: LayoutElementId,
+  ): ContainerName | null => {
+    const containers = config().containers;
+    for (const key of ALL_CONTAINERS) {
+      if (containers[key].elements.some((el) => el.id === id)) {
+        return key;
+      }
+    }
+    return null;
   };
 
-  // Get all used element IDs
-  const getUsedElementIds = () => {
-    return new Set(settings.pageLayout.sections.flatMap((s) => s.elements));
-  };
-
-  // Get allowed element IDs for current mode
-  const getAllowedElementIds = () => {
-    return is_community_mode()
-      ? COMMUNITY_PAGE_ELEMENT_IDS
-      : USER_PAGE_ELEMENT_IDS;
-  };
-
-  // Get unused elements (filtered by mode)
-  const getUnusedElements = () => {
-    const used_ids = getUsedElementIds();
-    const allowed_ids = getAllowedElementIds();
-    return ALL_PAGE_ELEMENT_IDS.filter(
-      (id) => allowed_ids.has(id) && !used_ids.has(id),
+  /** Get element active state within its container */
+  const is_element_active = (id: LayoutElementId): boolean => {
+    const container = find_element_container(id);
+    if (!container) return false;
+    const el = config().containers[container].elements.find(
+      (el) => el.id === id,
     );
+    return el?.active ?? false;
   };
 
   // ============================================
-  // Update functions
+  // Helpers - update
   // ============================================
 
-  const updatePageLayout = (layout: PageLayout) => {
-    updateSettings({ pageLayout: layout });
-  };
-
-  // ============================================
-  // Section operations
-  // ============================================
-
-  const addSection = (slot: PageSlotPosition) => {
-    const newSection: PageLayoutSection = {
-      id: `page-sec-${Date.now()}`,
-      slot,
-      orientation: "horizontal",
-      elements: [],
-      active: true,
-    };
-    updatePageLayout({
-      sections: [...settings.pageLayout.sections, newSection],
+  const update_config = (partial: Partial<PageLayoutConfig>) => {
+    updateSettings({
+      pageLayoutConfig: { ...config(), ...partial },
     });
   };
 
-  const toggleSectionActive = (sectionId: string) => {
-    const section = settings.pageLayout.sections.find(
-      (s) => s.id === sectionId,
-    );
-    if (section && section.elements.includes("footer")) return;
-    updatePageLayout({
-      sections: settings.pageLayout.sections.map((s) =>
-        s.id === sectionId
-          ? { ...s, active: s.active !== false ? false : true }
-          : s,
+  const set_template = (template: LayoutTemplate) => {
+    const visible = new Set(get_visible_containers(template));
+    const new_containers = { ...config().containers };
+    let changed = false;
+
+    // Move elements from hidden containers to the first visible one
+    for (const key of ALL_CONTAINERS) {
+      if (visible.has(key)) continue;
+      const orphans = new_containers[key].elements;
+      if (orphans.length === 0) continue;
+
+      // Pick first visible container as target
+      const target = ALL_CONTAINERS.find((c) => visible.has(c))!;
+      new_containers[target] = {
+        elements: [...new_containers[target].elements, ...orphans],
+      };
+      new_containers[key] = { elements: [] };
+      changed = true;
+    }
+
+    if (changed) {
+      update_config({ template, containers: new_containers });
+    } else {
+      update_config({ template });
+    }
+  };
+
+  const update_container = (
+    name: ContainerName,
+    container: ContainerConfig,
+  ) => {
+    update_config({
+      containers: { ...config().containers, [name]: container },
+    });
+  };
+
+  /** Assign element to a container, or remove if container is null */
+  const assign_element = (
+    id: LayoutElementId,
+    target: ContainerName | null,
+  ) => {
+    const new_containers = { ...config().containers };
+    // Remove from all containers first
+    for (const key of ALL_CONTAINERS) {
+      new_containers[key] = {
+        elements: new_containers[key].elements.filter((el) => el.id !== id),
+      };
+    }
+    // Add to target container if specified
+    if (target) {
+      new_containers[target] = {
+        elements: [
+          ...new_containers[target].elements,
+          { id, active: true },
+        ],
+      };
+    }
+    update_config({ containers: new_containers });
+  };
+
+  /** Toggle element active state within its current container */
+  const toggle_element = (id: LayoutElementId) => {
+    const container = find_element_container(id);
+    if (!container) return;
+    update_container(container, {
+      elements: config().containers[container].elements.map((el) =>
+        el.id === id ? { ...el, active: !el.active } : el,
       ),
     });
   };
-
-  const removeSection = (sectionId: string) => {
-    const section = settings.pageLayout.sections.find(
-      (s) => s.id === sectionId,
-    );
-    if (section && section.elements.includes("footer")) return;
-    updatePageLayout({
-      sections: settings.pageLayout.sections.filter((s) => s.id !== sectionId),
-    });
-  };
-
-  const toggleOrientation = (sectionId: string) => {
-    updatePageLayout({
-      sections: settings.pageLayout.sections.map((s) =>
-        s.id === sectionId
-          ? {
-              ...s,
-              orientation:
-                s.orientation === "horizontal" ? "vertical" : "horizontal",
-            }
-          : s,
-      ),
-    });
-  };
-
-  const moveSectionUp = (slot: PageSlotPosition, sectionId: string) => {
-    const sectionsInSlot = getSectionsInSlot(slot);
-    const index = sectionsInSlot.findIndex((s) => s.id === sectionId);
-    if (index <= 0) return;
-
-    const allSections = [...settings.pageLayout.sections];
-    const globalIndex = allSections.findIndex((s) => s.id === sectionId);
-    const prevInSlot = sectionsInSlot[index - 1];
-    const prevGlobalIndex = allSections.findIndex(
-      (s) => s.id === prevInSlot.id,
-    );
-
-    // Swap positions
-    [allSections[globalIndex], allSections[prevGlobalIndex]] = [
-      allSections[prevGlobalIndex],
-      allSections[globalIndex],
-    ];
-    updatePageLayout({ sections: allSections });
-  };
-
-  const moveSectionDown = (slot: PageSlotPosition, sectionId: string) => {
-    const sectionsInSlot = getSectionsInSlot(slot);
-    const index = sectionsInSlot.findIndex((s) => s.id === sectionId);
-    if (index === -1 || index >= sectionsInSlot.length - 1) return;
-
-    const allSections = [...settings.pageLayout.sections];
-    const globalIndex = allSections.findIndex((s) => s.id === sectionId);
-    const nextInSlot = sectionsInSlot[index + 1];
-    const nextGlobalIndex = allSections.findIndex(
-      (s) => s.id === nextInSlot.id,
-    );
-
-    // Swap positions
-    [allSections[globalIndex], allSections[nextGlobalIndex]] = [
-      allSections[nextGlobalIndex],
-      allSections[globalIndex],
-    ];
-    updatePageLayout({ sections: allSections });
-  };
-
-  // ============================================
-  // Element operations
-  // ============================================
-
-  const addElementToSection = (sectionId: string, elementId: string) => {
-    updatePageLayout({
-      sections: settings.pageLayout.sections.map((section) =>
-        section.id === sectionId
-          ? { ...section, elements: [...section.elements, elementId] }
-          : section,
-      ),
-    });
-  };
-
-  const removeElement = (sectionId: string, elementId: string) => {
-    if (elementId === "footer") return;
-    updatePageLayout({
-      sections: settings.pageLayout.sections.map((section) =>
-        section.id === sectionId
-          ? {
-              ...section,
-              elements: section.elements.filter((id) => id !== elementId),
-            }
-          : section,
-      ),
-    });
-  };
-
-  const moveElementUp = (sectionId: string, elementIndex: number) => {
-    if (elementIndex <= 0) return;
-    updatePageLayout({
-      sections: settings.pageLayout.sections.map((section) => {
-        if (section.id !== sectionId) return section;
-        const newElements = [...section.elements];
-        [newElements[elementIndex], newElements[elementIndex - 1]] = [
-          newElements[elementIndex - 1],
-          newElements[elementIndex],
-        ];
-        return { ...section, elements: newElements };
-      }),
-    });
-  };
-
-  const moveElementDown = (sectionId: string, elementIndex: number) => {
-    updatePageLayout({
-      sections: settings.pageLayout.sections.map((section) => {
-        if (section.id !== sectionId) return section;
-        if (elementIndex >= section.elements.length - 1) return section;
-        const newElements = [...section.elements];
-        [newElements[elementIndex], newElements[elementIndex + 1]] = [
-          newElements[elementIndex + 1],
-          newElements[elementIndex],
-        ];
-        return { ...section, elements: newElements };
-      }),
-    });
-  };
-
-  // Check if any active section uses a sidebar slot with elements
-  const has_sidebar = () =>
-    settings.pageLayout.sections.some(
-      (s) =>
-        (s.slot === "sidebar-left" || s.slot === "sidebar-right") &&
-        s.elements.length > 0 &&
-        s.active !== false,
-    );
 
   return (
     <div class="bg-bg-card rounded-xl p-6 mb-6 border border-border">
@@ -232,67 +176,250 @@ export function LayoutEditor() {
         Page Layout Editor
       </h2>
       <p class="text-text-muted text-sm mb-6">
-        Configure page layout by adding sections and elements to each slot.
+        Choose a layout template and assign elements to containers.
       </p>
 
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Slot-based Editor */}
-        <div class="space-y-4">
-          <For each={SLOTS}>
-            {(slot) => (
-              <SlotContainer
-                slot={slot}
-                sections={getSectionsInSlot(slot)}
-                unusedElements={getUnusedElements()}
-                onAddSection={() => addSection(slot)}
-                onRemoveSection={removeSection}
-                onToggleOrientation={toggleOrientation}
-                onToggleSectionActive={toggleSectionActive}
-                onMoveSectionUp={(sectionId) => moveSectionUp(slot, sectionId)}
-                onMoveSectionDown={(sectionId) =>
-                  moveSectionDown(slot, sectionId)
-                }
-                onAddElement={addElementToSection}
-                onRemoveElement={removeElement}
-                onMoveElementUp={moveElementUp}
-                onMoveElementDown={moveElementDown}
-              />
-            )}
-          </For>
-
-          {/* Available Elements */}
-          <Show when={getUnusedElements().length > 0}>
-            <div class="mt-4 pt-4 border-t border-border">
-              <p class="text-xs text-text-muted uppercase tracking-wide mb-2">
-                Available Elements ({getUnusedElements().length})
-              </p>
-              <div class="flex flex-wrap gap-1">
-                <For each={getUnusedElements()}>
-                  {(elementId) => (
-                    <span class="px-2 py-1 rounded text-xs bg-bg-secondary text-text-muted">
-                      {pageElementLabels[elementId] || elementId}
+        {/* Left column: Editor controls */}
+        <div class="space-y-6">
+          {/* Template Selector */}
+          <div>
+            <label class="block text-sm font-medium text-text mb-3">
+              Layout Template
+            </label>
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <For each={TEMPLATES}>
+                {(template) => (
+                  <button
+                    type="button"
+                    onClick={() => set_template(template)}
+                    class={`
+                      flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition-all
+                      ${
+                        config().template === template
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-border hover:border-primary/50 text-text-muted hover:text-text"
+                      }
+                    `}
+                  >
+                    <TemplateIcon template={template} />
+                    <span class="text-xs font-medium text-center">
+                      {layoutTemplateLabels[template]}
                     </span>
-                  )}
-                </For>
-              </div>
+                  </button>
+                )}
+              </For>
             </div>
-          </Show>
+          </div>
+
+          {/* Element Assignment List */}
+          <div>
+            <label class="block text-sm font-medium text-text mb-3">
+              Element Assignment
+            </label>
+            <div class="space-y-2">
+              <For each={available_element_ids()}>
+                {(elementId) => {
+                  const container = () => find_element_container(elementId);
+                  const active = () => is_element_active(elementId);
+
+                  return (
+                    <div class="flex items-center gap-3 p-3 rounded-lg border border-border bg-bg-secondary">
+                      {/* Label */}
+                      <span class="flex-1 text-sm text-text">
+                        {pageElementLabels[elementId] || elementId}
+                      </span>
+
+                      {/* Container select */}
+                      <select
+                        class="text-xs bg-bg border border-border rounded px-2 py-1.5 text-text min-w-[140px]"
+                        value={container() ?? ""}
+                        onChange={(e) => {
+                          const val = e.currentTarget.value;
+                          assign_element(
+                            elementId,
+                            val === "" ? null : (val as ContainerName),
+                          );
+                        }}
+                      >
+                        <option value="">None</option>
+                        <For each={visible_containers()}>
+                          {(c) => (
+                            <option value={c}>{containerLabels[c]}</option>
+                          )}
+                        </For>
+                      </select>
+
+                      {/* Active toggle - only when assigned to a container */}
+                      <Show
+                        when={container() !== null}
+                        fallback={<div class="w-5 h-5" />}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => toggle_element(elementId)}
+                          class={`
+                            w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors
+                            ${
+                              active()
+                                ? "bg-primary border-primary"
+                                : "border-border hover:border-primary/50"
+                            }
+                          `}
+                          title={active() ? "Disable" : "Enable"}
+                        >
+                          <Show when={active()}>
+                            <CheckIcon />
+                          </Show>
+                        </button>
+                      </Show>
+                    </div>
+                  );
+                }}
+              </For>
+            </div>
+          </div>
         </div>
 
-        {/* Live Preview */}
+        {/* Right column: Preview */}
         <div class="space-y-4">
           <PageLayoutPreview />
-          <Slider
-            label="Sidebar Width"
-            unit="px"
-            min={200}
-            max={400}
-            value={settings.sidebarWidthPx}
-            onChange={(val) => updateSettings({ sidebarWidthPx: val })}
-            disabled={!has_sidebar()}
-          />
         </div>
       </div>
     </div>
+  );
+}
+
+// ============================================
+// Template Icons - schematic SVG layout diagrams
+// ============================================
+
+function TemplateIcon(props: { template: LayoutTemplate }) {
+  return (
+    <svg class="w-10 h-10" viewBox="0 0 40 40" fill="none">
+      {/* Header */}
+      <rect
+        x="2"
+        y="2"
+        width="36"
+        height="6"
+        rx="1"
+        fill="currentColor"
+        opacity="0.3"
+      />
+      {/* Footer */}
+      <rect
+        x="2"
+        y="32"
+        width="36"
+        height="6"
+        rx="1"
+        fill="currentColor"
+        opacity="0.3"
+      />
+
+      {/* Content area depends on template */}
+      <Show when={props.template === "no-sidebar"}>
+        <rect
+          x="2"
+          y="10"
+          width="36"
+          height="20"
+          rx="1"
+          fill="currentColor"
+          opacity="0.6"
+        />
+      </Show>
+
+      <Show when={props.template === "sidebar-left"}>
+        <rect
+          x="2"
+          y="10"
+          width="10"
+          height="20"
+          rx="1"
+          fill="currentColor"
+          opacity="0.4"
+        />
+        <rect
+          x="14"
+          y="10"
+          width="24"
+          height="20"
+          rx="1"
+          fill="currentColor"
+          opacity="0.6"
+        />
+      </Show>
+
+      <Show when={props.template === "sidebar-right"}>
+        <rect
+          x="2"
+          y="10"
+          width="24"
+          height="20"
+          rx="1"
+          fill="currentColor"
+          opacity="0.6"
+        />
+        <rect
+          x="28"
+          y="10"
+          width="10"
+          height="20"
+          rx="1"
+          fill="currentColor"
+          opacity="0.4"
+        />
+      </Show>
+
+      <Show when={props.template === "both-sidebars"}>
+        <rect
+          x="2"
+          y="10"
+          width="8"
+          height="20"
+          rx="1"
+          fill="currentColor"
+          opacity="0.4"
+        />
+        <rect
+          x="12"
+          y="10"
+          width="16"
+          height="20"
+          rx="1"
+          fill="currentColor"
+          opacity="0.6"
+        />
+        <rect
+          x="30"
+          y="10"
+          width="8"
+          height="20"
+          rx="1"
+          fill="currentColor"
+          opacity="0.4"
+        />
+      </Show>
+    </svg>
+  );
+}
+
+// ============================================
+// Small utility icons
+// ============================================
+
+function CheckIcon() {
+  return (
+    <svg class="w-3 h-3 text-primary-text" viewBox="0 0 12 12" fill="none">
+      <path
+        d="M2.5 6L5 8.5L9.5 3.5"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      />
+    </svg>
   );
 }

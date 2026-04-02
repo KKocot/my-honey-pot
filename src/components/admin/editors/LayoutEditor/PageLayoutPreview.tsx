@@ -4,10 +4,11 @@
 import { For, Show } from 'solid-js'
 import { settings } from '../../store'
 import {
+  type LayoutElementId,
+  hasLeftSidebar,
+  hasRightSidebar,
+  getActiveContainerElements,
   pageElementLabels,
-  getPageElementColor,
-  type PageLayoutSection,
-  type PageSlotPosition,
 } from '../../types/index'
 import {
   MockHeader,
@@ -20,123 +21,155 @@ import {
 } from './MockComponents'
 
 // ============================================
-// Page Layout Preview with Mock Content
+// Page Layout Preview (container-based v3)
 // ============================================
 
+/** Map container element ID to its mock component */
+function renderContainerElement(elementId: LayoutElementId, compact: boolean) {
+  switch (elementId) {
+    case 'header':
+      return <MockHeader compact={compact} />
+    case 'authorProfile':
+      return <MockAuthorProfile compact={compact} />
+    case 'communityProfile':
+      return <MockCommunityProfile compact={compact} />
+    case 'communitySidebar':
+      return <MockCommunitySidebar compact={compact} />
+    case 'footer':
+      return <MockFooter compact={compact} />
+    default:
+      return (
+        <div class="px-2 py-1 rounded text-xs font-medium bg-bg-secondary text-text-muted">
+          {pageElementLabels[elementId] || elementId}
+        </div>
+      )
+  }
+}
+
 export function PageLayoutPreview() {
-  // Only get active sections in a slot
-  const getSectionsInSlot = (slot: PageSlotPosition) => {
-    return settings.pageLayout.sections.filter((s) => s.slot === slot && s.active !== false)
-  }
+  const cfg = () => settings.pageLayoutConfig
 
-  const slotHasElements = (slot: PageSlotPosition) => {
-    return getSectionsInSlot(slot).some((s) => s.elements.length > 0)
-  }
+  // Derive active elements per container
+  const topElements = () => getActiveContainerElements(cfg().containers.top)
+  const leftElements = () =>
+    hasLeftSidebar(cfg().template)
+      ? getActiveContainerElements(cfg().containers.sidebarLeft)
+      : []
+  const rightElements = () =>
+    hasRightSidebar(cfg().template)
+      ? getActiveContainerElements(cfg().containers.sidebarRight)
+      : []
+  const bottomElements = () => getActiveContainerElements(cfg().containers.bottom)
 
-  const renderElement = (elementId: string, isCompact: boolean = false) => {
-    switch (elementId) {
-      case 'header':
-        return <MockHeader compact={isCompact} />
-      case 'navigation':
-        return <MockNavigation compact={isCompact} />
-      case 'authorProfile':
-        return <MockAuthorProfile compact={isCompact} />
-      case 'communityProfile':
-        return <MockCommunityProfile compact={isCompact} />
-      case 'communitySidebar':
-        return <MockCommunitySidebar compact={isCompact} />
-      case 'posts':
-        return <MockPosts compact={isCompact} />
-      case 'footer':
-        return <MockFooter compact={isCompact} />
-      default:
-        return (
-          <div class={`px-2 py-1 rounded text-xs font-medium ${getPageElementColor(elementId)}`}>
-            {pageElementLabels[elementId] || elementId}
-          </div>
-        )
-    }
-  }
+  const showTop = () => topElements().length > 0
+  const showLeftSidebar = () => leftElements().length > 0
+  const showRightSidebar = () => rightElements().length > 0
+  const showBottom = () => bottomElements().length > 0
 
-  const renderSection = (section: PageLayoutSection, isCompact: boolean = false) => {
-    if (section.elements.length === 0) return null
-
-    return (
-      <div
-        class={`
-          ${section.orientation === 'horizontal' ? 'flex flex-wrap gap-1' : 'flex flex-col gap-1'}
-        `}
-      >
-        <For each={section.elements}>
-          {(elementId) => renderElement(elementId, isCompact)}
-        </For>
+  /** Render elements horizontally (for top/bottom containers) */
+  const renderHorizontalContainer = (elements: LayoutElementId[], label: string) => (
+    <div>
+      <div class="text-[6px] text-text-muted mb-0.5 uppercase tracking-wider opacity-60">
+        {label}
       </div>
-    )
-  }
+      <div class="flex flex-row gap-1 flex-wrap">
+        <For each={elements}>{(id) => renderContainerElement(id, true)}</For>
+      </div>
+    </div>
+  )
 
-  const hasLeftSidebar = () => slotHasElements('sidebar-left')
-  const hasRightSidebar = () => slotHasElements('sidebar-right')
-  const hasMain = () => slotHasElements('main')
-  const hasMiddleArea = () => hasLeftSidebar() || hasRightSidebar() || hasMain()
+  /** Render elements vertically (for sidebar containers) */
+  const renderVerticalContainer = (elements: LayoutElementId[], label: string) => (
+    <div>
+      <div class="text-[6px] text-text-muted mb-0.5 uppercase tracking-wider opacity-60">
+        {label}
+      </div>
+      <div class="flex flex-col gap-1">
+        <For each={elements}>{(id) => renderContainerElement(id, true)}</For>
+      </div>
+    </div>
+  )
 
-  // Reusable preview content renderer
-  const renderPreviewContent = (isMobile: boolean) => (
+  // Desktop preview layout
+  const renderDesktop = () => (
     <>
-      {/* Top slot - full width */}
-      <Show when={slotHasElements('top')}>
+      {/* Top container - full width, horizontal */}
+      <Show when={showTop()}>
         <div class="border-b border-border p-1.5 bg-bg-secondary/50">
-          <div class="text-[6px] text-text-muted mb-0.5 uppercase tracking-wider opacity-60">Header</div>
-          <For each={getSectionsInSlot('top')}>
-            {(section) => renderSection(section, true)}
-          </For>
+          {renderHorizontalContainer(topElements(), 'Top')}
         </div>
       </Show>
 
-      {/* Middle area */}
-      <Show when={hasMiddleArea()}>
-        <div class={isMobile ? 'flex flex-col min-h-[150px]' : 'flex flex-row min-h-[200px]'}>
-          {/* Left Sidebar */}
-          <Show when={hasLeftSidebar()}>
-            <div class={`${isMobile ? 'w-full border-b' : 'w-1/4 border-r'} border-border p-1.5 bg-bg-secondary/30`}>
-              <div class="text-[6px] text-text-muted mb-0.5 uppercase tracking-wider opacity-60">
-                Left Sidebar
-              </div>
-              <For each={getSectionsInSlot('sidebar-left')}>
-                {(section) => renderSection(section, true)}
-              </For>
-            </div>
-          </Show>
+      {/* Middle area: sidebars + main */}
+      <div class="flex flex-row min-h-[200px]">
+        {/* Left Sidebar */}
+        <Show when={showLeftSidebar()}>
+          <div class="w-1/4 border-r border-border p-1.5 bg-bg-secondary/30">
+            {renderVerticalContainer(leftElements(), 'Left Sidebar')}
+          </div>
+        </Show>
 
-          {/* Right Sidebar - on mobile appears after left sidebar, on desktop is on right */}
-          <Show when={hasRightSidebar()}>
-            <div class={`${isMobile ? 'w-full border-b' : 'w-1/4 border-l order-last'} border-border p-1.5 bg-bg-secondary/30`}>
-              <div class="text-[6px] text-text-muted mb-0.5 uppercase tracking-wider opacity-60">
-                Right Sidebar
-              </div>
-              <For each={getSectionsInSlot('sidebar-right')}>
-                {(section) => renderSection(section, true)}
-              </For>
-            </div>
-          </Show>
-
-          {/* Main Content */}
-          <Show when={hasMain()}>
-            <div class={`flex-1 p-1.5 ${isMobile ? 'order-last' : ''}`}>
-              <For each={getSectionsInSlot('main')}>
-                {(section) => renderSection(section, true)}
-              </For>
-            </div>
-          </Show>
+        {/* Main Content - always rendered */}
+        <div class="flex-1 p-1.5">
+          <div class="flex flex-col gap-1">
+            <MockNavigation compact />
+            <MockPosts compact />
+          </div>
         </div>
-      </Show>
 
-      {/* Bottom slot */}
-      <Show when={slotHasElements('bottom')}>
+        {/* Right Sidebar */}
+        <Show when={showRightSidebar()}>
+          <div class="w-1/4 border-l border-border p-1.5 bg-bg-secondary/30">
+            {renderVerticalContainer(rightElements(), 'Right Sidebar')}
+          </div>
+        </Show>
+      </div>
+
+      {/* Bottom container - full width, horizontal */}
+      <Show when={showBottom()}>
         <div class="border-t border-border p-1.5 bg-bg-secondary/50">
-          <div class="text-[6px] text-text-muted mb-0.5 uppercase tracking-wider opacity-60">Footer</div>
-          <For each={getSectionsInSlot('bottom')}>
-            {(section) => renderSection(section, true)}
-          </For>
+          {renderHorizontalContainer(bottomElements(), 'Bottom')}
+        </div>
+      </Show>
+    </>
+  )
+
+  // Mobile preview layout - sidebars stack above main
+  const renderMobile = () => (
+    <>
+      {/* Top container */}
+      <Show when={showTop()}>
+        <div class="border-b border-border p-1.5 bg-bg-secondary/50">
+          {renderHorizontalContainer(topElements(), 'Top')}
+        </div>
+      </Show>
+
+      {/* Left Sidebar stacked */}
+      <Show when={showLeftSidebar()}>
+        <div class="border-b border-border p-1.5 bg-bg-secondary/30">
+          {renderVerticalContainer(leftElements(), 'Left Sidebar')}
+        </div>
+      </Show>
+
+      {/* Right Sidebar stacked */}
+      <Show when={showRightSidebar()}>
+        <div class="border-b border-border p-1.5 bg-bg-secondary/30">
+          {renderVerticalContainer(rightElements(), 'Right Sidebar')}
+        </div>
+      </Show>
+
+      {/* Main Content */}
+      <div class="p-1.5">
+        <div class="flex flex-col gap-1">
+          <MockNavigation compact />
+          <MockPosts compact />
+        </div>
+      </div>
+
+      {/* Bottom container */}
+      <Show when={showBottom()}>
+        <div class="border-t border-border p-1.5 bg-bg-secondary/50">
+          {renderHorizontalContainer(bottomElements(), 'Bottom')}
         </div>
       </Show>
     </>
@@ -154,7 +187,7 @@ export function PageLayoutPreview() {
           </span>
         </div>
         <div class="border-2 border-dashed border-border rounded-lg overflow-hidden bg-bg-card min-h-[200px]">
-          {renderPreviewContent(false)}
+          {renderDesktop()}
         </div>
       </div>
 
@@ -166,14 +199,14 @@ export function PageLayoutPreview() {
           </span>
         </div>
         <div class="border-2 border-dashed border-border rounded-lg overflow-hidden bg-bg-card min-h-[200px] max-w-[200px] mx-auto">
-          {renderPreviewContent(true)}
+          {renderMobile()}
         </div>
       </div>
 
       {/* Responsive behavior info */}
       <div class="mt-3 p-2 bg-bg-secondary/50 rounded-lg border border-border">
         <p class="text-[9px] text-text-muted">
-          <span class="font-medium text-text">Mobile behavior:</span> Both sidebars stack above the main content.
+          <span class="font-medium text-text">Mobile behavior:</span> Sidebars stack above the main content. Top and bottom containers span full width.
         </p>
       </div>
     </div>
