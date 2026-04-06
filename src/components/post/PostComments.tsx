@@ -23,6 +23,9 @@ import {
 import { render_comment_body } from "../../lib/comment_renderer";
 import { hive_avatar_url, HIVE_BLOG_URL } from "../../lib/config";
 import { formatTimeAgo } from "../../shared/formatters";
+import { sign_comment } from "../../lib/signer-relay";
+import { VoteButton } from "../ui/VoteButton";
+import { get_stored_username, set_stored_username } from "../../lib/hive-auth";
 
 // ============================================
 // Types
@@ -45,6 +48,132 @@ interface CommentNodeProps {
 const MAX_NESTING_DEPTH = 8;
 
 // ============================================
+// CommentForm
+// ============================================
+
+type FormStatus = "idle" | "sending" | "success" | "error";
+
+const CommentForm: Component<{
+  parent_author: string;
+  parent_permlink: string;
+  onCancel?: () => void;
+}> = (props) => {
+  let form_timeout: ReturnType<typeof setTimeout> | undefined;
+  const [body, set_body] = createSignal("");
+  const [username, set_username] = createSignal("");
+  const [status, set_status] = createSignal<FormStatus>("idle");
+  const [error_msg, set_error_msg] = createSignal("");
+
+  onCleanup(() => {
+    if (form_timeout) clearTimeout(form_timeout);
+  });
+
+  const can_submit = () =>
+    body().trim().length > 0 && username().trim().length > 0 && status() !== "sending";
+
+  async function handle_submit(e: Event) {
+    e.preventDefault();
+    if (!can_submit()) return;
+
+    const trimmed_username = username().trim();
+    set_stored_username(trimmed_username);
+    set_status("sending");
+    set_error_msg("");
+
+    const permlink = `re-${props.parent_author}-${Date.now()}`;
+    const json_metadata = JSON.stringify({ app: "my-honey-pot/1.0" });
+
+    try {
+      const result = await sign_comment(
+        trimmed_username,
+        permlink,
+        props.parent_author,
+        props.parent_permlink,
+        "",
+        body().trim(),
+        json_metadata,
+      );
+
+      if (result.success) {
+        set_status("success");
+        set_body("");
+        form_timeout = setTimeout(() => set_status("idle"), 4000);
+      } else {
+        set_status("error");
+        set_error_msg(result.error ?? "Unknown error");
+      }
+    } catch (err) {
+      set_status("error");
+      set_error_msg(err instanceof Error ? err.message : String(err));
+    }
+  }
+
+  return (
+    <form onSubmit={handle_submit} class="bg-bg-card rounded-xl border border-border p-4 mb-6">
+      <h3 class="text-text font-semibold mb-3">Leave a reply</h3>
+
+      <div class="mb-3">
+        <label class="block text-text-muted text-sm mb-1" for="comment-username">
+          Hive username
+        </label>
+        <input
+          id="comment-username"
+          type="text"
+          placeholder="your-username"
+          value={username()}
+          onInput={(e) => set_username(e.currentTarget.value)}
+          class="w-full bg-bg-card border border-border rounded-lg px-3 py-2 text-text placeholder:text-text-muted/50 focus:outline-none focus:ring-2 focus:ring-primary/50"
+        />
+      </div>
+
+      <div class="mb-3">
+        <label class="block text-text-muted text-sm mb-1" for="comment-body">
+          Comment
+        </label>
+        <textarea
+          id="comment-body"
+          rows={4}
+          placeholder="Write your comment..."
+          value={body()}
+          onInput={(e) => set_body(e.currentTarget.value)}
+          class="w-full bg-bg-card border border-border rounded-lg px-3 py-2 text-text placeholder:text-text-muted/50 focus:outline-none focus:ring-2 focus:ring-primary/50 resize-y"
+        />
+      </div>
+
+      <div class="flex items-center gap-3">
+        <button
+          type="submit"
+          disabled={!can_submit()}
+          class="bg-primary hover:bg-primary-hover text-primary-text font-medium px-4 py-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <Show when={status() === "sending"} fallback="Reply">
+            Waiting for signer...
+          </Show>
+        </button>
+
+        <Show when={props.onCancel}>
+          <button
+            type="button"
+            onClick={props.onCancel}
+            class="text-text-muted hover:text-text font-medium px-4 py-2 rounded-lg transition-colors"
+          >
+            Cancel
+          </button>
+        </Show>
+
+        <Show when={status() === "success"}>
+          <span class="text-sm text-primary">Comment submitted successfully!</span>
+        </Show>
+
+        <Show when={status() === "error"}>
+          <span class="text-sm text-error">{error_msg()}</span>
+        </Show>
+      </div>
+    </form>
+  );
+};
+
+// ============================================
 // Single Comment Node (recursive)
 // ============================================
 
@@ -56,6 +185,7 @@ const CommentNode: Component<CommentNodeProps> = (props) => {
   const time_ago = () => formatTimeAgo(comment().created);
   const effective_depth = () => Math.min(props.depth, MAX_NESTING_DEPTH);
   const has_children = () => props.node.children.length > 0;
+  const [show_reply_form, set_show_reply_form] = createSignal(false);
 
   const votes_count = () =>
     comment().stats?.total_votes ?? comment().active_votes?.length ?? 0;
@@ -130,47 +260,49 @@ const CommentNode: Component<CommentNodeProps> = (props) => {
                 </div>
               </Show>
 
-              <Show when={votes_count() > 0}>
-                <div class="flex items-center gap-1.5 text-sm">
-                  <svg
-                    class="w-4 h-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M5 15l7-7 7 7"
-                    />
-                  </svg>
-                  <span>{votes_count()}</span>
-                </div>
-              </Show>
+              <VoteButton
+                author={comment().author}
+                permlink={comment().permlink}
+                initial_votes_count={votes_count()}
+                initial_payout={payout()}
+                show_payout={payout() > 0}
+                size="sm"
+              />
 
-              <Show when={payout() > 0}>
-                <div class="flex items-center gap-1.5 text-sm">
-                  <svg
-                    class="w-4 h-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
-                  <span>${payout().toFixed(2)}</span>
-                </div>
-              </Show>
+              <button
+                type="button"
+                onClick={() => set_show_reply_form(!show_reply_form())}
+                class="flex items-center gap-1.5 text-sm hover:text-primary transition-colors"
+              >
+                <svg
+                  class="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"
+                  />
+                </svg>
+                <span>Reply</span>
+              </button>
             </div>
           </div>
         </div>
       </article>
+
+      <Show when={show_reply_form()}>
+        <div class="mt-2 pl-4 sm:pl-6">
+          <CommentForm
+            parent_author={comment().author}
+            parent_permlink={comment().permlink}
+            onCancel={() => set_show_reply_form(false)}
+          />
+        </div>
+      </Show>
 
       <Show when={has_children()}>
         <div class="mt-2 flex flex-col gap-2">
@@ -190,6 +322,8 @@ const CommentNode: Component<CommentNodeProps> = (props) => {
 // ============================================
 
 const PostCommentsInner: Component<PostCommentsProps> = (props) => {
+  const [show_form, set_show_form] = createSignal(false);
+
   const replies_query = createQuery(() => ({
     queryKey: query_keys.post_replies(props.author, props.permlink),
     queryFn: () => fetch_post_replies(props.author, props.permlink),
@@ -208,6 +342,25 @@ const PostCommentsInner: Component<PostCommentsProps> = (props) => {
           )}
         </Show>
       </h2>
+
+      <Show
+        when={show_form()}
+        fallback={
+          <button
+            type="button"
+            onClick={() => set_show_form(true)}
+            class="bg-bg-card hover:border-primary/50 border border-border rounded-xl px-4 py-3 mb-6 text-text-muted hover:text-text transition-colors w-full text-left"
+          >
+            Write a comment...
+          </button>
+        }
+      >
+        <CommentForm
+          parent_author={props.author}
+          parent_permlink={props.permlink}
+          onCancel={() => set_show_form(false)}
+        />
+      </Show>
 
       <Show when={replies_query.isLoading}>
         <div class="text-center py-8 text-text-muted">
