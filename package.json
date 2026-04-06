@@ -32,6 +32,7 @@
     "@tanstack/solid-query": "^5.90.20",
     "@xmldom/xmldom": "^0.8.11",
     "astro": "^6.0.4",
+    "dompurify": "^3.3.3",
     "highlight.js": "^11.11.1",
     "lucide-solid": "^0.563.0",
     "markdown-it": "^14.1.0",
@@ -42,6 +43,7 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.58.0",
+    "@types/dompurify": "^3.0.5",
     "@types/markdown-it": "^14.1.2",
     "@types/node": "^25.0.9",
     "@types/sanitize-html": "^2.16.0"

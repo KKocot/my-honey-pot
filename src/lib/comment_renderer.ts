@@ -2,7 +2,7 @@
 // Copyright (C) 2026 Krzysztof Kocot
 
 import MarkdownIt from "markdown-it";
-import sanitizeHtml from "sanitize-html";
+import DOMPurify from "dompurify";
 import { HIVE_IMAGES_ENDPOINT, HIVE_BLOG_URL, hive_image_proxy } from "./config";
 import { Phishing } from "./renderer/security/Phishing";
 import { SecurityChecker, SecurityError } from "./renderer/security/SecurityChecker";
@@ -35,133 +35,94 @@ const DIV_CLASS_WHITELIST = [
   "videoWrapper",
 ];
 
-const SANITIZE_OPTIONS: sanitizeHtml.IOptions = {
-  allowedTags: [
-    "h1",
-    "h2",
-    "h3",
-    "h4",
-    "h5",
-    "h6",
-    "p",
-    "br",
-    "hr",
-    "blockquote",
-    "pre",
-    "code",
-    "em",
-    "strong",
-    "b",
-    "i",
-    "s",
-    "del",
-    "ul",
-    "ol",
-    "li",
-    "a",
-    "img",
-    "table",
-    "thead",
-    "tbody",
-    "tr",
-    "th",
-    "td",
-    "span",
-    "div",
-    "sup",
-    "sub",
-    "center",
-    "details",
-    "summary",
-    "strike",
-  ],
-  allowedAttributes: {
-    a: ["href", "target", "rel", "class"],
-    img: ["src", "alt", "width", "height", "loading"],
-    code: ["class"],
-    pre: ["class"],
-    span: ["class"],
-    div: ["class"],
-    td: ["align"],
-    th: ["align"],
-  },
-  allowedSchemes: ["http", "https", "hive"],
-  transformTags: {
-    a: (tagName, attribs) => {
-      const href = attribs["href"] ?? "";
+const ALLOWED_TAGS = [
+  "h1", "h2", "h3", "h4", "h5", "h6",
+  "p", "br", "hr", "blockquote", "pre", "code",
+  "em", "strong", "b", "i", "s", "del",
+  "ul", "ol", "li", "a", "img",
+  "table", "thead", "tbody", "tr", "th", "td",
+  "span", "div", "sup", "sub", "center",
+  "details", "summary", "strike",
+];
 
-      if (Phishing.looksPhishy(href)) {
-        const phishy_attribs: sanitizeHtml.Attributes = {};
-        return { tagName: "span", attribs: phishy_attribs };
+const ALLOWED_ATTR = [
+  "href", "target", "rel", "class",
+  "src", "alt", "width", "height", "loading",
+  "align",
+];
+
+const purify = DOMPurify();
+
+purify.addHook("afterSanitizeAttributes", (node) => {
+  if (node.tagName === "A") {
+    const href = node.getAttribute("href") || "";
+
+    if (Phishing.looksPhishy(href)) {
+      const span = document.createElement("span");
+      span.textContent = node.textContent || "";
+      node.replaceWith(span);
+      return;
+    }
+
+    const is_internal =
+      href.startsWith("/") ||
+      href.startsWith(HIVE_BLOG_URL) ||
+      href.startsWith(HIVE_IMAGES_ENDPOINT);
+
+    if (!is_internal) {
+      node.setAttribute("target", "_blank");
+      node.setAttribute("rel", "noopener nofollow");
+      node.classList.add("link-external");
+    }
+  }
+
+  if (node.tagName === "IMG") {
+    const src = node.getAttribute("src") || "";
+    if (!src.startsWith(HIVE_IMAGES_ENDPOINT)) {
+      node.setAttribute("src", hive_image_proxy(src, 768));
+    }
+    node.setAttribute("loading", "lazy");
+  }
+
+  if (node.tagName === "SPAN") {
+    const cls = node.getAttribute("class");
+    if (cls) {
+      const allowed_classes = cls
+        .split(/\s+/)
+        .filter(
+          (c) => HLJS_PREFIX_PATTERN.test(c) || HLJS_SUBSCOPE_WHITELIST.has(c),
+        );
+      if (allowed_classes.length > 0) {
+        node.setAttribute("class", allowed_classes.join(" "));
+      } else {
+        node.removeAttribute("class");
       }
+    }
+  }
 
-      const is_internal =
-        href.startsWith("/") ||
-        href.startsWith(HIVE_BLOG_URL) ||
-        href.startsWith(HIVE_IMAGES_ENDPOINT);
-
-      const external_attribs: sanitizeHtml.Attributes = {
-        ...attribs,
-        target: "_blank",
-        rel: "noopener nofollow",
-        class: "link-external",
-      };
-
-      return {
-        tagName,
-        attribs: is_internal ? attribs : external_attribs,
-      };
-    },
-    img: (tagName, attribs) => {
-      const src = attribs["src"] ?? "";
-      const proxied_src = src.startsWith(HIVE_IMAGES_ENDPOINT)
-        ? src
-        : hive_image_proxy(src, 768);
-
-      return {
-        tagName,
-        attribs: {
-          ...attribs,
-          src: proxied_src,
-          loading: "lazy",
-        },
-      };
-    },
-    span: (tagName, attribs) => {
-      const attys: sanitizeHtml.Attributes = {};
-      if (attribs["class"]) {
-        const allowed_classes = attribs["class"]
-          .split(/\s+/)
-          .filter(
-            (cls: string) =>
-              HLJS_PREFIX_PATTERN.test(cls) ||
-              HLJS_SUBSCOPE_WHITELIST.has(cls),
-          );
-        if (allowed_classes.length > 0) {
-          attys["class"] = allowed_classes.join(" ");
-        }
-      }
-      return { tagName, attribs: attys };
-    },
-    div: (tagName, attribs) => {
-      const attys: sanitizeHtml.Attributes = {};
-      const valid_class = DIV_CLASS_WHITELIST.find(
-        (e) => attribs["class"] === e,
-      );
+  if (node.tagName === "DIV") {
+    const cls = node.getAttribute("class");
+    if (cls) {
+      const valid_class = DIV_CLASS_WHITELIST.find((e) => cls === e);
       if (valid_class) {
-        attys["class"] = valid_class;
+        node.setAttribute("class", valid_class);
+      } else {
+        node.removeAttribute("class");
       }
-      return { tagName, attribs: attys };
-    },
-  },
-};
+    }
+  }
+});
 
 export function render_comment_body(body: string): string {
   if (!body || !body.trim()) return "";
 
   const sanitized_input = PreliminarySanitizer.preliminarySanitize(body);
   const raw_html = md.render(sanitized_input);
-  const clean_html = sanitizeHtml(raw_html, SANITIZE_OPTIONS);
+  const clean_html = purify.sanitize(raw_html, {
+    ALLOWED_TAGS,
+    ALLOWED_ATTR,
+    ALLOWED_URI_REGEXP: /^(?:(?:https?|hive):)/i,
+  });
 
   try {
     SecurityChecker.checkSecurity(clean_html, { allowScriptTag: false });
