@@ -2,7 +2,8 @@
 // Copyright (C) 2026 Krzysztof Kocot
 
 import { createHiveChain } from "@hiveio/wax";
-import { HIVE_API_ENDPOINT, HIVE_CHAIN_ID } from "./config";
+import { HIVE_CHAIN_ID } from "./config";
+import { get_current_endpoint } from "./node-endpoint";
 
 /**
  * Singleton chain for broadcast operations.
@@ -15,7 +16,7 @@ let broadcast_chain_promise: ReturnType<typeof createHiveChain> | undefined;
 export function get_broadcast_chain() {
   if (!broadcast_chain_promise) {
     broadcast_chain_promise = createHiveChain({
-      apiEndpoint: HIVE_API_ENDPOINT,
+      apiEndpoint: get_current_endpoint(),
       chainId: HIVE_CHAIN_ID,
     }).catch((error) => {
       // Reset on failure so next call retries instead of returning rejected promise
@@ -24,6 +25,11 @@ export function get_broadcast_chain() {
     });
   }
   return broadcast_chain_promise;
+}
+
+/** Reset the singleton chain, forcing re-creation with the current endpoint on next call */
+export function reset_broadcast_chain(): void {
+  broadcast_chain_promise = undefined;
 }
 
 // Reset singleton on HMR to prevent stale connections in dev mode

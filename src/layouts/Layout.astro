@@ -3,6 +3,7 @@
 // Copyright (C) 2026 Krzysztof Kocot
 
 import '../styles/global.css'
+import NodeSwitcher from '../components/ui/NodeSwitcher.tsx'
 import { loadConfigFromHive } from '../components/admin/hive-broadcast'
 import { themePresets, type ThemeColors, get_default_settings } from '../components/admin/types'
 import { HIVE_USERNAME, IS_COMMUNITY, hive_avatar_url } from '../lib/config'
@@ -128,13 +129,11 @@ const themeMode = is_dark_color(themeColors.bg) ? 'dark' : 'light'
   <body class="bg-bg text-text min-h-screen transition-colors duration-300">
     <slot />
 
-    <!-- Fixed Admin badge -->
-    <a
-      href="/admin"
-      class="fixed top-4 right-4 z-50 px-3 py-1.5 rounded-lg bg-bg-secondary border border-border text-text text-sm font-medium shadow-lg hover:bg-border transition-colors"
-    >
-      Admin
-    </a>
+
+    <!-- Node Switcher -->
+    <div class="fixed bottom-4 left-4 z-40">
+      <NodeSwitcher client:idle />
+    </div>
 
     <!-- Event delegation for custom social links (external navigation warning) -->
     <script is:inline>

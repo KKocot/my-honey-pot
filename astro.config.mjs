@@ -15,6 +15,9 @@ const loaded_env = loadEnv(process.env.NODE_ENV || '', process.cwd(), '');
 const hive_api_endpoint = loaded_env.PUBLIC_HIVE_API_ENDPOINT?.trim() || "";
 const hive_images_endpoint =
   loaded_env.PUBLIC_HIVE_IMAGES_ENDPOINT?.trim() || "";
+const hive_signer_url =
+  loaded_env.PUBLIC_HIVE_SIGNER_URL?.trim() ||
+  (process.env.NODE_ENV !== 'production' ? 'http://localhost:5174' : 'https://signer.bard-dev.com');
 
 // NOTE: Keep in sync with MAINNET_FALLBACK_ENDPOINTS in src/lib/config.ts
 const mainnet_domains = [
@@ -26,7 +29,7 @@ const mainnet_domains = [
   "https://api.syncad.com",
 ];
 
-const extra_domains = [hive_api_endpoint, hive_images_endpoint].filter(
+const extra_domains = [hive_api_endpoint, hive_images_endpoint, hive_signer_url].filter(
   (d) => d && !mainnet_domains.includes(d),
 );
 

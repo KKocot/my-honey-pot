@@ -56,6 +56,12 @@ export const HIVE_BLOG_URL = get_public_env(
   "https://blog.openhive.network",
 );
 
+// Hive Signer URL (for signing transactions via external signer app)
+export const HIVE_SIGNER_URL = get_public_env(
+  import.meta.env.PUBLIC_HIVE_SIGNER_URL,
+  import.meta.env.DEV ? 'http://localhost:5174' : 'https://signer.bard-dev.com',
+);
+
 // Non-mainnet detection (HB-Auth only works on mainnet, WIF login required otherwise)
 const MAINNET_CHAIN_ID = "beeab0de00000000000000000000000000000000000000000000000000000000";
 export const IS_NOT_MAINNET = HIVE_CHAIN_ID !== MAINNET_CHAIN_ID;
