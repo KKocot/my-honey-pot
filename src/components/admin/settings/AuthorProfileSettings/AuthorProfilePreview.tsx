@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 Krzysztof Kocot
 
-import { Show, For, createMemo } from 'solid-js'
+import { Show, For, createMemo, createSignal } from 'solid-js'
 import { settings } from '../../store'
-import { platformInfos, type CardSection, type CardSectionChild } from '../../types/index'
+import { platformInfos, build_social_url, type CardSection, type CardSectionChild } from '../../types/index'
 import {
   useHivePreviewQuery,
   formatCompactNumber,
@@ -13,6 +13,7 @@ import {
 import { parseFormattedAsset } from '@hiveio/workerbee/blog-logic'
 import { PlatformIcon } from '../SocialLinksSettings'
 import { ElementRenderer } from './ElementRenderer'
+import { get_domain_from_url, is_valid_url_for_favicon } from '../../../../shared/utils/url_helpers'
 
 // ============================================
 // Mock data for preview when no real data available
@@ -179,26 +180,66 @@ export function AuthorProfilePreview() {
         </div>
 
         {/* Social Links Preview */}
-        <Show when={(settings.socialLinks || []).filter(l => l.url).length > 0}>
+        <Show when={(settings.socialLinks || []).filter(l => l.username || l.url).length > 0}>
           <div class="mt-4 pt-4 border-t border-border">
             <div class="flex flex-wrap gap-2">
-              <For each={(settings.socialLinks || []).filter(l => l.url)}>
+              <For each={(settings.socialLinks || []).filter(l => l.username || l.url)}>
                 {(link) => {
                   const info = platformInfos[link.platform]
+                  const href = build_social_url(link)
+                  const display_value = link.username || link.url || ''
+                  const is_custom = link.platform === 'custom'
+                  const [favicon_ok, set_favicon_ok] = createSignal(true)
+                  const show_favicon = () =>
+                    is_custom && is_valid_url_for_favicon(display_value) && favicon_ok()
+
                   return (
                     <a
-                      href={link.url}
+                      href={href}
                       target="_blank"
                       rel="noopener noreferrer"
-                      class="p-2 rounded-lg transition-colors hover:opacity-80"
-                      style={{ background: info.color }}
+                      class="rounded-lg transition-colors hover:opacity-80 overflow-hidden"
+                      classList={{
+                        'p-2': !show_favicon(),
+                      }}
+                      style={{
+                        background: !show_favicon() ? info.color : 'transparent',
+                      }}
                       title={info.name}
                     >
-                      <PlatformIcon
-                        platform={link.platform}
-                        class="w-4 h-4"
-                        style={{ color: '#ffffff' }}
-                      />
+                      <Show
+                        when={!is_custom}
+                        fallback={
+                          <Show
+                            when={show_favicon()}
+                            fallback={
+                              <PlatformIcon
+                                platform="custom"
+                                class="w-4 h-4"
+                                style={{ color: '#ffffff' }}
+                              />
+                            }
+                          >
+                            <img
+                              src={`https://www.google.com/s2/favicons?domain=${encodeURIComponent(get_domain_from_url(display_value))}&sz=64`}
+                              alt="Site favicon"
+                              class="w-8 h-8 rounded-lg"
+                              onLoad={(e) => {
+                                if (e.currentTarget.naturalWidth <= 2 || e.currentTarget.naturalHeight <= 2) {
+                                  set_favicon_ok(false)
+                                }
+                              }}
+                              onError={() => set_favicon_ok(false)}
+                            />
+                          </Show>
+                        }
+                      >
+                        <PlatformIcon
+                          platform={link.platform}
+                          class="w-4 h-4"
+                          style={{ color: '#ffffff' }}
+                        />
+                      </Show>
                     </a>
                   )
                 }}

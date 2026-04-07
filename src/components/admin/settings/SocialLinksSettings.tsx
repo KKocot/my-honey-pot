@@ -127,20 +127,20 @@ const auto_extract_username = (input: string, platform: SocialPlatform): string 
 }
 
 // ============================================
-// Social Link Item Component with local state
+// Inline Edit Panel for a single social link
 // ============================================
 
-interface SocialLinkItemProps {
+interface EditPanelProps {
   link: SocialLink
   onUpdate: (id: string, username: string) => boolean
   onRemove: (id: string) => void
+  onClose: () => void
 }
 
-function SocialLinkItem(props: SocialLinkItemProps) {
-  const info = platformInfos[props.link.platform]
-  const is_custom = props.link.platform === 'custom'
+function EditPanel(props: EditPanelProps) {
+  const info = () => platformInfos[props.link.platform]
+  const is_custom = () => props.link.platform === 'custom'
 
-  // Get current username (backward compat: try username first, fallback to url)
   const current_value = () => props.link.username || props.link.url || ''
 
   const [localUsername, setLocalUsername, commitUsername] = createLocalInput(
@@ -149,25 +149,15 @@ function SocialLinkItem(props: SocialLinkItemProps) {
   )
 
   const [validationError, setValidationError] = createSignal<string>('')
-  const [favicon_loaded, set_favicon_loaded] = createSignal(true)
-
-  // Reset favicon state when URL changes
-  createEffect(() => {
-    localUsername()
-    set_favicon_loaded(true)
-  })
 
   const handleInput = (e: InputEvent) => {
     const input = (e.currentTarget as HTMLInputElement).value
     const processed = auto_extract_username(input, props.link.platform)
     setLocalUsername(processed)
-
-    // Clear validation error on input
     setValidationError('')
   }
 
-  const handleBlur = () => {
-    // Validate on blur
+  const validate = () => {
     const val = localUsername()
     if (val && !is_valid_username(val, props.link.platform)) {
       if (props.link.platform === 'custom') {
@@ -176,80 +166,52 @@ function SocialLinkItem(props: SocialLinkItemProps) {
         setValidationError(VALIDATION_ERRORS.INVALID_USERNAME)
       }
     }
-    commitUsername()
   }
 
   return (
-    <div class="flex items-center gap-3 p-3 bg-bg rounded-lg border border-border">
+    <div class="flex items-start gap-3 p-3 bg-bg rounded-lg border border-border animate-fade-in">
       {/* Platform icon */}
       <div
-        class="rounded-lg flex-shrink-0 overflow-hidden"
-        classList={{
-          'p-2': !(is_custom && is_valid_url_for_favicon(localUsername()) && favicon_loaded()),
-        }}
-        style={{
-          background: !(is_custom && is_valid_url_for_favicon(localUsername()) && favicon_loaded()) ? info.color : 'transparent'
-        }}
+        class="rounded-lg flex-shrink-0 p-2 mt-1"
+        style={{ background: info().color }}
       >
-        <Show
-          when={props.link.platform !== 'custom'}
-          fallback={
-            <Show
-              when={localUsername() && is_valid_url_for_favicon(localUsername()) && favicon_loaded()}
-              fallback={
-                <svg class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                </svg>
-              }
-            >
-              <img
-                src={`https://www.google.com/s2/favicons?domain=${encodeURIComponent(get_domain_from_url(localUsername()))}&sz=64`}
-                alt="Site favicon"
-                class="w-9 h-9 rounded-lg"
-                onLoad={(e) => {
-                  if (e.currentTarget.naturalWidth <= 2 || e.currentTarget.naturalHeight <= 2) {
-                    set_favicon_loaded(false)
-                  }
-                }}
-                onError={() => set_favicon_loaded(false)}
-              />
-            </Show>
-          }
-        >
-          <PlatformIcon
-            platform={props.link.platform}
-            class="w-5 h-5 text-white"
-          />
-        </Show>
+        <PlatformIcon platform={props.link.platform} class="w-5 h-5 text-white" />
       </div>
 
-      {/* Platform name and input */}
+      {/* Input area */}
       <div class="flex-1 min-w-0">
         <label class="block text-sm font-medium text-text mb-1">
-          {info.name}
+          {info().name}
         </label>
         <div class="relative">
-          <Show when={!is_custom && info.baseUrl}>
+          <Show when={!is_custom() && info().baseUrl}>
             <div class="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted text-sm pointer-events-none">
-              {info.baseUrl?.replace('https://', '')}
+              {info().baseUrl?.replace('https://', '')}
             </div>
           </Show>
           <input
             type="text"
-            placeholder={info.profilePlaceholder}
+            placeholder={info().profilePlaceholder}
             value={localUsername()}
             onInput={handleInput}
-            onBlur={handleBlur}
+            onBlur={validate}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                commitUsername()
+                props.onClose()
+              }
+            }}
+            autofocus
             class="w-full px-4 py-2 bg-bg border border-border rounded-lg text-text focus:outline-none focus:ring-2 focus:ring-primary"
             classList={{
               'border-error': !!validationError()
             }}
             style={{
-              'padding-left': !is_custom && info.baseUrl ? `${(info.baseUrl.replace('https://', '').length * CHAR_WIDTH_PX) + BASE_PADDING_PX}px` : '1rem'
+              'padding-left': !is_custom() && info().baseUrl ? `${(info().baseUrl!.replace('https://', '').length * CHAR_WIDTH_PX) + BASE_PADDING_PX}px` : '1rem'
             }}
           />
         </div>
-        <Show when={!is_custom}>
+        <Show when={!is_custom()}>
           <p class="text-xs text-text-muted mt-1">Enter username only</p>
         </Show>
         <Show when={validationError()}>
@@ -257,11 +219,29 @@ function SocialLinkItem(props: SocialLinkItemProps) {
         </Show>
       </div>
 
+      {/* Confirm button */}
+      <button
+        type="button"
+        onClick={() => {
+          commitUsername()
+          props.onClose()
+        }}
+        class="p-2 text-text-muted hover:text-accent hover:bg-accent/10 rounded-lg transition-colors flex-shrink-0 mt-1"
+        title="Confirm"
+      >
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+        </svg>
+      </button>
+
       {/* Remove button */}
       <button
         type="button"
-        onClick={() => props.onRemove(props.link.id)}
-        class="p-2 text-text-muted hover:text-error hover:bg-error/10 rounded-lg transition-colors flex-shrink-0"
+        onClick={() => {
+          props.onRemove(props.link.id)
+          props.onClose()
+        }}
+        class="p-2 text-text-muted hover:text-error hover:bg-error/10 rounded-lg transition-colors flex-shrink-0 mt-1"
         title="Remove"
       >
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -277,6 +257,10 @@ function SocialLinkItem(props: SocialLinkItemProps) {
 // ============================================
 
 export function SocialLinksSettings() {
+  const [editing_id, set_editing_id] = createSignal<string | null>(null)
+  const [adding, set_adding] = createSignal(false)
+  let dropdown_ref: HTMLDivElement | undefined
+
   // Add backward compatibility for old data without id
   const links_with_ids = () => {
     let counter = 0
@@ -295,7 +279,6 @@ export function SocialLinksSettings() {
     if (!link) return false
 
     if (trimmed && !is_valid_username(trimmed, link.platform)) {
-      // Invalid username - return false to trigger rollback in UI
       return false
     }
 
@@ -308,12 +291,16 @@ export function SocialLinksSettings() {
 
   // Add new social link
   const addLink = (platform: SocialPlatform) => {
+    const new_id = crypto.randomUUID?.() ?? Date.now().toString()
     const newLink: SocialLink = {
-      id: (crypto.randomUUID?.() ?? Date.now().toString()),
+      id: new_id,
       platform,
       username: ''
     }
     updateSettingsImmediate({ socialLinks: [...links_with_ids(), newLink] })
+    set_adding(false)
+    // Auto-open edit for the new (empty) link
+    set_editing_id(new_id)
   }
 
   // Remove social link
@@ -321,110 +308,156 @@ export function SocialLinksSettings() {
     updateSettingsImmediate({ socialLinks: links_with_ids().filter(l => l.id !== id) })
   }
 
+  // Close dropdown when clicking outside
+  const handle_click_outside = (e: MouseEvent) => {
+    if (adding() && dropdown_ref && !dropdown_ref.contains(e.target as Node)) {
+      set_adding(false)
+    }
+  }
+
+  createEffect(() => {
+    if (adding()) {
+      document.addEventListener('mousedown', handle_click_outside)
+    } else {
+      document.removeEventListener('mousedown', handle_click_outside)
+    }
+  })
+
   return (
-    <div class="space-y-4">
-      <div class="flex items-center justify-between">
-        <div>
-          <h3 class="text-lg font-medium text-text">Social Media Links</h3>
-          <p class="text-sm text-text-muted">
-            Add links to your social media profiles. They will be displayed in your author profile.
-          </p>
-        </div>
+    <div class="space-y-3">
+      <div>
+        <h3 class="text-lg font-medium text-text">Social Media Links</h3>
+        <p class="text-sm text-text-muted">
+          Click an icon to edit. Use + to add new links.
+        </p>
       </div>
 
-      {/* Existing social links */}
-      <div class="space-y-3">
+      {/* Icon row */}
+      <div class="flex flex-wrap items-center gap-2">
         <For each={links_with_ids()}>
-          {(link) => (
-            <SocialLinkItem
-              link={link}
-              onUpdate={updateLink}
-              onRemove={removeLink}
-            />
-          )}
-        </For>
-      </div>
+          {(link) => {
+            const info = platformInfos[link.platform]
+            const is_active = () => editing_id() === link.id
+            const has_value = () => !!(link.username || link.url)
+            const is_custom_link = () => link.platform === 'custom'
+            const display_value = () => link.username || link.url || ''
+            const [favicon_ok, set_favicon_ok] = createSignal(true)
 
-      {/* Add new link */}
-      <div class="p-3 bg-bg-secondary/50 rounded-lg border-2 border-dashed border-border">
-        <select
-          value=""
-          onChange={(e) => {
-            const selected = e.currentTarget.value as SocialPlatform | ''
-            if (selected !== '') {
-              addLink(selected)
-            }
-          }}
-          class="w-full px-3 py-2 text-sm bg-bg border border-border rounded-lg text-text focus:outline-none focus:ring-2 focus:ring-primary/50"
-        >
-          <option value="">Select platform to add...</option>
-          <For each={ALL_PLATFORMS}>
-            {(platform) => (
-              <option value={platform}>{platformInfos[platform].name}</option>
-            )}
-          </For>
-        </select>
-      </div>
+            createEffect(() => {
+              display_value()
+              set_favicon_ok(true)
+            })
 
-      {/* Preview */}
-      <Show when={(settings.socialLinks || []).filter(l => l.username || l.url).length > 0}>
-        <div class="pt-4 border-t border-border">
-          <p class="text-xs text-text-muted mb-3 uppercase tracking-wide">Preview</p>
-          <div class="flex flex-wrap gap-2">
-            <For each={(settings.socialLinks || []).filter(l => l.username || l.url)}>
-              {(link) => {
-                const info = platformInfos[link.platform]
-                const display_value = link.username || link.url || ''
-                const [preview_favicon_ok, set_preview_favicon_ok] = createSignal(true)
-                const is_custom_with_favicon = () =>
-                  link.platform === 'custom' && is_valid_url_for_favicon(display_value) && preview_favicon_ok()
-                return (
-                  <div
-                    class="rounded-lg transition-colors hover:opacity-80 cursor-pointer overflow-hidden"
-                    classList={{
-                      'p-2': !is_custom_with_favicon(),
-                    }}
-                    style={{
-                      background: !is_custom_with_favicon() ? info.color : 'transparent'
-                    }}
-                    title={`${info.name}: ${display_value}`}
-                  >
+            const show_favicon = () =>
+              is_custom_link() && is_valid_url_for_favicon(display_value()) && favicon_ok()
+
+            return (
+              <button
+                type="button"
+                onClick={() => set_editing_id(is_active() ? null : link.id)}
+                class="rounded-lg transition-all cursor-pointer overflow-hidden"
+                classList={{
+                  'ring-2 ring-accent scale-110': is_active(),
+                  'opacity-50': !has_value() && !is_active(),
+                  'hover:opacity-80': has_value(),
+                  'p-2': !show_favicon(),
+                }}
+                style={{
+                  background: !show_favicon() ? info.color : 'transparent',
+                }}
+                title={`${info.name}${has_value() ? ': ' + display_value() : ' (empty)'}`}
+              >
+                <Show
+                  when={!is_custom_link()}
+                  fallback={
                     <Show
-                      when={link.platform !== 'custom'}
+                      when={show_favicon()}
                       fallback={
-                        <Show
-                          when={display_value && is_valid_url_for_favicon(display_value) && preview_favicon_ok()}
-                          fallback={
-                            <svg class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor">
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                            </svg>
-                          }
-                        >
-                          <img
-                            src={`https://www.google.com/s2/favicons?domain=${encodeURIComponent(get_domain_from_url(display_value))}&sz=64`}
-                            alt="Site favicon"
-                            class="w-9 h-9 rounded-lg"
-                            onLoad={(e) => {
-                              if (e.currentTarget.naturalWidth <= 2 || e.currentTarget.naturalHeight <= 2) {
-                                set_preview_favicon_ok(false)
-                              }
-                            }}
-                            onError={() => set_preview_favicon_ok(false)}
-                          />
-                        </Show>
+                        <CustomLinkIcon class="w-8 h-8 text-white" />
                       }
                     >
-                      <PlatformIcon
-                        platform={link.platform}
-                        class="w-5 h-5 text-white"
+                      <img
+                        src={`https://www.google.com/s2/favicons?domain=${encodeURIComponent(get_domain_from_url(display_value()))}&sz=64`}
+                        alt="Site favicon"
+                        class="w-12 h-12 rounded-lg"
+                        onLoad={(e) => {
+                          if (e.currentTarget.naturalWidth <= 2 || e.currentTarget.naturalHeight <= 2) {
+                            set_favicon_ok(false)
+                          }
+                        }}
+                        onError={() => set_favicon_ok(false)}
                       />
                     </Show>
-                  </div>
-                )
-              }}
-            </For>
-          </div>
+                  }
+                >
+                  <PlatformIcon platform={link.platform} class="w-8 h-8 text-white" />
+                </Show>
+              </button>
+            )
+          }}
+        </For>
+
+        {/* Add button (+) */}
+        <div class="relative" ref={dropdown_ref}>
+          <button
+            type="button"
+            onClick={() => set_adding(!adding())}
+            class="w-12 h-12 rounded-lg border-2 border-dashed border-border flex items-center justify-center text-text-muted hover:border-primary hover:text-primary hover:bg-primary/5 transition-colors cursor-pointer"
+            title="Add social link"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+            </svg>
+          </button>
+
+          {/* Platform dropdown */}
+          <Show when={adding()}>
+            <div class="absolute left-0 top-14 z-50 bg-bg-card border border-border rounded-lg shadow-lg p-2 min-w-[180px]">
+              <p class="text-xs text-text-muted mb-2 px-1">Add platform:</p>
+              <div class="space-y-1 max-h-[240px] overflow-y-auto">
+                <For each={ALL_PLATFORMS}>
+                  {(platform) => {
+                    const info = platformInfos[platform]
+                    return (
+                      <button
+                        type="button"
+                        onClick={() => addLink(platform)}
+                        class="w-full flex items-center gap-2 px-2 py-1.5 rounded text-sm transition-colors hover:bg-primary hover:text-primary-text"
+                      >
+                        <div
+                          class="rounded p-1 flex-shrink-0"
+                          style={{ background: info.color }}
+                        >
+                          <PlatformIcon platform={platform} class="w-4 h-4 text-white" />
+                        </div>
+                        <span class="text-text">{info.name}</span>
+                      </button>
+                    )
+                  }}
+                </For>
+              </div>
+            </div>
+          </Show>
         </div>
+      </div>
+
+      {/* Inline edit panel for selected link */}
+      <Show when={editing_id()}>
+        {(id) => {
+          const link = () => links_with_ids().find(l => l.id === id())
+          return (
+            <Show when={link()}>
+              {(l) => (
+                <EditPanel
+                  link={l()}
+                  onUpdate={updateLink}
+                  onRemove={removeLink}
+                  onClose={() => set_editing_id(null)}
+                />
+              )}
+            </Show>
+          )
+        }}
       </Show>
     </div>
   )
