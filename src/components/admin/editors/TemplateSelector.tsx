@@ -14,6 +14,541 @@ import {
 import { showToast } from '../../ui'
 
 // ============================================
+// Design Patterns for Randomize
+// ============================================
+
+interface DesignPattern {
+  name: string
+  settings: Partial<SettingsData>
+}
+
+const designPatterns: DesignPattern[] = [
+  {
+    name: 'clean-list',
+    settings: {
+      postsLayout: 'list',
+      gridColumns: 1,
+      cardLayout: 'horizontal',
+      thumbnailSizePx: 140,
+      cardPaddingPx: 24,
+      cardBorderRadiusPx: 16,
+      titleSizePx: 22,
+      cardGapPx: 28,
+      cardBorder: true,
+      showSummary: true,
+      summaryMaxLength: 200,
+      showTags: true,
+      maxTags: 3,
+      showDate: true,
+      showVotes: true,
+      showComments: true,
+      showPayout: false,
+      showThumbnail: true,
+      cardHoverEffect: 'shadow',
+      cardHoverShadow: 'md',
+      scrollAnimationType: 'fade',
+      scrollAnimationDuration: 400,
+      scrollAnimationDelay: 100,
+      postCardLayout: {
+        sections: [
+          {
+            id: 'sec-main',
+            orientation: 'horizontal',
+            children: [
+              { type: 'element', id: 'thumbnail' },
+              {
+                type: 'section',
+                section: {
+                  id: 'sec-content',
+                  orientation: 'vertical',
+                  children: [
+                    { type: 'element', id: 'title' },
+                    { type: 'element', id: 'summary' },
+                    {
+                      type: 'section',
+                      section: {
+                        id: 'sec-meta',
+                        orientation: 'horizontal',
+                        children: [
+                          { type: 'element', id: 'date' },
+                          { type: 'element', id: 'votes' },
+                          { type: 'element', id: 'comments' },
+                        ],
+                      },
+                    },
+                    { type: 'element', id: 'tags' },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+      },
+      pageLayout: {
+        sections: [
+          { id: 'page-sec-1', slot: 'top', orientation: 'horizontal', elements: ['header'], active: true },
+          { id: 'page-sec-3', slot: 'main', orientation: 'vertical', elements: ['posts'], active: true },
+          { id: 'page-sec-4', slot: 'bottom', orientation: 'horizontal', elements: ['footer'], active: true },
+        ],
+      },
+      pageLayoutConfig: {
+        template: 'no-sidebar',
+        containers: {
+          top: { elements: [{ id: 'header', active: true }] },
+          sidebarLeft: { elements: [] },
+          sidebarRight: { elements: [] },
+          bottom: { elements: [{ id: 'footer', active: true }] },
+        },
+      },
+    },
+  },
+  {
+    name: 'dense-grid',
+    settings: {
+      postsLayout: 'grid',
+      gridColumns: 3,
+      cardLayout: 'vertical',
+      thumbnailSizePx: 180,
+      cardPaddingPx: 12,
+      cardBorderRadiusPx: 8,
+      titleSizePx: 16,
+      cardGapPx: 12,
+      cardBorder: true,
+      showSummary: true,
+      summaryMaxLength: 100,
+      showTags: true,
+      maxTags: 2,
+      showDate: true,
+      showVotes: true,
+      showComments: true,
+      showPayout: false,
+      showThumbnail: true,
+      cardHoverEffect: 'lift',
+      cardHoverScale: 1.02,
+      cardHoverShadow: 'lg',
+      scrollAnimationType: 'slide-up',
+      scrollAnimationDuration: 300,
+      scrollAnimationDelay: 60,
+      postCardLayout: {
+        sections: [
+          {
+            id: 'sec-card',
+            orientation: 'vertical',
+            children: [
+              { type: 'element', id: 'thumbnail' },
+              {
+                type: 'section',
+                section: {
+                  id: 'sec-content',
+                  orientation: 'vertical',
+                  children: [
+                    { type: 'element', id: 'title' },
+                    { type: 'element', id: 'summary' },
+                    {
+                      type: 'section',
+                      section: {
+                        id: 'sec-meta',
+                        orientation: 'horizontal',
+                        children: [
+                          { type: 'element', id: 'date' },
+                          { type: 'element', id: 'votes' },
+                          { type: 'element', id: 'comments' },
+                        ],
+                      },
+                    },
+                    { type: 'element', id: 'tags' },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+      },
+      pageLayout: {
+        sections: [
+          { id: 'page-sec-1', slot: 'top', orientation: 'horizontal', elements: ['header'], active: true },
+          { id: 'page-sec-3', slot: 'main', orientation: 'vertical', elements: ['posts'], active: true },
+          { id: 'page-sec-2', slot: 'sidebar-right', orientation: 'vertical', elements: ['authorProfile'], active: true },
+          { id: 'page-sec-4', slot: 'bottom', orientation: 'horizontal', elements: ['footer'], active: true },
+        ],
+      },
+      pageLayoutConfig: {
+        template: 'sidebar-right',
+        containers: {
+          top: { elements: [{ id: 'header', active: true }] },
+          sidebarLeft: { elements: [] },
+          sidebarRight: { elements: [{ id: 'authorProfile', active: true }] },
+          bottom: { elements: [{ id: 'footer', active: true }] },
+        },
+      },
+    },
+  },
+  {
+    name: 'visual-masonry',
+    settings: {
+      postsLayout: 'masonry',
+      gridColumns: 3,
+      cardLayout: 'vertical',
+      thumbnailSizePx: 320,
+      cardPaddingPx: 0,
+      cardBorderRadiusPx: 4,
+      titleSizePx: 14,
+      cardGapPx: 8,
+      cardBorder: false,
+      showSummary: false,
+      showTags: false,
+      showDate: false,
+      showVotes: false,
+      showComments: false,
+      showPayout: false,
+      showThumbnail: true,
+      cardHoverEffect: 'scale',
+      cardHoverScale: 1.04,
+      cardTransitionDuration: 300,
+      scrollAnimationType: 'zoom',
+      scrollAnimationDuration: 500,
+      scrollAnimationDelay: 50,
+      postCardLayout: {
+        sections: [
+          {
+            id: 'sec-image',
+            orientation: 'vertical',
+            children: [
+              { type: 'element', id: 'thumbnail' },
+              { type: 'element', id: 'title' },
+            ],
+          },
+        ],
+      },
+      pageLayout: {
+        sections: [
+          { id: 'page-sec-1', slot: 'top', orientation: 'horizontal', elements: ['header'], active: true },
+          { id: 'page-sec-3', slot: 'main', orientation: 'vertical', elements: ['posts'], active: true },
+          { id: 'page-sec-4', slot: 'bottom', orientation: 'horizontal', elements: ['footer'], active: true },
+        ],
+      },
+      pageLayoutConfig: {
+        template: 'no-sidebar',
+        containers: {
+          top: { elements: [{ id: 'header', active: true }] },
+          sidebarLeft: { elements: [] },
+          sidebarRight: { elements: [] },
+          bottom: { elements: [{ id: 'footer', active: true }] },
+        },
+      },
+    },
+  },
+  {
+    name: 'classic-blog',
+    settings: {
+      postsLayout: 'list',
+      gridColumns: 1,
+      cardLayout: 'horizontal',
+      thumbnailSizePx: 120,
+      cardPaddingPx: 24,
+      cardBorderRadiusPx: 12,
+      titleSizePx: 20,
+      cardGapPx: 24,
+      cardBorder: true,
+      showSummary: true,
+      summaryMaxLength: 180,
+      showTags: true,
+      maxTags: 4,
+      showDate: true,
+      showVotes: true,
+      showComments: true,
+      showPayout: true,
+      showThumbnail: true,
+      cardHoverEffect: 'shadow',
+      cardHoverShadow: 'md',
+      scrollAnimationType: 'fade',
+      scrollAnimationDuration: 400,
+      scrollAnimationDelay: 80,
+      postCardLayout: {
+        sections: [
+          {
+            id: 'sec-card',
+            orientation: 'horizontal',
+            children: [
+              { type: 'element', id: 'thumbnail' },
+              {
+                type: 'section',
+                section: {
+                  id: 'sec-body',
+                  orientation: 'vertical',
+                  children: [
+                    { type: 'element', id: 'title' },
+                    { type: 'element', id: 'summary' },
+                    {
+                      type: 'section',
+                      section: {
+                        id: 'sec-footer',
+                        orientation: 'horizontal',
+                        children: [
+                          { type: 'element', id: 'date' },
+                          { type: 'element', id: 'votes' },
+                          { type: 'element', id: 'comments' },
+                          { type: 'element', id: 'payout' },
+                        ],
+                      },
+                    },
+                    { type: 'element', id: 'tags' },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+      },
+      pageLayout: {
+        sections: [
+          { id: 'page-sec-1', slot: 'top', orientation: 'horizontal', elements: ['header'], active: true },
+          { id: 'page-sec-2', slot: 'sidebar-left', orientation: 'vertical', elements: ['authorProfile'], active: true },
+          { id: 'page-sec-3', slot: 'main', orientation: 'vertical', elements: ['posts'], active: true },
+          { id: 'page-sec-4', slot: 'bottom', orientation: 'horizontal', elements: ['footer'], active: true },
+        ],
+      },
+      pageLayoutConfig: {
+        template: 'sidebar-left',
+        containers: {
+          top: { elements: [{ id: 'header', active: true }] },
+          sidebarLeft: { elements: [{ id: 'authorProfile', active: true }] },
+          sidebarRight: { elements: [] },
+          bottom: { elements: [{ id: 'footer', active: true }] },
+        },
+      },
+    },
+  },
+  {
+    name: 'magazine-grid',
+    settings: {
+      postsLayout: 'grid',
+      gridColumns: 3,
+      cardLayout: 'vertical',
+      thumbnailSizePx: 200,
+      cardPaddingPx: 16,
+      cardBorderRadiusPx: 12,
+      titleSizePx: 18,
+      cardGapPx: 20,
+      cardBorder: true,
+      showSummary: true,
+      summaryMaxLength: 100,
+      showTags: true,
+      maxTags: 2,
+      showDate: true,
+      showVotes: true,
+      showComments: true,
+      showPayout: false,
+      showThumbnail: true,
+      cardHoverEffect: 'lift',
+      cardHoverScale: 1.02,
+      cardHoverShadow: 'xl',
+      scrollAnimationType: 'slide-up',
+      scrollAnimationDuration: 350,
+      scrollAnimationDelay: 75,
+      postCardLayout: {
+        sections: [
+          {
+            id: 'sec-card',
+            orientation: 'vertical',
+            children: [
+              { type: 'element', id: 'thumbnail' },
+              {
+                type: 'section',
+                section: {
+                  id: 'sec-content',
+                  orientation: 'vertical',
+                  children: [
+                    { type: 'element', id: 'tags' },
+                    { type: 'element', id: 'title' },
+                    { type: 'element', id: 'summary' },
+                    {
+                      type: 'section',
+                      section: {
+                        id: 'sec-stats',
+                        orientation: 'horizontal',
+                        children: [
+                          { type: 'element', id: 'date' },
+                          { type: 'element', id: 'votes' },
+                          { type: 'element', id: 'comments' },
+                        ],
+                      },
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+      },
+      pageLayout: {
+        sections: [
+          { id: 'page-sec-1', slot: 'top', orientation: 'horizontal', elements: ['header'], active: true },
+          { id: 'page-sec-3', slot: 'main', orientation: 'vertical', elements: ['posts'], active: true },
+          { id: 'page-sec-2', slot: 'sidebar-right', orientation: 'vertical', elements: ['authorProfile'], active: true },
+          { id: 'page-sec-4', slot: 'bottom', orientation: 'horizontal', elements: ['footer'], active: true },
+        ],
+      },
+      pageLayoutConfig: {
+        template: 'sidebar-right',
+        containers: {
+          top: { elements: [{ id: 'header', active: true }] },
+          sidebarLeft: { elements: [] },
+          sidebarRight: { elements: [{ id: 'authorProfile', active: true }] },
+          bottom: { elements: [{ id: 'footer', active: true }] },
+        },
+      },
+    },
+  },
+  {
+    name: 'compact-grid',
+    settings: {
+      postsLayout: 'grid',
+      gridColumns: 4,
+      cardLayout: 'vertical',
+      thumbnailSizePx: 180,
+      cardPaddingPx: 8,
+      cardBorderRadiusPx: 8,
+      titleSizePx: 14,
+      cardGapPx: 12,
+      cardBorder: true,
+      showSummary: false,
+      showTags: true,
+      maxTags: 2,
+      showDate: false,
+      showVotes: true,
+      showComments: true,
+      showPayout: false,
+      showThumbnail: true,
+      cardHoverEffect: 'scale',
+      cardHoverScale: 1.05,
+      cardTransitionDuration: 200,
+      scrollAnimationType: 'slide-up',
+      scrollAnimationDuration: 350,
+      scrollAnimationDelay: 50,
+      postCardLayout: {
+        sections: [
+          {
+            id: 'sec-card',
+            orientation: 'vertical',
+            children: [
+              { type: 'element', id: 'thumbnail' },
+              { type: 'element', id: 'title' },
+              {
+                type: 'section',
+                section: {
+                  id: 'sec-stats',
+                  orientation: 'horizontal',
+                  children: [
+                    { type: 'element', id: 'votes' },
+                    { type: 'element', id: 'comments' },
+                  ],
+                },
+              },
+              { type: 'element', id: 'tags' },
+            ],
+          },
+        ],
+      },
+      pageLayout: {
+        sections: [
+          { id: 'page-sec-1', slot: 'top', orientation: 'horizontal', elements: ['header'], active: true },
+          { id: 'page-sec-3', slot: 'main', orientation: 'vertical', elements: ['posts'], active: true },
+          { id: 'page-sec-4', slot: 'bottom', orientation: 'horizontal', elements: ['footer'], active: true },
+        ],
+      },
+      pageLayoutConfig: {
+        template: 'no-sidebar',
+        containers: {
+          top: { elements: [{ id: 'header', active: true }] },
+          sidebarLeft: { elements: [] },
+          sidebarRight: { elements: [] },
+          bottom: { elements: [{ id: 'footer', active: true }] },
+        },
+      },
+    },
+  },
+  {
+    name: 'wide-masonry',
+    settings: {
+      postsLayout: 'masonry',
+      gridColumns: 2,
+      cardLayout: 'vertical',
+      thumbnailSizePx: 260,
+      cardPaddingPx: 16,
+      cardBorderRadiusPx: 16,
+      titleSizePx: 18,
+      cardGapPx: 20,
+      cardBorder: true,
+      showSummary: true,
+      summaryMaxLength: 140,
+      showTags: true,
+      maxTags: 3,
+      showDate: true,
+      showVotes: true,
+      showComments: false,
+      showPayout: false,
+      showThumbnail: true,
+      cardHoverEffect: 'glow',
+      cardHoverBrightness: 1.08,
+      scrollAnimationType: 'zoom',
+      scrollAnimationDuration: 400,
+      scrollAnimationDelay: 80,
+      postCardLayout: {
+        sections: [
+          {
+            id: 'sec-card',
+            orientation: 'vertical',
+            children: [
+              { type: 'element', id: 'thumbnail' },
+              {
+                type: 'section',
+                section: {
+                  id: 'sec-details',
+                  orientation: 'vertical',
+                  children: [
+                    { type: 'element', id: 'title' },
+                    { type: 'element', id: 'summary' },
+                    {
+                      type: 'section',
+                      section: {
+                        id: 'sec-meta',
+                        orientation: 'horizontal',
+                        children: [
+                          { type: 'element', id: 'date' },
+                          { type: 'element', id: 'votes' },
+                        ],
+                      },
+                    },
+                    { type: 'element', id: 'tags' },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+      },
+      pageLayout: {
+        sections: [
+          { id: 'page-sec-1', slot: 'top', orientation: 'horizontal', elements: ['header'], active: true },
+          { id: 'page-sec-3', slot: 'main', orientation: 'vertical', elements: ['posts'], active: true },
+          { id: 'page-sec-4', slot: 'bottom', orientation: 'horizontal', elements: ['footer'], active: true },
+        ],
+      },
+      pageLayoutConfig: {
+        template: 'no-sidebar',
+        containers: {
+          top: { elements: [{ id: 'header', active: true }] },
+          sidebarLeft: { elements: [] },
+          sidebarRight: { elements: [] },
+          bottom: { elements: [{ id: 'footer', active: true }] },
+        },
+      },
+    },
+  },
+]
+
+// ============================================
 // Template Card Component
 // ============================================
 
@@ -23,13 +558,17 @@ interface TemplateCardProps {
 }
 
 function TemplateCard(props: TemplateCardProps) {
-  const getThemePreview = () => {
+  const colors = () => {
     const themeId = props.template.settings.siteTheme
     const theme = themePresets.find((p) => p.id === themeId) || themePresets[0]
     return theme.colors
   }
 
-  const colors = getThemePreview()
+  // Read layout from pageLayoutConfig (v3)
+  const layoutTemplate = () => props.template.settings.pageLayoutConfig?.template ?? 'no-sidebar'
+  const postsLayout = () => props.template.settings.postsLayout ?? 'list'
+  const gridCols = () => Math.min(props.template.settings.gridColumns ?? 2, 3)
+  const gapClass = () => (props.template.settings.cardGapPx ?? 16) < 16 ? 'gap-0.5' : 'gap-1'
 
   return (
     <button
@@ -40,51 +579,61 @@ function TemplateCard(props: TemplateCardProps) {
       {/* Mini Preview */}
       <div
         class="mb-3 aspect-video w-full overflow-hidden rounded-lg"
-        style={{ background: colors.bg }}
+        style={{ background: colors().bg }}
       >
         {/* Simplified layout preview */}
         <div class="flex h-full flex-col p-2">
           {/* Header */}
           <div
             class="mb-1 h-2 w-full rounded-sm"
-            style={{ background: colors.primary }}
+            style={{ background: colors().primary }}
           />
           {/* Content area */}
           <div class="flex flex-1 gap-1">
-            {/* Sidebar if exists */}
-            {props.template.settings.pageLayout?.sections.some(
-              (s) => s.slot === 'sidebar-left' && s.active
-            ) && (
+            {/* Left sidebar from pageLayoutConfig */}
+            {(layoutTemplate() === 'sidebar-left' || layoutTemplate() === 'both-sidebars') && (
               <div
-                class="w-1/4 rounded-sm"
-                style={{ background: colors.bgCard }}
+                class="rounded-sm"
+                classList={{ 'w-1/4': layoutTemplate() === 'sidebar-left', 'w-1/5': layoutTemplate() === 'both-sidebars' }}
+                style={{ background: colors().bgCard }}
               />
             )}
-            {/* Main content */}
-            <div class="flex-1 space-y-1">
-              {props.template.settings.postsLayout === 'grid' ||
-              props.template.settings.postsLayout === 'masonry' ? (
-                <div class="grid grid-cols-2 gap-1 h-full">
-                  <div class="rounded-sm" style={{ background: colors.bgCard }} />
-                  <div class="rounded-sm" style={{ background: colors.bgCard }} />
-                  <div class="rounded-sm" style={{ background: colors.bgCard }} />
-                  <div class="rounded-sm" style={{ background: colors.bgCard }} />
+            {/* Main content area */}
+            <div class={`flex-1 ${gapClass()}`}>
+              {postsLayout() === 'list' ? (
+                <div class={`flex flex-col h-full ${gapClass()}`}>
+                  <div class="h-3 rounded-sm" style={{ background: colors().bgCard }} />
+                  <div class="h-3 rounded-sm" style={{ background: colors().bgCard }} />
+                  <div class="h-3 rounded-sm" style={{ background: colors().bgCard }} />
+                </div>
+              ) : postsLayout() === 'masonry' ? (
+                <div
+                  class={`grid h-full ${gapClass()}`}
+                  style={{ 'grid-template-columns': `repeat(${gridCols()}, 1fr)` }}
+                >
+                  <div class="rounded-sm" style={{ background: colors().bgCard, 'grid-row': 'span 2' }} />
+                  <div class="rounded-sm" style={{ background: colors().bgCard }} />
+                  {gridCols() >= 3 && <div class="rounded-sm" style={{ background: colors().bgCard, 'grid-row': 'span 2' }} />}
+                  <div class="rounded-sm" style={{ background: colors().bgCard }} />
+                  {gridCols() < 3 && <div class="rounded-sm" style={{ background: colors().bgCard }} />}
                 </div>
               ) : (
-                <>
-                  <div class="h-3 rounded-sm" style={{ background: colors.bgCard }} />
-                  <div class="h-3 rounded-sm" style={{ background: colors.bgCard }} />
-                  <div class="h-3 rounded-sm" style={{ background: colors.bgCard }} />
-                </>
+                <div
+                  class={`grid h-full ${gapClass()}`}
+                  style={{ 'grid-template-columns': `repeat(${gridCols()}, 1fr)` }}
+                >
+                  <For each={Array.from({ length: gridCols() * 2 })}>
+                    {() => <div class="rounded-sm" style={{ background: colors().bgCard }} />}
+                  </For>
+                </div>
               )}
             </div>
-            {/* Right sidebar if exists */}
-            {props.template.settings.pageLayout?.sections.some(
-              (s) => s.slot === 'sidebar-right' && s.active
-            ) && (
+            {/* Right sidebar from pageLayoutConfig */}
+            {(layoutTemplate() === 'sidebar-right' || layoutTemplate() === 'both-sidebars') && (
               <div
-                class="w-1/4 rounded-sm"
-                style={{ background: colors.bgCard }}
+                class="rounded-sm"
+                classList={{ 'w-1/4': layoutTemplate() === 'sidebar-right', 'w-1/5': layoutTemplate() === 'both-sidebars' }}
+                style={{ background: colors().bgCard }}
               />
             )}
           </div>
@@ -134,164 +683,23 @@ export function TemplateSelector() {
   }
 
   const randomizeTemplate = () => {
-    // Helper functions for random values
-    const randomInt = (min: number, max: number) => Math.floor(Math.random() * (max - min + 1)) + min
-    const randomFloat = (min: number, max: number, decimals: number = 2) =>
-      parseFloat((Math.random() * (max - min) + min).toFixed(decimals))
     const randomChoice = <T,>(arr: readonly T[]): T => arr[Math.floor(Math.random() * arr.length)]
-    const randomBool = (probability = 0.5) => Math.random() < probability
+    const vary = (base: number, range: number, min = 0) =>
+      Math.max(min, base + Math.floor(Math.random() * (range * 2 + 1)) - range)
 
-    // Shuffle array helper
-    const shuffle = <T,>(arr: T[]): T[] => {
-      const result = [...arr]
-      for (let i = result.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [result[i], result[j]] = [result[j], result[i]]
-      }
-      return result
-    }
-
-    // Generate random card layout from element IDs
-    const generateRandomCardLayout = (elementIds: string[]) => {
-      const shuffled = shuffle(elementIds)
-      // Randomly include 60-100% of elements
-      const count = Math.max(2, Math.floor(shuffled.length * randomFloat(0.6, 1.0)))
-      const selected = shuffled.slice(0, count)
-
-      // Split into 2-4 random sections
-      const numSections = randomInt(2, Math.min(4, selected.length))
-      const sections: { id: string; orientation: 'horizontal' | 'vertical'; children: { type: 'element'; id: string }[] }[] = []
-
-      let idx = 0
-      for (let i = 0; i < numSections; i++) {
-        const remaining = selected.length - idx
-        const sectionSize = i === numSections - 1 ? remaining : randomInt(1, Math.max(1, remaining - (numSections - i - 1)))
-        const sectionElements = selected.slice(idx, idx + sectionSize)
-        idx += sectionSize
-
-        if (sectionElements.length > 0) {
-          sections.push({
-            id: `sec-${i + 1}`,
-            orientation: randomChoice(['horizontal', 'vertical'] as const),
-            children: sectionElements.map(id => ({ type: 'element' as const, id }))
-          })
-        }
-      }
-
-      return { sections }
-    }
-
-    // Random theme
+    // Pick random pattern and theme
+    const pattern = randomChoice(designPatterns)
     const randomTheme = randomChoice(themePresets)
 
-    // Random layout settings
-    const postsLayout = randomChoice(['list', 'grid', 'masonry'] as const)
-    const gridColumns = randomInt(1, 4)
-
-    // Random hover effect
-    const hoverEffects = ['none', 'shadow', 'lift', 'scale', 'glow'] as const
-    const hoverEffect = randomChoice(hoverEffects)
-
-    // Random scroll animation - must match type: 'none' | 'fade' | 'slide-up' | 'slide-left' | 'zoom' | 'flip'
-    const scrollAnimations = ['none', 'fade', 'slide-up', 'slide-left', 'zoom', 'flip'] as const
-    const scrollAnimation = randomChoice(scrollAnimations)
-
-    // Random page layout
-    const pageLayoutOptions = [
-      // Left sidebar
-      {
-        sections: [
-          { id: 'page-sec-1', slot: 'top' as const, orientation: 'horizontal' as const, elements: ['header'], active: true },
-          { id: 'page-sec-2', slot: 'sidebar-left' as const, orientation: 'vertical' as const, elements: ['authorProfile'], active: true },
-          { id: 'page-sec-3', slot: 'main' as const, orientation: 'vertical' as const, elements: ['navigation', 'posts'], active: true },
-          { id: 'page-sec-4', slot: 'bottom' as const, orientation: 'horizontal' as const, elements: ['footer'], active: true },
-        ]
-      },
-      // Right sidebar
-      {
-        sections: [
-          { id: 'page-sec-1', slot: 'top' as const, orientation: 'horizontal' as const, elements: ['header'], active: true },
-          { id: 'page-sec-2', slot: 'sidebar-right' as const, orientation: 'vertical' as const, elements: ['authorProfile'], active: true },
-          { id: 'page-sec-3', slot: 'main' as const, orientation: 'vertical' as const, elements: ['navigation', 'posts'], active: true },
-          { id: 'page-sec-4', slot: 'bottom' as const, orientation: 'horizontal' as const, elements: ['footer'], active: true },
-        ]
-      },
-      // No sidebar
-      {
-        sections: [
-          { id: 'page-sec-1', slot: 'top' as const, orientation: 'horizontal' as const, elements: ['header', 'authorProfile'], active: true },
-          { id: 'page-sec-2', slot: 'main' as const, orientation: 'vertical' as const, elements: ['navigation', 'posts'], active: true },
-          { id: 'page-sec-3', slot: 'bottom' as const, orientation: 'horizontal' as const, elements: ['footer'], active: true },
-        ]
-      },
-      // Both sidebars
-      {
-        sections: [
-          { id: 'page-sec-1', slot: 'top' as const, orientation: 'horizontal' as const, elements: ['header'], active: true },
-          { id: 'page-sec-2', slot: 'sidebar-left' as const, orientation: 'vertical' as const, elements: ['authorProfile'], active: true },
-          { id: 'page-sec-3', slot: 'main' as const, orientation: 'vertical' as const, elements: ['navigation', 'posts'], active: true },
-          { id: 'page-sec-4', slot: 'bottom' as const, orientation: 'horizontal' as const, elements: ['footer'], active: true },
-        ]
-      },
-    ]
-
-    // Element IDs for card layouts (avatar removed from post cards, votingPower removed from author profile)
-    const postCardElements = ['thumbnail', 'title', 'summary', 'date', 'votes', 'comments', 'payout', 'tags']
-    const commentCardElements = ['replyContext', 'avatar', 'author', 'timestamp', 'body', 'replies', 'votes', 'payout', 'viewLink']
-    const authorProfileElements = ['coverImage', 'avatar', 'username', 'displayName', 'reputation', 'about', 'location', 'website', 'joinDate', 'followers', 'following', 'postCount', 'hivePower', 'hpEarned', 'hiveBalance', 'hbdBalance']
-
-    // Generate random settings
+    // Apply pattern with minor variations
     const randomSettings: Partial<SettingsData> = {
-      // Theme
+      ...pattern.settings,
       siteTheme: randomTheme.id,
-
-      // Posts Layout
-      postsLayout,
-      gridColumns,
-      cardGapPx: randomInt(8, 32),
-      postsPerPage: randomChoice([10, 15, 20, 25, 30]),
-      postsSortOrder: randomChoice(['blog', 'posts'] as const),
-      includeReblogs: randomBool(0.3),
-
-      // Post Card Appearance
-      thumbnailSizePx: randomInt(60, 200),
-      cardPaddingPx: randomInt(8, 32),
-      cardBorderRadiusPx: randomInt(0, 24),
-      titleSizePx: randomInt(14, 28),
-      summaryMaxLength: randomInt(80, 300),
-      maxTags: randomInt(2, 8),
-      cardBorder: randomBool(0.7),
-      postCardLayout: generateRandomCardLayout(postCardElements),
-
-      // Card Hover Animation
-      cardHoverEffect: hoverEffect,
-      cardTransitionDuration: randomInt(150, 400),
-      cardHoverScale: randomFloat(1.0, 1.08),
-      cardHoverShadow: randomChoice(['sm', 'md', 'lg', 'xl']),
-      cardHoverBrightness: randomFloat(1.0, 1.15),
-
-      // Scroll Animation
-      scrollAnimationType: scrollAnimation,
-      scrollAnimationEnabled: scrollAnimation !== 'none',
-      scrollAnimationDuration: randomInt(200, 600),
-      scrollAnimationDelay: randomInt(30, 150),
-
-      // Page Layout
-      pageLayout: randomChoice(pageLayoutOptions),
-
-      // Author Profile Settings
-      showHeader: randomBool(0.9),
-      showAuthorProfile: randomBool(0.9),
-      authorProfileLayout: randomChoice(['horizontal', 'vertical'] as const),
-      authorAvatarSizePx: randomChoice([48, 64, 80, 96]),
-      authorProfileLayout2: generateRandomCardLayout(authorProfileElements),
-
-      // Comments Tab Settings
-      showCommentsTab: randomBool(0.8),
-      commentCardLayout: generateRandomCardLayout(commentCardElements),
-      commentAvatarSizePx: randomChoice([32, 40, 48]),
-      commentMaxLength: randomChoice([0, 200, 300, 500]),
-      commentPaddingPx: randomInt(12, 24),
+      cardPaddingPx: vary(pattern.settings.cardPaddingPx ?? 16, 4),
+      cardBorderRadiusPx: vary(pattern.settings.cardBorderRadiusPx ?? 8, 4),
+      cardGapPx: vary(pattern.settings.cardGapPx ?? 16, 4),
+      thumbnailSizePx: vary(pattern.settings.thumbnailSizePx ?? 120, 20),
+      scrollAnimationEnabled: pattern.settings.scrollAnimationType !== 'none',
     }
 
     const filtered_random = strip_irrelevant_fields(randomSettings, is_community_mode())
