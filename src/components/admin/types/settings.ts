@@ -124,7 +124,6 @@ export interface SettingsData {
   pinnedPostPermlinks: string[]
   // Footer settings
   footer_text?: string
-  footer_show_kofi?: boolean
   // Community-specific display settings
   community_default_sort?: CommunityDisplaySortOrder
   community_show_rules?: boolean
@@ -296,7 +295,6 @@ export const defaultSettings: SettingsData = {
   socialLinks: [],
   pinnedPostPermlinks: [],
   footer_text: '',
-  footer_show_kofi: true,
   community_default_sort: 'trending',
   community_show_rules: true,
   community_show_leadership: true,

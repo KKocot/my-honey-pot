@@ -10,65 +10,37 @@ import { settings, updateSettings } from "../store";
 
 export function FooterSettings() {
   const footer_text = () => settings.footer_text ?? "";
-  const show_kofi = () => settings.footer_show_kofi ?? true;
 
   return (
     <div class="bg-bg-card rounded-xl p-6 mb-6 border border-border">
       <h2 class="text-xl font-semibold text-primary mb-2">Footer Settings</h2>
       <p class="text-sm text-text-muted mb-6">
-        Customize the footer text and visibility of the Ko-fi button.
+        Customize the footer text displayed on your blog.
       </p>
 
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Left column: controls */}
-        <div class="space-y-5">
-          {/* Footer Text */}
-          <div>
-            <label
-              for="footer-text"
-              class="block text-sm font-medium text-text mb-1"
-            >
-              Footer Text
-            </label>
-            <textarea
-              id="footer-text"
-              value={footer_text()}
-              onInput={(e) =>
-                updateSettings({ footer_text: e.currentTarget.value })
-              }
-              placeholder="Leave empty for default footer"
-              rows={3}
-              maxlength={500}
-              class="w-full px-4 py-2 bg-bg border border-border rounded-lg text-text text-sm focus:outline-none focus:ring-2 focus:ring-primary resize-y"
-            />
-            <p class="text-xs text-text-muted mt-1">
-              Override the default footer text. Leave empty to use the default.
-            </p>
-          </div>
-
-          {/* Show Ko-fi Button */}
-          <div class="border-t border-border pt-4">
-            <label class="flex items-start gap-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={show_kofi()}
-                onChange={(e) =>
-                  updateSettings({
-                    footer_show_kofi: e.currentTarget.checked,
-                  })
-                }
-                class="mt-0.5 w-4 h-4 rounded border-border text-primary focus:ring-primary"
-              />
-              <div>
-                <span class="text-sm font-medium text-text">
-                  Show Ko-fi Button
-                </span>
-                <p class="text-xs text-text-muted">
-                  Display the "Buy Me a Coffee" button in the footer.
-                </p>
-              </div>
-            </label>
-          </div>
+        <div>
+          <label
+            for="footer-text"
+            class="block text-sm font-medium text-text mb-1"
+          >
+            Footer Text
+          </label>
+          <textarea
+            id="footer-text"
+            value={footer_text()}
+            onInput={(e) =>
+              updateSettings({ footer_text: e.currentTarget.value })
+            }
+            placeholder="Leave empty for default footer"
+            rows={3}
+            maxlength={500}
+            class="w-full px-4 py-2 bg-bg border border-border rounded-lg text-text text-sm focus:outline-none focus:ring-2 focus:ring-primary resize-y"
+          />
+          <p class="text-xs text-text-muted mt-1">
+            Override the default footer text. Leave empty to use the default.
+          </p>
         </div>
 
         {/* Right column: preview */}
@@ -93,12 +65,10 @@ export function FooterSettings() {
                 <span>{footer_text().trim()}</span>
               </Show>
 
-              <Show when={show_kofi()}>
-                <span class="text-border">|</span>
-                <span class="inline-flex items-center gap-1 text-xs bg-bg-secondary px-2 py-1 rounded">
-                  Ko-fi
-                </span>
-              </Show>
+              <span class="text-border">|</span>
+              <span class="inline-flex items-center gap-1 text-xs bg-bg-secondary px-2 py-1 rounded">
+                Ko-fi
+              </span>
 
               <span class="text-border">|</span>
               <span>Powered by Hive</span>

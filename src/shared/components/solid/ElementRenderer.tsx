@@ -116,7 +116,6 @@ function renderAuthorProfile(_layout: 'horizontal' | 'vertical' = 'horizontal', 
 function renderFooter() {
   const footer_data = createFooterData({
     custom_text: settings.footer_text,
-    show_kofi: settings.footer_show_kofi,
   })
   return <div innerHTML={renderFooterHtml(footer_data)} />
 }

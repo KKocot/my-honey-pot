@@ -162,7 +162,6 @@ export const settings_schema = z
 
     // Footer settings
     footer_text: z.string().max(500).optional(),
-    footer_show_kofi: z.boolean().optional(),
 
     // Community-specific display settings
     community_default_sort: z

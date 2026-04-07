@@ -7,13 +7,11 @@ import { renderFooter, createFooterData, createFooterSettings } from '../../../s
 interface Props {
   class?: string
   footer_text?: string
-  footer_show_kofi?: boolean
 }
 
-const { class: className = '', footer_text, footer_show_kofi } = Astro.props
+const { class: className = '', footer_text } = Astro.props
 const footer_data = createFooterData({
   custom_text: footer_text,
-  show_kofi: footer_show_kofi,
 })
 const footer_settings = createFooterSettings({ class: className })
 const html = renderFooter(footer_data, footer_settings)
