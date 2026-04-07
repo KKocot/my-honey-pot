@@ -147,6 +147,7 @@ const nextPostsCursor = user_page?.next_posts_cursor
 const nextCommentsCursor = user_page?.next_comments_cursor
 const totalFetchedBeforeFilter = user_page?.total_fetched_before_filter ?? 0
 const threads = user_page?.threads ?? null
+const pinnedPosts = user_page?.pinned_posts ?? []
 
 // Shared props for AuthorProfile to reduce duplication
 const authorProfileBaseProps = {
@@ -216,6 +217,7 @@ const slotRendererProps = {
   nextCommentsPageUrl,
   threads,
   communityData,
+  pinnedPosts,
 }
 ---
 
@@ -363,6 +365,7 @@ const slotRendererProps = {
                       category_tag={activeCategoryTag}
                       navigation_tabs={settings.navigationTabs}
                       post_card_layout={settings.postCardLayout}
+                      pinned_post_permlinks={settings.pinnedPostPermlinks}
                     />
                   </div>
                 </>
@@ -414,6 +417,7 @@ const slotRendererProps = {
                     category_tag={activeCategoryTag}
                     navigation_tabs={settings.navigationTabs}
                     post_card_layout={settings.postCardLayout}
+                    pinned_post_permlinks={settings.pinnedPostPermlinks}
                   />
                 </div>
               </>

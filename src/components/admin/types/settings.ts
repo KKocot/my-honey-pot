@@ -10,6 +10,10 @@ import type { LayoutSection, CardLayout, PageLayout, PageLayoutConfig } from './
 import type { NavigationTab } from './navigation'
 import type { SocialLink } from './social'
 
+export const POSTS_PER_PAGE_MIN = 5
+export const POSTS_PER_PAGE_MAX = 30
+export const MAX_PINNED_POSTS = 5
+
 /** Sort order options for community posts display */
 export type CommunityDisplaySortOrder = 'trending' | 'hot' | 'created' | 'payout' | 'muted'
 
@@ -116,6 +120,8 @@ export interface SettingsData {
   navigationTabs: NavigationTab[]
   // Social media links for author profile
   socialLinks: SocialLink[]
+  // Pinned posts (user blog mode only)
+  pinnedPostPermlinks: string[]
   // Footer settings
   footer_text?: string
   footer_show_kofi?: boolean
@@ -288,6 +294,7 @@ export const defaultSettings: SettingsData = {
     { id: 'comments', label: 'Comments', enabled: true, showCount: false },
   ],
   socialLinks: [],
+  pinnedPostPermlinks: [],
   footer_text: '',
   footer_show_kofi: true,
   community_default_sort: 'trending',
@@ -464,6 +471,7 @@ export const USER_ONLY_SETTINGS_KEYS: ReadonlyArray<keyof SettingsData> = [
   "showAuthorCoverImage",
   "showPostCount",
   "showAuthorRewards",
+  "pinnedPostPermlinks",
 ] as const;
 
 /**

@@ -83,6 +83,8 @@ interface Props {
   nextCommentsPageUrl: string | null
   // Threads data (comments under author's "my-threads" post)
   threads?: FetchPostRepliesResult | null
+  // Pinned posts (prefetched in SSR)
+  pinnedPosts?: BridgePost[]
   // Community data (passed through for communityProfile/communitySidebar elements)
   communityData?: HiveCommunity | null
 }
@@ -112,6 +114,7 @@ const {
   hasMoreComments,
   nextCommentsPageUrl,
   threads,
+  pinnedPosts,
   communityData,
 } = Astro.props
 
@@ -178,7 +181,7 @@ const activeSections = sections.filter(s => s.active !== false && s.elements.len
         {is_sidebar(context) && (
           <div class="bg-bg-card rounded-lg p-3 border border-border">
             {blogLogicPosts.length > 0 ? (
-              <BlogLogicPostsGrid posts={blogLogicPosts} settings={settings} />
+              <BlogLogicPostsGrid posts={blogLogicPosts} settings={settings} pinned_posts={pinnedPosts} />
             ) : (
               <p class="text-text-muted text-xs">No posts</p>
             )}
@@ -188,7 +191,7 @@ const activeSections = sections.filter(s => s.active !== false && s.elements.len
           <>
             {blogLogicPosts.length > 0 ? (
               <>
-                <BlogLogicPostsGrid posts={blogLogicPosts} settings={settings} />
+                <BlogLogicPostsGrid posts={blogLogicPosts} settings={settings} pinned_posts={pinnedPosts} />
                 {showCategoryLimitWarning && (
                   <p class="text-xs text-text-muted text-center mt-3">
                     Showing posts with tag #{activeCategoryTag} from the latest {totalFetchedBeforeFilter}. More matching posts may exist.
@@ -269,7 +272,7 @@ const activeSections = sections.filter(s => s.active !== false && s.elements.len
         {!is_sidebar(context) && !is_main_posts_view(context, activeTab) && !is_main_comments_view(context, activeTab, hiveComments.length > 0) && !is_main_threads_view(context, activeTab) && (
           <>
             {blogLogicPosts.length > 0 ? (
-              <BlogLogicPostsGrid posts={blogLogicPosts} settings={settings} />
+              <BlogLogicPostsGrid posts={blogLogicPosts} settings={settings} pinned_posts={pinnedPosts} />
             ) : (
               <div class="text-center py-8 bg-bg-card rounded-xl border border-border">
                 <p class="text-text-muted">No posts found</p>

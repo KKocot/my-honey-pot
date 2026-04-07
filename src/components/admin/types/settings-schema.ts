@@ -10,6 +10,7 @@
 // for forward compatibility with new fields.
 
 import { z } from "zod";
+import { POSTS_PER_PAGE_MIN, POSTS_PER_PAGE_MAX, MAX_PINNED_POSTS } from "./settings";
 
 /** Schema for settings data loaded from blockchain */
 export const settings_schema = z
@@ -59,7 +60,7 @@ export const settings_schema = z
     authorAvatarSizePx: z.number().optional().default(64),
     showPostCount: z.boolean().optional().default(true),
     showAuthorRewards: z.boolean().optional().default(true),
-    postsPerPage: z.number().optional().default(20),
+    postsPerPage: z.number().min(POSTS_PER_PAGE_MIN).max(POSTS_PER_PAGE_MAX).optional().default(20),
     sidebarWidthPx: z.number().optional().default(280),
 
     // Author Profile extended settings
@@ -155,6 +156,9 @@ export const settings_schema = z
 
     // Social media links (array of objects - validate loosely)
     socialLinks: z.array(z.unknown()).optional().default([]),
+
+    // Pinned posts (user blog mode only)
+    pinnedPostPermlinks: z.array(z.string().regex(/^[a-z0-9._-]+$/)).max(MAX_PINNED_POSTS).optional().default([]),
 
     // Footer settings
     footer_text: z.string().max(500).optional(),

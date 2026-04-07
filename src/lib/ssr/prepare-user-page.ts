@@ -12,6 +12,7 @@ import {
   fetch_posts,
   fetch_comments,
   fetch_post_replies,
+  fetch_single_post,
   type FetchPostsResult,
   type FetchCommentsResult,
   type FetchPostRepliesResult,
@@ -140,8 +141,19 @@ export async function prepare_user_page(
   let next_posts_cursor: IPaginationCursor | undefined;
   let next_comments_cursor: IPaginationCursor | undefined;
   let total_fetched_before_filter = 0;
+  let pinned_posts: BridgePost[] = [];
 
   try {
+    // Fetch pinned posts in parallel with profile/account data
+    const pinned_permlinks = settings.pinnedPostPermlinks ?? [];
+    const pinned_promise = pinned_permlinks.length > 0
+      ? Promise.all(
+          pinned_permlinks.map((permlink) =>
+            fetch_single_post(hive_username, permlink)
+          )
+        )
+      : Promise.resolve([]);
+
     // Prefetch profile, account, global properties, manabars in parallel
     await Promise.allSettled([
       query_client.prefetchQuery({
@@ -232,6 +244,11 @@ export async function prepare_user_page(
         total_fetched_before_filter = posts_data.total_before_filter;
       }
     }
+    // Collect pinned posts (runs in parallel with above fetches)
+    const pinned_results = await pinned_promise;
+    pinned_posts = pinned_results.filter(
+      (post): post is BridgePost => post !== null
+    );
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
     console.error("Error fetching Hive data:", message);
@@ -271,6 +288,7 @@ export async function prepare_user_page(
     next_comments_cursor,
     total_fetched_before_filter,
     threads,
+    pinned_posts,
     error,
   };
 }

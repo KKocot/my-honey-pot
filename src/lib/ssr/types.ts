@@ -68,5 +68,6 @@ export interface UserPageData {
   next_comments_cursor: IPaginationCursor | undefined;
   total_fetched_before_filter: number;
   threads: FetchPostRepliesResult | null;
+  pinned_posts: BridgePost[];
   error: string | null;
 }

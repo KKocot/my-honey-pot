@@ -188,6 +188,34 @@ export async function fetch_manabars(
 }
 
 /**
+ * Fetch a single post by author and permlink using bridge.get_discussion.
+ * Returns the root post as BridgePost, or null if not found.
+ *
+ * NOTE: bridge.get_discussion fetches the full comment tree, which is heavier
+ * than needed for a single post. However, @hiveio/wax does not expose a lighter
+ * alternative (e.g. condenser_api.get_content). The overhead is acceptable for
+ * the small number of pinned posts (max 5).
+ */
+export async function fetch_single_post(
+  author: string,
+  permlink: string
+): Promise<BridgePost | null> {
+  try {
+    const discussion = await withRetry((chain) =>
+      chain.api.bridge.get_discussion({ author, permlink, observer: "" })
+    );
+    const root_key = `${author}/${permlink}`;
+    const post = discussion[root_key];
+    if (post && post.author) {
+      return post as BridgePost;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Fetch posts with optional category filtering and cursor-based pagination.
  * Calls get_account_posts directly (bypassing enumAccountPosts which lacks cursor support).
  */

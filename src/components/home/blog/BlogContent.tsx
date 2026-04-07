@@ -37,6 +37,13 @@ interface BlogContentProps {
   category_tag?: string | null;
   navigation_tabs?: Array<{ id: string; label: string; tag?: string }>;
   post_card_layout?: CardLayout;
+  pinned_post_permlinks?: string[];
+}
+
+function filter_pinned_posts(posts: BridgePost[], pinned_permlinks?: string[]): BridgePost[] {
+  if (!pinned_permlinks || pinned_permlinks.length === 0) return posts;
+  const pinned_set = new Set(pinned_permlinks);
+  return posts.filter((p) => !pinned_set.has(p.permlink));
 }
 
 // ============================================
@@ -409,7 +416,11 @@ const BlogContentInner: Component<BlogContentProps> = (props) => {
           </div>
         </Show>
         <Show when={posts_query.data}>
-          <PostsGrid posts={posts_query.data?.posts ?? []} settings={props.settings} layout={props.post_card_layout} />
+          <PostsGrid
+            posts={filter_pinned_posts(posts_query.data?.posts ?? [], props.pinned_post_permlinks)}
+            settings={props.settings}
+            layout={props.post_card_layout}
+          />
         </Show>
       </Show>
 

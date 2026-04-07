@@ -15,13 +15,19 @@ import {
 interface Props {
   posts: BridgePost[]
   settings: SiteSettings
+  pinned_posts?: BridgePost[]
 }
 
-const { posts, settings } = Astro.props
+const { posts, settings, pinned_posts = [] } = Astro.props
+
+const pinnedPosts = pinned_posts
+
+const pinnedPermlinksSet = new Set(pinnedPosts.map((p) => p.permlink))
+const regularPosts = posts.filter((p) => !pinnedPermlinksSet.has(p.permlink))
 
 // Layout settings
-const postsLayout = settings.postsLayout || 'list'
-const gridColumns = settings.gridColumns || 2
+const postsLayout = settings.postsLayout ?? 'list'
+const gridColumns = settings.gridColumns ?? 2
 const cardGapPx = settings.cardGapPx ?? 24
 
 // Card settings with defaults
@@ -70,17 +76,25 @@ const gridSettings: PostsGridSettings = {
 // Determine if cards should be vertical (same logic as FullPreview)
 const isVertical = postsLayout !== 'list'
 
-// Render all post cards as HTML strings
-const cards_html = posts.map((post) => {
-  const postData = createPostCardDataFromBridge(post, {
-    thumbnailSizePx,
-    maxTags,
-  })
+// Render pinned post cards with badge
+const pin_icon_svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="w-3 h-3"><path d="M10.97 2.22a.75.75 0 0 1 1.06 0l1.75 1.75a.75.75 0 0 1-.177 1.213l-2.63 1.315.818 3.272a.75.75 0 0 1-1.244.665L8.25 8.187l-2.75 2.75a.75.75 0 0 1-1.06-1.06l2.75-2.75-2.248-2.248a.75.75 0 0 1 .665-1.244l3.272.818 1.315-2.63a.75.75 0 0 1 .177-.177Z"/></svg>'
+
+const pinned_badge = `<div class="absolute top-2 right-2 z-10 flex items-center gap-1 px-2 py-0.5 bg-primary/90 text-primary-text text-xs font-medium rounded-full">${pin_icon_svg}<span>Pinned</span></div>`
+
+const pinned_cards_html = pinnedPosts.map((post) => {
+  const postData = createPostCardDataFromBridge(post, { thumbnailSizePx, maxTags })
+  const cardHtml = renderPostCard(postData, cardSettings, isVertical, `/${post.permlink}`)
+  return `<div class="relative border-2 border-primary rounded-2xl overflow-hidden">${pinned_badge}${cardHtml}</div>`
+})
+
+// Render regular post cards
+const regular_cards_html = regularPosts.map((post) => {
+  const postData = createPostCardDataFromBridge(post, { thumbnailSizePx, maxTags })
   return renderPostCard(postData, cardSettings, isVertical, `/${post.permlink}`)
 })
 
-// Wrap cards in appropriate grid layout
-const gridHtml = renderPostsGrid(cards_html, gridSettings)
+const all_cards_html = [...pinned_cards_html, ...regular_cards_html]
+const gridHtml = renderPostsGrid(all_cards_html, gridSettings)
 ---
 
 <Fragment set:html={gridHtml} />
