@@ -42,9 +42,6 @@ export function CardAppearanceSettings() {
             <h3 class="text-sm font-medium text-text-muted uppercase tracking-wide mb-3">
               Card Elements Layout
             </h3>
-            <p class="text-xs text-text-muted mb-4">
-              Drag elements between sections. Each section can be horizontal or vertical.
-            </p>
             <CardLayoutEditor
               layout={settings.postCardLayout}
               elementLabels={extendedPostCardElementLabels}
@@ -52,9 +49,6 @@ export function CardAppearanceSettings() {
               onUpdate={handleLayoutUpdate}
             />
           </div>
-
-          {/* Additional Settings for enabled elements */}
-          <AdditionalSettings />
         </div>
 
         {/* Live Preview */}
@@ -69,6 +63,11 @@ export function CardAppearanceSettings() {
 // ============================================
 
 function CardLayoutSection() {
+  // Check if element is in any section (recursively)
+  const isElementUsed = (id: string) => {
+    return collectAllElementIds(settings.postCardLayout).includes(id)
+  }
+
   return (
     <div class="space-y-4">
       <h3 class="text-sm font-medium text-text-muted uppercase tracking-wide">Card Settings</h3>
@@ -109,43 +108,28 @@ function CardLayoutSection() {
           value={settings.titleSizePx}
           onChange={(val) => updateSettings({ titleSizePx: val })}
         />
+
+        <Show when={isElementUsed('summary')}>
+          <Slider
+            label="Summary length:"
+            unit=" chars"
+            min={50}
+            max={500}
+            value={settings.summaryMaxLength}
+            onChange={(val) => updateSettings({ summaryMaxLength: val })}
+          />
+        </Show>
+
+        <Show when={isElementUsed('tags')}>
+          <Slider
+            label="Max tags:"
+            min={1}
+            max={10}
+            value={settings.maxTags}
+            onChange={(val) => updateSettings({ maxTags: val })}
+          />
+        </Show>
       </div>
-    </div>
-  )
-}
-
-// ============================================
-// Additional Settings (based on enabled elements)
-// ============================================
-
-function AdditionalSettings() {
-  // Check if element is in any section (recursively)
-  const isElementUsed = (id: string) => {
-    return collectAllElementIds(settings.postCardLayout).includes(id)
-  }
-
-  return (
-    <div class="space-y-4">
-      <Show when={isElementUsed('summary')}>
-        <Slider
-          label="Summary length:"
-          unit=" chars"
-          min={50}
-          max={500}
-          value={settings.summaryMaxLength}
-          onChange={(val) => updateSettings({ summaryMaxLength: val })}
-        />
-      </Show>
-
-      <Show when={isElementUsed('tags')}>
-        <Slider
-          label="Max tags:"
-          min={1}
-          max={10}
-          value={settings.maxTags}
-          onChange={(val) => updateSettings({ maxTags: val })}
-        />
-      </Show>
     </div>
   )
 }
