@@ -36,46 +36,44 @@ export function CommentSettings() {
 
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div class="space-y-4">
-          <h3 class="text-sm font-medium text-text mb-2">Comment Card Settings</h3>
+          <div class="grid grid-cols-2 gap-4">
+            <Slider
+              label="Avatar size:"
+              unit="px"
+              min={24}
+              max={64}
+              value={settings.commentAvatarSizePx}
+              onChange={(val) => updateSettings({ commentAvatarSizePx: val })}
+            />
 
-          {/* Sliders */}
-          <Slider
-            label="Avatar size:"
-            unit="px"
-            min={24}
-            max={64}
-            value={settings.commentAvatarSizePx}
-            onChange={(val) => updateSettings({ commentAvatarSizePx: val })}
-          />
+            <Slider
+              label="Card padding:"
+              unit="px"
+              min={8}
+              max={32}
+              value={settings.commentPaddingPx}
+              onChange={(val) => updateSettings({ commentPaddingPx: val })}
+            />
 
-          <Slider
-            label="Card padding:"
-            unit="px"
-            min={8}
-            max={32}
-            value={settings.commentPaddingPx}
-            onChange={(val) => updateSettings({ commentPaddingPx: val })}
-          />
-
-          <Slider
-            label="Max content length:"
-            unit="chars"
-            min={0}
-            max={1000}
-            step={50}
-            value={settings.commentMaxLength}
-            onChange={(val) => updateSettings({ commentMaxLength: val })}
-          />
-          <p class="text-xs text-text-muted -mt-2">0 = show full content (no limit)</p>
+            <div>
+              <Slider
+                label="Max content length:"
+                unit="chars"
+                min={0}
+                max={1000}
+                step={50}
+                value={settings.commentMaxLength}
+                onChange={(val) => updateSettings({ commentMaxLength: val })}
+              />
+              <p class="text-xs text-text-muted mt-1">0 = no limit</p>
+            </div>
+          </div>
 
           {/* Card Layout Editor - Drag & Drop */}
           <div class="border-t border-border pt-4">
-            <h4 class="text-sm font-medium text-text-muted mb-3">
+            <h4 class="text-sm font-medium text-text-muted uppercase tracking-wide mb-3">
               Card Elements Layout
             </h4>
-            <p class="text-xs text-text-muted mb-4">
-              Drag elements between sections. Each section can be horizontal or vertical.
-            </p>
             <CardLayoutEditor
               layout={settings.commentCardLayout}
               elementLabels={extendedCommentCardElementLabels}
