@@ -279,11 +279,13 @@ export function PostCard(props: PostCardProps) {
 interface LayoutPreviewProps {
   postCount?: number
   maxHeight?: string
+  pinnedPermlinks?: string[]
 }
 
 export function LayoutPreview(props: LayoutPreviewProps) {
   const count = createMemo(() => props.postCount ?? 4)
   const scale = 0.6 // Scale factor for preview
+  const pinnedPermlinks = createMemo(() => (props.pinnedPermlinks ?? []).slice(0, 5))
 
   const containerStyle = createMemo(() => {
     const gap = settings.cardGapPx
@@ -316,16 +318,15 @@ export function LayoutPreview(props: LayoutPreviewProps) {
 
   return (
     <div
-      class="overflow-hidden bg-bg rounded-lg border border-border"
-      style={{ 'max-height': props.maxHeight ?? '500px' }}
+      class="overflow-hidden bg-bg rounded-lg border border-border flex flex-col"
+      style={{ 'max-height': props.maxHeight === '100%' ? undefined : (props.maxHeight ?? '500px'), height: props.maxHeight === '100%' ? '100%' : undefined }}
     >
-      <div class="p-3">
+      <div class="p-3 flex flex-col flex-1 min-h-0">
         <p class="text-xs text-text-muted mb-2 uppercase tracking-wide">
           Preview ({layoutLabel()}) - scaled {Math.round(scale * 100)}%
         </p>
         <div
-          class="overflow-y-auto overflow-x-hidden"
-          style={{ 'max-height': `calc(${props.maxHeight ?? '500px'} - 40px)` }}
+          class="overflow-y-auto overflow-x-hidden flex-1"
         >
           <div
             style={{
@@ -335,6 +336,15 @@ export function LayoutPreview(props: LayoutPreviewProps) {
             }}
           >
             <div style={containerStyle()}>
+              {/* Pinned post placeholders */}
+              <For each={pinnedPermlinks()}>
+                {(permlink) => (
+                  <div style={masonryItemStyle()}>
+                    <PinnedPostPlaceholder permlink={permlink} />
+                  </div>
+                )}
+              </For>
+              {/* Regular posts */}
               <For each={visiblePosts()}>
                 {(post) => (
                   <div style={masonryItemStyle()}>
@@ -347,6 +357,48 @@ export function LayoutPreview(props: LayoutPreviewProps) {
         </div>
       </div>
     </div>
+  )
+}
+
+// ============================================
+// Pinned Post Placeholder for Preview
+// ============================================
+
+function PinnedPostPlaceholder(props: { permlink: string }) {
+  const padding = createMemo(() => settings.cardPaddingPx)
+  const borderRadius = createMemo(() => settings.cardBorderRadiusPx)
+
+  return (
+    <article
+      class="bg-bg-card overflow-hidden border-2 border-primary relative"
+      style={{
+        padding: `${padding()}px`,
+        'border-radius': `${borderRadius()}px`,
+      }}
+    >
+      <div class="absolute top-2 right-2 z-10 flex items-center gap-1 px-2 py-0.5 bg-primary/90 text-primary-text text-xs font-medium rounded-full">
+        <PinIcon />
+        <span>Pinned</span>
+      </div>
+      <div class="flex flex-col gap-2 pt-4">
+        <div class="h-3 w-3/4 bg-bg-secondary rounded" />
+        <h2 class="font-semibold text-text text-sm truncate">{props.permlink}</h2>
+        <div class="h-2 w-full bg-bg-secondary rounded" />
+        <div class="h-2 w-2/3 bg-bg-secondary rounded" />
+      </div>
+    </article>
+  )
+}
+
+// ============================================
+// Pin Icon
+// ============================================
+
+function PinIcon() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="w-3 h-3">
+      <path d="M10.97 2.22a.75.75 0 0 1 1.06 0l1.75 1.75a.75.75 0 0 1-.177 1.213l-2.63 1.315.818 3.272a.75.75 0 0 1-1.244.665L8.25 8.187l-2.75 2.75a.75.75 0 0 1-1.06-1.06l2.75-2.75-2.248-2.248a.75.75 0 0 1 .665-1.244l3.272.818 1.315-2.63a.75.75 0 0 1 .177-.177Z" />
+    </svg>
   )
 }
 
