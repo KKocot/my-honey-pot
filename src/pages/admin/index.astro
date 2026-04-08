@@ -1,0 +1,33 @@
+---
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 Krzysztof Kocot
+
+import AdminLayout from '../../layouts/AdminLayout.astro'
+import { AdminPanel } from '../../components/admin'
+import { load_and_prepare_config } from '../../lib/config-pipeline'
+import type { SettingsData } from '../../components/admin/types'
+import { get_default_settings } from '../../components/admin/types'
+import { HIVE_USERNAME } from '../../lib/config'
+
+// Load initial settings from Hive on server via unified pipeline
+let initialSettings: SettingsData | null = null
+const hiveUsername = HIVE_USERNAME
+
+if (hiveUsername) {
+  try {
+    initialSettings = await load_and_prepare_config(hiveUsername, false)
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error'
+    console.error('Admin: Failed to load config from Hive:', message)
+    initialSettings = { ...get_default_settings(false), hiveUsername: hiveUsername }
+  }
+}
+---
+
+<AdminLayout title={`Settings - ${hiveUsername ? `${hiveUsername} Blog` : 'Hive Blog'}`} activeTab="settings">
+  <AdminPanel
+    client:only="solid-js"
+    initialSettings={initialSettings}
+    ownerUsername={hiveUsername}
+  />
+</AdminLayout>

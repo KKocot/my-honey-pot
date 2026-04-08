@@ -4,7 +4,7 @@
 import { createEffect, createSignal, Show, onMount, onCleanup, ErrorBoundary, on } from 'solid-js'
 import { QueryClientProvider } from '@tanstack/solid-query'
 import { Toast, showToast, Button } from '../../../ui'
-import { currentUser, isAuthenticated, login, logout, needsReauth, type AuthUser } from '../../../auth'
+import { currentUser, isAuthenticated, login, logout, needsReauth, restore_session, type AuthUser } from '../../../auth'
 import { TemplateSelector } from '../../editors/TemplateSelector'
 import { LayoutEditor } from '../../editors/LayoutEditor'
 import { SiteSettings } from '../../settings/SiteSettings'
@@ -55,6 +55,7 @@ function AdminPanelContent(props: AdminPanelContentProps) {
   const [diffViewMode, setDiffViewMode] = createSignal<'diff' | 'old' | 'new'>('diff')
   const [isLoadingDiff, setIsLoadingDiff] = createSignal(false)
   const [showMobileMenu, setShowMobileMenu] = createSignal(false)
+  const [is_restoring, set_is_restoring] = createSignal(true)
 
   const isOwner = () => {
     const user = currentUser()
@@ -70,7 +71,11 @@ function AdminPanelContent(props: AdminPanelContentProps) {
     }
   }
 
-  onMount(() => {
+  onMount(async () => {
+    await restore_session()
+    set_is_restoring(false)
+    setReauthSession(needsReauth())
+
     if (props.initialSettings) {
       const settings_with_username = {
         ...props.initialSettings,
@@ -200,19 +205,9 @@ function AdminPanelContent(props: AdminPanelContentProps) {
         </div>
       </Show>
 
-      {/* Top Auth Bar */}
-      <div class="flex items-center justify-end mb-4">
-        <Show when={isAuthenticated()} fallback={
-          <button
-            onClick={() => setShowLoginModal(true)}
-            class="flex items-center gap-2 px-3 py-1.5 text-sm text-text-muted hover:text-text hover:bg-bg-secondary rounded-lg transition-colors"
-          >
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
-            </svg>
-            Login
-          </button>
-        }>
+      {/* Auth Bar - only shown when logged in */}
+      <Show when={isAuthenticated()}>
+        <div class="flex items-center justify-end mb-4">
           <div class="flex items-center gap-3">
             <img
               src={hive_avatar_url(currentUser()?.username ?? "")}
@@ -230,8 +225,8 @@ function AdminPanelContent(props: AdminPanelContentProps) {
               Logout
             </button>
           </div>
-        </Show>
-      </div>
+        </div>
+      </Show>
 
       {/* Loading state */}
       <Show when={settingsQuery.isLoading}>
@@ -288,10 +283,7 @@ function AdminPanelContent(props: AdminPanelContentProps) {
         <div class="h-24" />
 
         <BottomBar
-          is_owner={isOwner()}
-          is_authenticated={isAuthenticated()}
           is_broadcasting={isBroadcasting()}
-          owner_username={props.ownerUsername}
           show_mobile_menu={showMobileMenu()}
           on_save_click={handleSaveClick}
           on_preview_json={handlePreviewJsonClick}

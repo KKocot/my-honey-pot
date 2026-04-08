@@ -1,0 +1,53 @@
+---
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 Krzysztof Kocot
+
+import Layout from './Layout.astro'
+
+interface Props {
+  title: string
+  activeTab: 'settings' | 'submit'
+}
+
+const { title, activeTab } = Astro.props
+
+const tabs = [
+  { id: 'settings', label: 'Settings', href: '/admin' },
+  { id: 'submit', label: 'Submit Post', href: '/admin/submit' },
+] as const
+---
+
+<Layout title={title}>
+  <div class="max-w-7xl mx-auto px-4 py-8">
+    <a
+      href="/"
+      class="inline-flex items-center text-primary hover:text-primary-hover mb-6 transition-colors"
+    >
+      <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+      </svg>
+      Back to site
+    </a>
+
+    <h1 class="text-3xl font-bold text-text mb-6">Admin Panel</h1>
+
+    <!-- Tab Navigation -->
+    <nav class="flex gap-1 mb-8 border-b border-border">
+      {tabs.map((tab) => (
+        <a
+          href={tab.href}
+          class:list={[
+            'px-4 py-2.5 text-sm font-medium rounded-t-lg transition-colors -mb-px border-b-2',
+            activeTab === tab.id
+              ? 'border-primary text-primary bg-bg-card'
+              : 'border-transparent text-text-muted hover:text-text hover:border-border',
+          ]}
+        >
+          {tab.label}
+        </a>
+      ))}
+    </nav>
+
+    <slot />
+  </div>
+</Layout>
