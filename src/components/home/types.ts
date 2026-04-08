@@ -3,7 +3,7 @@
 
 import type { BridgePost, IDatabaseAccount, AccountPostsSortOption, CommentSortOption } from '@hiveio/workerbee/blog-logic'
 import type { SettingsData } from '../admin/types'
-import { defaultSettings, defaultCommunitySettings } from "../admin/types/settings"
+import { defaultSettings } from "../admin/types/settings"
 
 // ============================================
 // Re-export types from admin/types
@@ -63,6 +63,4 @@ export interface HomePageData {
 
 export const defaultLayoutSections = defaultSettings.layoutSections;
 export const defaultPageLayout = defaultSettings.pageLayout;
-export const defaultCommunityPageLayout = defaultCommunitySettings.pageLayout;
 export const defaultPageLayoutConfig = defaultSettings.pageLayoutConfig;
-export const defaultCommunityPageLayoutConfig = defaultCommunitySettings.pageLayoutConfig;

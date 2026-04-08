@@ -3,16 +3,14 @@
 // Copyright (C) 2026 Krzysztof Kocot
 
 import Layout from '../layouts/Layout.astro'
-import { HIVE_USERNAME, IS_COMMUNITY } from '../lib/config'
-import { prepare_community_page } from '../lib/ssr/prepare-community-page'
+import { HIVE_USERNAME } from '../lib/config'
 import { prepare_user_page } from '../lib/ssr/prepare-user-page'
 
 import { BlogContent } from '../components/home/blog/BlogContent'
-import { CommunityContent } from '../components/community/CommunityContent'
 
 import SlotRenderer from '../components/home/blog/SlotRenderer.astro'
 import NoscriptFallback from '../components/home/blog/NoscriptFallback.astro'
-import { type SiteSettings, type PageLayout, type PageSlotPosition, defaultPageLayout, defaultCommunityPageLayout, defaultPageLayoutConfig, defaultCommunityPageLayoutConfig } from '../components/home/types'
+import { type SiteSettings, type PageLayout, type PageSlotPosition, defaultPageLayout, defaultPageLayoutConfig } from '../components/home/types'
 import { hasLeftSidebar as templateHasLeft, hasRightSidebar as templateHasRight, pageLayoutConfigToLegacy, migratePageLayoutToConfig, migratePageLayoutConfigV2ToV3, type PageLayoutConfig } from '../components/admin/types/layout'
 
 import type { IPaginationCursor } from '@hiveio/workerbee/blog-logic'
@@ -24,15 +22,7 @@ import type { IPaginationCursor } from '@hiveio/workerbee/blog-logic'
 const hiveUsername = HIVE_USERNAME
 const url = new URL(Astro.request.url)
 
-const community_page = IS_COMMUNITY && hiveUsername
-  ? await prepare_community_page(hiveUsername, {
-      sort: url.searchParams.get('sort') || undefined,
-      start_author: url.searchParams.get('start_author') || undefined,
-      start_permlink: url.searchParams.get('start_permlink') || undefined,
-    })
-  : null
-
-const user_page = !IS_COMMUNITY && hiveUsername
+const user_page = hiveUsername
   ? await prepare_user_page(hiveUsername, {
       tab: url.searchParams.get('tab') || undefined,
       start_author: url.searchParams.get('start_author') || undefined,
@@ -41,26 +31,19 @@ const user_page = !IS_COMMUNITY && hiveUsername
   : null
 
 // Unified access to settings and state
-const settings: SiteSettings = community_page?.settings ?? user_page?.settings ?? {}
-const dehydrated_state = community_page?.dehydrated_state ?? user_page?.dehydrated_state ?? null
-const error = community_page?.error ?? user_page?.error ?? null
+const settings: SiteSettings = user_page?.settings ?? {}
+const dehydrated_state = user_page?.dehydrated_state ?? null
+const error = user_page?.error ?? null
 
 // ============================================
 // Settings with defaults
 // ============================================
 
-const communityTitle = community_page?.community_data?.title || HIVE_USERNAME
-const defaultSiteName = IS_COMMUNITY
-  ? (communityTitle || 'Hive Community')
-  : (HIVE_USERNAME ? `${HIVE_USERNAME} Blog` : 'Hive Blog')
-const siteName = settings.siteName || defaultSiteName
-const defaultDescription = IS_COMMUNITY
-  ? (community_page?.community_data?.about || 'Hive community')
-  : 'Posts from Hive blockchain'
-const siteDescription = settings.siteDescription || defaultDescription
+const siteName = settings.siteName || (HIVE_USERNAME ? `${HIVE_USERNAME} Blog` : 'Hive Blog')
+const siteDescription = settings.siteDescription || 'Posts from Hive blockchain'
 
 // Resolve page layout config: v3 (containers) > v2 (sidebarLeft/sidebarRight) > v1 (slots) > defaults
-const defaultConfig = IS_COMMUNITY ? defaultCommunityPageLayoutConfig : defaultPageLayoutConfig
+const defaultConfig = defaultPageLayoutConfig
 
 function resolvePageLayoutConfig(): PageLayoutConfig {
   const raw = settings.pageLayoutConfig
@@ -121,14 +104,9 @@ const authorStatsSize = settings.authorStatsSizePx ?? 14
 const authorMetaSize = settings.authorMetaSizePx ?? 12
 
 // ============================================
-// Unpack mode-specific data
+// Unpack user mode data
 // ============================================
 
-// Community mode
-const communityData = community_page?.community_data ?? null
-const communitySortOrder = community_page?.community_sort_order ?? 'trending'
-
-// User mode
 const hiveAccount = user_page?.hive_account ?? null
 const hiveProfile = user_page?.hive_profile ?? null
 const globalProperties = user_page?.global_properties ?? null
@@ -140,8 +118,8 @@ const showCommentsTab = user_page?.show_comments_tab ?? false
 const activeCategoryTag = user_page?.active_category_tag ?? null
 const postsSortOrder = user_page?.posts_sort_order ?? 'blog'
 const commentsSortOrder = user_page?.comments_sort_order ?? 'comments'
-const postsLimit = community_page?.posts_limit ?? user_page?.posts_limit ?? 20
-const hasMorePosts = community_page?.has_more_posts ?? user_page?.has_more_posts ?? false
+const postsLimit = user_page?.posts_limit ?? 20
+const hasMorePosts = user_page?.has_more_posts ?? false
 const hasMoreComments = user_page?.has_more_comments ?? false
 const nextPostsCursor = user_page?.next_posts_cursor
 const nextCommentsCursor = user_page?.next_comments_cursor
@@ -216,7 +194,7 @@ const slotRendererProps = {
   hasMoreComments,
   nextCommentsPageUrl,
   threads,
-  communityData,
+  communityData: null,
   pinnedPosts,
 }
 ---
@@ -237,200 +215,117 @@ const slotRendererProps = {
       </div>
     )}
 
-    {/* ============================================ */}
-    {/* COMMUNITY MODE */}
-    {/* ============================================ */}
-    {IS_COMMUNITY && hiveUsername && (
-      <>
-        {/* Top sections - render elements in order */}
-        <SlotRenderer sections={sectionsBySlot['top']} context="top" {...slotRendererProps} />
+    {/* Top sections - render elements in order */}
+    <SlotRenderer sections={sectionsBySlot['top']} context="top" {...slotRendererProps} />
 
-        {/* Main content with optional sidebars - Responsive Layout */}
-        {hasSidebars ? (
-          <div class="sidebar-layout">
-            {/* Left Sidebar */}
-            {hasLeftSidebar && (
-              <aside class="sidebar-left" style="--sidebar-width: 280px;">
-                <SlotRenderer sections={sectionsBySlot['sidebar-left']} context="sidebar-left" {...slotRendererProps} />
-              </aside>
-            )}
+    {/* Main content with optional sidebars - Responsive Layout */}
+    {hasSidebars ? (
+      <div class="sidebar-layout">
+        {/* Left Sidebar */}
+        {hasLeftSidebar && (
+          <aside class="sidebar-left" style="--sidebar-width: 280px;">
+            <SlotRenderer sections={sectionsBySlot['sidebar-left']} context="sidebar-left" {...slotRendererProps} />
+          </aside>
+        )}
 
-            {/* Main Content */}
-            <main class="main-content">
-              {dehydrated_state && (
-                <div class="js-only">
-                  <CommunityContent
-                    client:only="solid-js"
-                    community_name={hiveUsername}
-                    initial_sort={communitySortOrder}
-                    posts_per_page={postsLimit}
-                    settings={settings}
-                    dehydrated_state={dehydrated_state}
-                    post_card_layout={settings.postCardLayout}
-                  />
-                </div>
-              )}
-              {!dehydrated_state && (
-                <div class="text-center py-12 bg-bg-card rounded-xl shadow-sm border border-border">
-                  <p class="text-text-muted">Loading community...</p>
-                </div>
-              )}
-            </main>
+        {/* Main Content */}
+        <main class="main-content">
+          {hiveUsername && dehydrated_state && hasElementInSlot('main', 'navigation') && (
+            <SlotRenderer
+              sections={sectionsBySlot['main']
+                .filter(section => section.elements.includes('navigation'))
+                .map(section => ({
+                  ...section,
+                  elements: section.elements.filter(el => el === 'navigation')
+                }))}
+              context="main"
+              {...slotRendererProps}
+            />
+          )}
 
-            {/* Right Sidebar */}
-            {hasRightSidebar && (
-              <aside class="sidebar-right" style="--sidebar-width: 280px;">
-                <SlotRenderer sections={sectionsBySlot['sidebar-right']} context="sidebar-right" {...slotRendererProps} />
-              </aside>
-            )}
-          </div>
-        ) : (
-          /* No sidebars - render main content directly */
-          <>
-            {dehydrated_state && (
+          {hiveUsername && dehydrated_state && (
+            <>
+              <noscript>
+                <NoscriptFallback active_tab={activeTab} blog_logic_posts={blogLogicPosts} hive_comments={hiveComments} />
+              </noscript>
               <div class="js-only">
-                <CommunityContent
+                <BlogContent
                   client:only="solid-js"
-                  community_name={hiveUsername}
-                  initial_sort={communitySortOrder}
+                  hive_username={hiveUsername}
+                  initial_tab={activeTab}
+                  show_comments_tab={showCommentsTab}
+                  posts_sort_order={postsSortOrder}
+                  comments_sort_order={commentsSortOrder}
                   posts_per_page={postsLimit}
                   settings={settings}
                   dehydrated_state={dehydrated_state}
+                  category_tag={activeCategoryTag}
+                  navigation_tabs={settings.navigationTabs}
                   post_card_layout={settings.postCardLayout}
+                  pinned_post_permlinks={settings.pinnedPostPermlinks}
                 />
               </div>
-            )}
-            {!dehydrated_state && (
-              <div class="text-center py-12 bg-bg-card rounded-xl shadow-sm border border-border">
-                <p class="text-text-muted">Loading community...</p>
-              </div>
-            )}
-          </>
+            </>
+          )}
+          {(!hiveUsername || !dehydrated_state) && (
+            <SlotRenderer sections={sectionsBySlot['main']} context="main" {...slotRendererProps} />
+          )}
+        </main>
+
+        {/* Right Sidebar */}
+        {hasRightSidebar && (
+          <aside class="sidebar-right" style="--sidebar-width: 280px;">
+            <SlotRenderer sections={sectionsBySlot['sidebar-right']} context="sidebar-right" {...slotRendererProps} />
+          </aside>
         )}
-
-        {/* Bottom sections */}
-        <SlotRenderer sections={sectionsBySlot['bottom']} context="bottom" {...slotRendererProps} />
-      </>
-    )}
-
-    {/* ============================================ */}
-    {/* USER MODE (unchanged) */}
-    {/* ============================================ */}
-    {!IS_COMMUNITY && (
+      </div>
+    ) : (
+      /* No sidebars - render main content directly */
       <>
-        {/* Top sections - render elements in order */}
-        <SlotRenderer sections={sectionsBySlot['top']} context="top" {...slotRendererProps} />
-
-        {/* Main content with optional sidebars - Responsive Layout */}
-        {hasSidebars ? (
-          <div class="sidebar-layout">
-            {/* Left Sidebar */}
-            {hasLeftSidebar && (
-              <aside class="sidebar-left" style="--sidebar-width: 280px;">
-                <SlotRenderer sections={sectionsBySlot['sidebar-left']} context="sidebar-left" {...slotRendererProps} />
-              </aside>
-            )}
-
-            {/* Main Content */}
-            <main class="main-content">
-              {hiveUsername && dehydrated_state && hasElementInSlot('main', 'navigation') && (
-                <SlotRenderer
-                  sections={sectionsBySlot['main']
-                    .filter(section => section.elements.includes('navigation'))
-                    .map(section => ({
-                      ...section,
-                      elements: section.elements.filter(el => el === 'navigation')
-                    }))}
-                  context="main"
-                  {...slotRendererProps}
-                />
-              )}
-
-              {hiveUsername && dehydrated_state && (
-                <>
-                  <noscript>
-                    <NoscriptFallback active_tab={activeTab} blog_logic_posts={blogLogicPosts} hive_comments={hiveComments} />
-                  </noscript>
-                  <div class="js-only">
-                    <BlogContent
-                      client:only="solid-js"
-                      hive_username={hiveUsername}
-                      initial_tab={activeTab}
-                      show_comments_tab={showCommentsTab}
-                      posts_sort_order={postsSortOrder}
-                      comments_sort_order={commentsSortOrder}
-                      posts_per_page={postsLimit}
-                      settings={settings}
-                      dehydrated_state={dehydrated_state}
-                      category_tag={activeCategoryTag}
-                      navigation_tabs={settings.navigationTabs}
-                      post_card_layout={settings.postCardLayout}
-                      pinned_post_permlinks={settings.pinnedPostPermlinks}
-                    />
-                  </div>
-                </>
-              )}
-              {(!hiveUsername || !dehydrated_state) && (
-                <SlotRenderer sections={sectionsBySlot['main']} context="main" {...slotRendererProps} />
-              )}
-            </main>
-
-            {/* Right Sidebar */}
-            {hasRightSidebar && (
-              <aside class="sidebar-right" style="--sidebar-width: 280px;">
-                <SlotRenderer sections={sectionsBySlot['sidebar-right']} context="sidebar-right" {...slotRendererProps} />
-              </aside>
-            )}
-          </div>
-        ) : (
-          /* No sidebars - render main content directly */
-          <>
-            {hiveUsername && dehydrated_state && hasElementInSlot('main', 'navigation') && (
-              <SlotRenderer
-                sections={sectionsBySlot['main']
-                  .filter(section => section.elements.includes('navigation'))
-                  .map(section => ({
-                    ...section,
-                    elements: section.elements.filter(el => el === 'navigation')
-                  }))}
-                context="main"
-                {...slotRendererProps}
-              />
-            )}
-
-            {hiveUsername && dehydrated_state && (
-              <>
-                <noscript>
-                  <NoscriptFallback active_tab={activeTab} blog_logic_posts={blogLogicPosts} hive_comments={hiveComments} />
-                </noscript>
-                <div class="js-only">
-                  <BlogContent
-                    client:only="solid-js"
-                    hive_username={hiveUsername}
-                    initial_tab={activeTab}
-                    show_comments_tab={showCommentsTab}
-                    posts_sort_order={postsSortOrder}
-                    comments_sort_order={commentsSortOrder}
-                    posts_per_page={postsLimit}
-                    settings={settings}
-                    dehydrated_state={dehydrated_state}
-                    category_tag={activeCategoryTag}
-                    navigation_tabs={settings.navigationTabs}
-                    post_card_layout={settings.postCardLayout}
-                    pinned_post_permlinks={settings.pinnedPostPermlinks}
-                  />
-                </div>
-              </>
-            )}
-            {(!hiveUsername || !dehydrated_state) && (
-              <SlotRenderer sections={sectionsBySlot['main']} context="main" {...slotRendererProps} />
-            )}
-          </>
+        {hiveUsername && dehydrated_state && hasElementInSlot('main', 'navigation') && (
+          <SlotRenderer
+            sections={sectionsBySlot['main']
+              .filter(section => section.elements.includes('navigation'))
+              .map(section => ({
+                ...section,
+                elements: section.elements.filter(el => el === 'navigation')
+              }))}
+            context="main"
+            {...slotRendererProps}
+          />
         )}
 
-        {/* Bottom sections */}
-        <SlotRenderer sections={sectionsBySlot['bottom']} context="bottom" {...slotRendererProps} />
+        {hiveUsername && dehydrated_state && (
+          <>
+            <noscript>
+              <NoscriptFallback active_tab={activeTab} blog_logic_posts={blogLogicPosts} hive_comments={hiveComments} />
+            </noscript>
+            <div class="js-only">
+              <BlogContent
+                client:only="solid-js"
+                hive_username={hiveUsername}
+                initial_tab={activeTab}
+                show_comments_tab={showCommentsTab}
+                posts_sort_order={postsSortOrder}
+                comments_sort_order={commentsSortOrder}
+                posts_per_page={postsLimit}
+                settings={settings}
+                dehydrated_state={dehydrated_state}
+                category_tag={activeCategoryTag}
+                navigation_tabs={settings.navigationTabs}
+                post_card_layout={settings.postCardLayout}
+                pinned_post_permlinks={settings.pinnedPostPermlinks}
+              />
+            </div>
+          </>
+        )}
+        {(!hiveUsername || !dehydrated_state) && (
+          <SlotRenderer sections={sectionsBySlot['main']} context="main" {...slotRendererProps} />
+        )}
       </>
     )}
+
+    {/* Bottom sections */}
+    <SlotRenderer sections={sectionsBySlot['bottom']} context="bottom" {...slotRendererProps} />
   </div>
 </Layout>

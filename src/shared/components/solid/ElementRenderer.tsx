@@ -35,9 +35,6 @@ import {
   createFooterData,
 } from '../footer'
 import { PostCard } from './PostCard'
-import { CommunityProfile } from '../../../components/community/CommunityProfile'
-import { CommunitySidebar } from '../../../components/community/CommunitySidebar'
-import type { HiveCommunity } from '../../../lib/types/community'
 
 interface ElementRendererProps {
   elementId: string
@@ -47,20 +44,15 @@ interface ElementRendererProps {
   data?: Accessor<HiveData | null>
   community_title?: string
   community_posts?: BridgePost[]
-  community?: HiveCommunity | null
+  community?: unknown
 }
 
 // Render header element using shared component
 // community_title is undefined in user mode, empty string or title in community mode
-function renderHeader(community_title?: string, community?: HiveCommunity | null) {
+function renderHeader() {
   const username = settings.hiveUsername
-  const is_community = community_title !== undefined
-  const default_name = is_community
-    ? (community_title || username || 'Hive Community')
-    : (username ? `${username} Blog` : 'Hive Blog')
-  const default_description = is_community
-    ? (community?.about || 'Hive community')
-    : 'Posts from Hive blockchain'
+  const default_name = username ? `${username} Blog` : 'Hive Blog'
+  const default_description = 'Posts from Hive blockchain'
   const data = createHeaderData(
     settings.siteName || default_name,
     settings.siteDescription || default_description
@@ -327,7 +319,7 @@ export function ElementRenderer(props: ElementRendererProps) {
   return (
     <>
       <Show when={props.elementId === 'header'}>
-        {renderHeader(props.community_title, props.community)}
+        {renderHeader()}
       </Show>
       <Show when={props.elementId === 'authorProfile'}>
         {renderAuthorProfile(props.inSidebar ? 'vertical' : (settings.authorProfileLayout || 'horizontal'), props.data!)}
@@ -340,27 +332,6 @@ export function ElementRenderer(props: ElementRendererProps) {
       </Show>
       <Show when={props.elementId === 'navigation' && props.community_title === undefined}>
         <NavigationPreview activeTab={props.activeTab!} setActiveTab={props.setActiveTab!} />
-      </Show>
-      <Show when={props.elementId === 'communityProfile' && props.community}>
-        {(community) => (
-          <CommunityProfile
-            community={community()}
-            show_subscribers={settings.community_show_subscribers !== false}
-            avatar_size_px={settings.community_avatar_size_px}
-            title_size_px={settings.community_title_size_px}
-            about_size_px={settings.community_about_size_px}
-          />
-        )}
-      </Show>
-      <Show when={props.elementId === 'communitySidebar' && props.community}>
-        {(community) => (
-          <CommunitySidebar
-            community={community()}
-            show_description={settings.community_show_description !== false}
-            show_rules={settings.community_show_rules !== false}
-            show_leadership={settings.community_show_leadership !== false}
-          />
-        )}
       </Show>
     </>
   )

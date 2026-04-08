@@ -7,12 +7,9 @@ import {
   CONFIG_PARENT_AUTHOR,
   CONFIG_PARENT_PERMLINK,
   HIVE_API_ENDPOINTS,
-  IS_COMMUNITY,
   APPEARANCE_CONFIG_TYPE,
   APPEARANCE_CONFIG_PREFIX,
   LEGACY_CONFIG_APP,
-  DOCKER_CONFIG_TYPE,
-  DOCKER_CONFIG_PREFIX,
 } from '../../lib/config'
 import { get_broadcast_chain } from '../../lib/broadcast-chain'
 
@@ -21,8 +18,8 @@ configureEndpoints(HIVE_API_ENDPOINTS)
 
 import { sign_transaction } from '../../lib/transaction-signer'
 import type { SettingsData } from './types/index'
-import { defaultSettings, strip_community_fields } from './types/index'
-import { settings_schema } from './types/settings-schema'
+import { defaultSettings } from './types/index'
+import { parse_settings_graceful } from './types/settings-schema'
 import { with_retry } from '../../lib/retry'
 
 const MAX_BODY_SIZE = 64 * 1024 // 64KB in bytes
@@ -40,8 +37,7 @@ interface ExistingConfigResult {
  *
  * Search priority:
  * 1. Our own appearance config (type === APPEARANCE_CONFIG_TYPE, prefix !hive-blog-appearance)
- * 2. Docker service config (type === DOCKER_CONFIG_TYPE, prefix !hive-blog-docker)
- * 3. Legacy match (backwards compat: app field + json code block)
+ * 2. Legacy match (backwards compat: app field + json code block)
  */
 async function findExistingConfig(username: string): Promise<ExistingConfigResult | null> {
   try {
@@ -56,9 +52,6 @@ async function findExistingConfig(username: string): Promise<ExistingConfigResul
       { page: 1, pageSize: 100 }
     )
 
-    // Find this user's config comment
-    // Priority: appearance config > docker service config > legacy match
-    let docker_match: ExistingConfigResult | null = null
     let legacy_match: ExistingConfigResult | null = null
 
     for (const replyId of repliesIds) {
@@ -74,16 +67,7 @@ async function findExistingConfig(username: string): Promise<ExistingConfigResul
         return { permlink: comment.permlink, body: comment.body, json_metadata: metadata }
       }
 
-      // Priority 2: docker service config (created by hive-blog-service)
-      if (
-        !docker_match &&
-        metadata.type === DOCKER_CONFIG_TYPE &&
-        comment.body.startsWith(DOCKER_CONFIG_PREFIX)
-      ) {
-        docker_match = { permlink: comment.permlink, body: comment.body, json_metadata: metadata }
-      }
-
-      // Priority 3: legacy match (backwards compat)
+      // Priority 2: legacy match (backwards compat)
       if (
         !legacy_match &&
         metadata.app === LEGACY_CONFIG_APP &&
@@ -93,7 +77,7 @@ async function findExistingConfig(username: string): Promise<ExistingConfigResul
       }
     }
 
-    return docker_match ?? legacy_match
+    return legacy_match ?? null
   } catch (error) {
     if (import.meta.env.DEV) console.error('Error finding existing config:', error)
     return null
@@ -146,8 +130,6 @@ export async function broadcastConfigToHive(
     // Create transaction
     const tx = await chain.createTransaction()
 
-    // Build json_metadata, preserving docker service fields when overwriting
-    // a comment originally created by hive-blog-service
     const base_metadata: Record<string, unknown> = {
       app: LEGACY_CONFIG_APP,
       type: APPEARANCE_CONFIG_TYPE,
@@ -155,14 +137,6 @@ export async function broadcastConfigToHive(
       tags: ['hive-blog-config'],
       config_version: '1.0',
       updated_at: timestamp,
-    }
-
-    // If we're overwriting a docker service comment, preserve its infra fields
-    if (existingConfig?.json_metadata.type === DOCKER_CONFIG_TYPE) {
-      const docker_meta = existingConfig.json_metadata
-      if (docker_meta.container !== undefined) base_metadata.container = docker_meta.container
-      if (docker_meta.subdomain !== undefined) base_metadata.subdomain = docker_meta.subdomain
-      if (docker_meta.instance_type !== undefined) base_metadata.instance_type = docker_meta.instance_type
     }
 
     // Add reply operation - same operation for create and update
@@ -249,28 +223,16 @@ export async function load_raw_config_from_hive(
       return null
     }
 
-    // Validate with Zod schema to reject bad field types,
-    // but extract only the keys that were present in raw JSON
-    const result = settings_schema.safeParse(raw)
-
-    if (!result.success) {
-      if (import.meta.env.DEV) {
-        console.warn(
-          "Invalid config from blockchain, using defaults:",
-          result.error.issues
-        )
-      }
-      return null
-    }
+    // Granular per-field validation -- fields that fail are dropped
+    // and will be filled in by merge_with_defaults later in the pipeline.
+    const validated = parse_settings_graceful(raw as Record<string, unknown>)
 
     // Return only the fields that actually existed in the raw JSON.
     // This prevents Zod defaults from overriding mode-specific defaults.
-    // After the guard above, `raw` is narrowed to `object` (non-null, non-array).
     const raw_keys = new Set(Object.keys(raw))
-    const parsed = result.data
     const explicit_fields: Partial<SettingsData> = {}
 
-    for (const [key, value] of Object.entries(parsed)) {
+    for (const [key, value] of Object.entries(validated)) {
       if (raw_keys.has(key)) {
         Object.assign(explicit_fields, { [key]: value })
       }
@@ -305,23 +267,15 @@ export async function loadConfigFromHive(username: string): Promise<SettingsData
     }
 
     const raw: unknown = JSON.parse(jsonMatch[1])
-    const result = settings_schema.safeParse(raw)
 
-    if (!result.success) {
-      if (import.meta.env.DEV) {
-        console.warn('Invalid config from blockchain, using defaults:', result.error.issues)
-      }
+    // Basic shape validation
+    if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
       return null
     }
 
-    // result.data is SettingsDataParsed (Zod inferred) which structurally
-    // matches SettingsData -- spread into a plain object to satisfy the return type.
-    const config: SettingsData = { ...defaultSettings, ...result.data }
-
-    // In user mode, strip community-specific fields to prevent stale data leaking
-    if (!IS_COMMUNITY) {
-      return strip_community_fields(config)
-    }
+    // Granular per-field validation -- bad fields are dropped, defaults fill in
+    const validated = parse_settings_graceful(raw as Record<string, unknown>)
+    const config: SettingsData = { ...defaultSettings, ...validated }
 
     return config
   } catch (error) {

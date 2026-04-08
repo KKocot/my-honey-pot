@@ -3,7 +3,7 @@
 
 import { For } from 'solid-js'
 import { settings, updateSettings } from '../store'
-import { applyThemeColors, is_community_mode } from '../queries'
+import { applyThemeColors } from '../queries'
 import {
   websiteTemplates,
   themePresets,
@@ -667,7 +667,7 @@ export function TemplateSelector() {
       // Ensure scroll animation is enabled when type is set
       scrollAnimationEnabled: template.settings.scrollAnimationType !== 'none',
     }
-    const filtered_settings = strip_irrelevant_fields(raw_settings, is_community_mode())
+    const filtered_settings = strip_irrelevant_fields(raw_settings, false)
 
     updateSettings(filtered_settings)
 
@@ -702,7 +702,7 @@ export function TemplateSelector() {
       scrollAnimationEnabled: pattern.settings.scrollAnimationType !== 'none',
     }
 
-    const filtered_random = strip_irrelevant_fields(randomSettings, is_community_mode())
+    const filtered_random = strip_irrelevant_fields(randomSettings, false)
     updateSettings(filtered_random)
     applyThemeColors(randomTheme.colors)
 

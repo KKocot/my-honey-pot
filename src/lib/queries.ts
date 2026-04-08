@@ -18,19 +18,6 @@ import {
   type IPaginationCursor,
 } from "@hiveio/workerbee/blog-logic";
 import { HIVE_API_ENDPOINTS } from "./config";
-import type {
-  HiveCommunity,
-  CommunityTeamMember,
-  CommunitySubscriber,
-} from "./types/community";
-
-export type CommunitySortOrder =
-  | "trending"
-  | "hot"
-  | "created"
-  | "payout"
-  | "muted";
-
 // Configure workerbee to use our custom Hive API endpoints
 // This must be called before the first getWax() call
 configureEndpoints(HIVE_API_ENDPOINTS);
@@ -77,19 +64,6 @@ export const query_keys = {
     cursor?: IPaginationCursor
   ) => ["comments", username, sort, limit, cursor] as const,
 
-  // Community query keys
-  community: (name: string) => ["community", name] as const,
-  community_posts: (
-    name: string,
-    sort: CommunitySortOrder,
-    limit: number,
-    cursor_author?: string,
-    cursor_permlink?: string
-  ) =>
-    ["community_posts", name, sort, limit, cursor_author, cursor_permlink] as const,
-  subscribers: (name: string) => ["subscribers", name] as const,
-  community_roles: (name: string) => ["community_roles", name] as const,
-
   // Post replies (comments under a specific post)
   post_replies: (author: string, permlink: string) =>
     ["post_replies", author, permlink] as const,
@@ -115,6 +89,8 @@ export interface FetchCommentsResult {
 export interface CommentTreeNode {
   comment: BridgePost;
   children: CommentTreeNode[];
+  hidden: boolean;
+  hide_reason: string;
 }
 
 export interface FetchPostRepliesResult {
@@ -316,111 +292,6 @@ export async function fetch_comments(
 }
 
 // ============================================
-// Community Query Functions
-// ============================================
-
-export interface FetchCommunityPostsResult {
-  posts: BridgePost[];
-  has_more: boolean;
-  next_author?: string;
-  next_permlink?: string;
-}
-
-/**
- * Fetch community details (title, about, description, rules, team, subscribers count)
- * Uses withRetry for automatic endpoint rotation on timeout.
- */
-export async function fetch_community(name: string): Promise<HiveCommunity | null> {
-  try {
-    return await withRetry((chain) =>
-      chain.api.bridge.get_community({ name, observer: "" })
-    );
-  } catch (error) {
-    console.error("fetch_community failed:", error instanceof Error ? error.message : error);
-    return null;
-  }
-}
-
-/**
- * Fetch community posts with server-side pagination via get_ranked_posts.
- * Sort options: "trending" | "hot" | "created" | "payout" | "muted"
- * Pagination: pass start_author + start_permlink from previous page's last post.
- */
-export async function fetch_community_posts(
-  name: string,
-  sort: CommunitySortOrder,
-  limit: number,
-  start_author?: string,
-  start_permlink?: string
-): Promise<FetchCommunityPostsResult> {
-  // Build params as variable to allow extra fields not typed in SDK.
-  // Hive bridge API accepts limit/start_author/start_permlink but
-  // @hiveio/wax-api-jsonrpc GetRankedPosts omits them (SDK limitation).
-  try {
-    const params = {
-      sort,
-      tag: name,
-      observer: "",
-      limit,
-      ...(start_author && start_permlink
-        ? { start_author, start_permlink }
-        : {}),
-    };
-
-    const posts = await withRetry((chain) =>
-      chain.api.bridge.get_ranked_posts(params)
-    );
-
-    const has_more = posts.length >= limit;
-    const last_post = posts[posts.length - 1];
-
-    return {
-      posts,
-      has_more,
-      next_author: last_post?.author,
-      next_permlink: last_post?.permlink,
-    };
-  } catch (error) {
-    console.error("fetch_community_posts failed:", error instanceof Error ? error.message : error);
-    return { posts: [], has_more: false };
-  }
-}
-
-/**
- * Fetch community subscribers list.
- * Returns array of tuples: [username, role, title, ...]
- */
-export async function fetch_subscribers(
-  name: string
-): Promise<CommunitySubscriber[]> {
-  try {
-    return await withRetry((chain) =>
-      chain.api.bridge.list_subscribers({ community: name })
-    );
-  } catch (error) {
-    console.error("fetch_subscribers failed:", error instanceof Error ? error.message : error);
-    return [];
-  }
-}
-
-/**
- * Fetch community roles (moderators, admins, members).
- * Returns array of tuples: [username, role, title]
- */
-export async function fetch_community_roles(
-  name: string
-): Promise<CommunityTeamMember[]> {
-  try {
-    return await withRetry((chain) =>
-      chain.api.bridge.list_community_roles({ community: name })
-    );
-  } catch (error) {
-    console.error("fetch_community_roles failed:", error instanceof Error ? error.message : error);
-    return [];
-  }
-}
-
-// ============================================
 // Post Replies (comments under a specific post)
 // ============================================
 
@@ -454,28 +325,18 @@ function is_bridge_post(entry: unknown): entry is BridgePost {
 /** Hive bridge API returns reputation as a pre-calculated float (e.g. 25.5). Negative values indicate heavily downvoted accounts. */
 const MIN_REPUTATION = 0;
 
-function should_hide_comment(comment: BridgePost): boolean {
-  return (
-    comment.author_reputation < MIN_REPUTATION ||
-    comment.stats.gray === true ||
-    comment.stats.hide === true ||
-    comment.author_role === "muted"
-  );
-}
-
-function sort_newest_first(nodes: BridgePost[]): BridgePost[] {
-  return [...nodes].sort((a, b) => {
-    const time_a = new Date(a.created).getTime();
-    const time_b = new Date(b.created).getTime();
-    if (Number.isNaN(time_a) || Number.isNaN(time_b)) return 0;
-    return time_b - time_a;
-  });
+function get_hide_reason(comment: BridgePost): string {
+  if (comment.author_role === "muted") return "muted";
+  if (comment.author_reputation < MIN_REPUTATION) return "low reputation";
+  if (comment.stats.hide) return "hidden by community";
+  if (comment.stats.gray) return "low ratings";
+  return "";
 }
 
 /**
  * Fetch full comment tree under a specific post.
  * Uses bridge.get_discussion which returns the full discussion tree as a flat map,
- * then builds a nested tree structure with hidden comments filtered out.
+ * then builds a nested tree structure. Hidden comments are kept with a flag.
  */
 export async function fetch_post_replies(
   author: string,
@@ -488,12 +349,11 @@ export async function fetch_post_replies(
 
     const root_key = `${author}/${permlink}`;
 
-    // Index all valid, visible comments by their key
+    // Index all valid comments by their key (hidden ones kept with flag)
     const comment_map = new Map<string, BridgePost>();
     for (const [key, entry] of Object.entries(discussion)) {
       if (key === root_key) continue;
       if (!is_bridge_post(entry)) continue;
-      if (should_hide_comment(entry)) continue;
       comment_map.set(key, entry);
     }
 
@@ -515,13 +375,14 @@ export async function fetch_post_replies(
       const direct_children = children_map.get(parent_key);
       if (!direct_children) return [];
 
-      const sorted = sort_newest_first(direct_children);
-
-      return sorted.map((child) => {
+      return direct_children.map((child) => {
         const child_key = `${child.author}/${child.permlink}`;
+        const reason = get_hide_reason(child);
         return {
           comment: child,
           children: build_subtree(child_key, depth + 1),
+          hidden: reason !== "",
+          hide_reason: reason,
         };
       });
     }

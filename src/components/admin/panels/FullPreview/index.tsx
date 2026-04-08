@@ -4,7 +4,7 @@
 import { Show, For, createMemo, createSignal, type Accessor } from 'solid-js'
 import { Portal } from 'solid-js/web'
 import { settings } from '../../store'
-import { useHivePreviewQuery, useCommunityPreviewQuery, is_community_mode } from '../../queries'
+import { useHivePreviewQuery } from '../../queries'
 import { get_section_wrapper_class } from '../../../../shared/components/page-layout'
 import { SectionRenderer } from '../../../../shared/components/solid/SectionRenderer'
 import { hasLeftSidebar, hasRightSidebar, pageLayoutConfigToLegacy } from '../../types/index'
@@ -23,30 +23,17 @@ export function FullPreview(props: FullPreviewProps) {
   // Active tab state for navigation routing
   const [activeTab, setActiveTab] = createSignal('posts')
 
-  const in_community_mode = createMemo(() => is_community_mode())
-
-  // User mode: fetch profile + blog posts
+  // Fetch profile + blog posts
   const hiveQuery = useHivePreviewQuery(
     () => settings.hiveUsername,
     () => settings.postsPerPage || 20,
-    () => props.open() && !in_community_mode()
+    () => props.open()
   )
 
-  // Community mode: fetch community data + ranked posts
-  const communityQuery = useCommunityPreviewQuery(
-    () => settings.hiveUsername,
-    () => settings.postsPerPage || 20,
-    () => props.open() && in_community_mode(),
-    () => settings.community_default_sort ?? 'trending'
-  )
-
-  // Unified data accessors
+  // Data accessors
   const data = () => hiveQuery.data ?? null
-  const community_data = () => communityQuery.data ?? null
-  const loading = () => in_community_mode() ? communityQuery.isLoading : hiveQuery.isLoading
-  const has_data = () => in_community_mode() ? !!community_data() : !!data()
-  // undefined in user mode, string (possibly empty) in community mode
-  const community_title = () => in_community_mode() ? (community_data()?.community?.title || '') : undefined
+  const loading = () => hiveQuery.isLoading
+  const has_data = () => !!data()
 
   // Handle escape key
   const handleKeyDown = (e: KeyboardEvent) => {
@@ -95,9 +82,7 @@ export function FullPreview(props: FullPreviewProps) {
 
           {/* Preview info badge */}
           <div class="fixed top-4 left-4 z-50 px-3 py-1.5 rounded-lg bg-primary text-primary-text text-sm font-medium shadow-lg">
-            Preview Mode - {in_community_mode()
-              ? (community_title() || settings.hiveUsername || 'Community')
-              : `@${settings.hiveUsername || 'no user'}`}
+            Preview Mode - @{settings.hiveUsername || 'no user'}
           </div>
 
           {/* Loading state */}
@@ -142,9 +127,9 @@ export function FullPreview(props: FullPreviewProps) {
                       activeTab={activeTab}
                       setActiveTab={setActiveTab}
                       data={data}
-                      community_title={community_title()}
-                      community_posts={community_data()?.posts}
-                      community={community_data()?.community ?? null}
+                      community_title={undefined}
+                      community_posts={undefined}
+                      community={null}
                     />
                   </div>
                 )}
@@ -253,9 +238,9 @@ export function FullPreview(props: FullPreviewProps) {
                       activeTab={activeTab}
                       setActiveTab={setActiveTab}
                       data={data}
-                      community_title={community_title()}
-                      community_posts={community_data()?.posts}
-                      community={community_data()?.community ?? null}
+                      community_title={undefined}
+                      community_posts={undefined}
+                      community={null}
                     />
                   </div>
                 )}

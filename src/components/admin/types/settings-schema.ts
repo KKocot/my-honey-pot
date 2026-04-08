@@ -163,22 +163,43 @@ export const settings_schema = z
     // Footer settings
     footer_text: z.string().max(500).optional(),
 
-    // Community-specific display settings
-    community_default_sort: z
-      .enum(["trending", "hot", "created", "payout", "muted"])
-      .optional(),
-    community_show_rules: z.boolean().optional(),
-    community_show_leadership: z.boolean().optional(),
-    community_show_subscribers: z.boolean().optional(),
-    community_show_description: z.boolean().optional(),
-    community_avatar_size_px: z.number().min(32).max(96).optional(),
-    community_title_size_px: z.number().min(14).max(28).optional(),
-    community_about_size_px: z.number().min(12).max(18).optional(),
-    community_visible_sorts: z
-      .array(z.enum(["trending", "hot", "created", "payout", "muted"]))
-      .optional(),
   })
   .passthrough();
 
 /** Type inferred from the Zod schema (after parsing with defaults applied) */
 export type SettingsDataParsed = z.infer<typeof settings_schema>;
+
+/**
+ * Granular per-field validation -- unlike safeParse which is all-or-nothing,
+ * this validates each top-level key independently. Fields that fail validation
+ * are silently dropped so merge_with_defaults can fill them in later.
+ */
+export function parse_settings_graceful(
+  raw: Record<string, unknown>
+): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
+  const shape = settings_schema.shape;
+
+  for (const key of Object.keys(raw)) {
+    const field_schema = shape[key as keyof typeof shape];
+
+    if (!field_schema) {
+      // Unknown field (passthrough) -- keep as-is for forward compatibility
+      result[key] = raw[key];
+      continue;
+    }
+
+    const parsed = field_schema.safeParse(raw[key]);
+
+    if (parsed.success) {
+      result[key] = parsed.data;
+    } else if (import.meta.env.DEV) {
+      console.warn(
+        `Config field "${key}" failed validation, will use default:`,
+        parsed.error.issues
+      );
+    }
+  }
+
+  return result;
+}

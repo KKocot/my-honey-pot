@@ -3,7 +3,6 @@
 
 import { For, Show, createMemo } from "solid-js";
 import { settings, updateSettings } from "../../store";
-import { is_community_mode } from "../../queries";
 import {
   type LayoutTemplate,
   type PageLayoutConfig,
@@ -50,11 +49,9 @@ function get_visible_containers(template: LayoutTemplate): ContainerName[] {
 export function LayoutEditor() {
   const config = () => settings.pageLayoutConfig;
 
-  /** Available element IDs based on mode (user vs community) */
+  /** Available element IDs for user mode */
   const available_element_ids = createMemo((): readonly LayoutElementId[] =>
-    is_community_mode()
-      ? COMMUNITY_CONTAINER_ELEMENT_IDS
-      : USER_CONTAINER_ELEMENT_IDS,
+    USER_CONTAINER_ELEMENT_IDS,
   );
 
   /** Visible containers based on selected template */

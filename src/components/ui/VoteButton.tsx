@@ -47,7 +47,7 @@ export const VoteButton: Component<VoteButtonProps> = (props) => {
   const [state, set_state] = createSignal<VoteState>("idle");
   const [votes_count, set_votes_count] = createSignal(props.initial_votes_count);
   const [weight, set_weight] = createSignal(DEFAULT_WEIGHT);
-  const [username, set_username] = createSignal("");
+  const [username, set_username] = createSignal(get_stored_username());
   const [error_message, set_error_message] = createSignal("");
 
   let container_ref: HTMLDivElement | undefined;

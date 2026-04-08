@@ -7,7 +7,7 @@ import { AdminPanel } from '../components/admin'
 import { load_and_prepare_config } from '../lib/config-pipeline'
 import type { SettingsData } from '../components/admin/types'
 import { get_default_settings } from '../components/admin/types'
-import { HIVE_USERNAME, IS_COMMUNITY } from '../lib/config'
+import { HIVE_USERNAME } from '../lib/config'
 
 // Load initial settings from Hive on server via unified pipeline
 let initialSettings: SettingsData | null = null
@@ -15,11 +15,11 @@ const hiveUsername = HIVE_USERNAME
 
 if (hiveUsername) {
   try {
-    initialSettings = await load_and_prepare_config(hiveUsername, IS_COMMUNITY)
+    initialSettings = await load_and_prepare_config(hiveUsername, false)
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error'
     console.error('Admin: Failed to load config from Hive:', message)
-    initialSettings = { ...get_default_settings(IS_COMMUNITY), hiveUsername: hiveUsername }
+    initialSettings = { ...get_default_settings(false), hiveUsername: hiveUsername }
   }
 }
 ---

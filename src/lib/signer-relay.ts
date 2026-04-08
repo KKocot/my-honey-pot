@@ -165,6 +165,10 @@ export async function request_external_sign(
     "_blank",
   );
 
+  if (!signer_tab || signer_tab.closed) {
+    return { success: false, error: "Could not open signer window. Please disable your popup blocker for this site and try again." };
+  }
+
   // Step 3: Poll for result with exponential backoff
   const start_time = Date.now();
   let interval = POLL_INITIAL_INTERVAL_MS;

@@ -23,14 +23,7 @@ import {
   type BridgePost,
   type NaiAsset,
 } from '@hiveio/workerbee/blog-logic'
-import { HIVE_API_ENDPOINTS, IS_COMMUNITY, is_community } from '../../lib/config'
-import {
-  fetch_community,
-  fetch_community_posts,
-  type FetchCommunityPostsResult,
-  type CommunitySortOrder,
-} from '../../lib/queries'
-import type { HiveCommunity } from '../../lib/types/community'
+import { HIVE_API_ENDPOINTS } from '../../lib/config'
 import { is_dark_color } from '../../shared/utils/color'
 
 // Configure workerbee to use our custom Hive API endpoints
@@ -203,10 +196,9 @@ export function setOwnerContext(username: string): void {
   setOwnerContextInternal(username)
 }
 
-/** Detect community mode from owner context (reliable client-side) */
+/** Community mode is disabled in this user-blog-only project */
 export function is_community_mode(): boolean {
-  const owner = ownerContext()
-  return owner ? is_community(owner) : IS_COMMUNITY
+  return false
 }
 
 // ============================================
@@ -455,68 +447,3 @@ export function useHivePreviewQuery(
   }))
 }
 
-// ============================================
-// Community Preview Data
-// ============================================
-
-export interface CommunityPreviewData {
-  community: HiveCommunity | null
-  posts: BridgePost[]
-}
-
-async function fetchCommunityPreviewData(
-  community_name: string,
-  posts_per_page: number,
-  sort: CommunitySortOrder = 'trending'
-): Promise<CommunityPreviewData | null> {
-  if (!community_name) return null
-
-  try {
-    const [community, posts_result] = await Promise.all([
-      fetch_community(community_name),
-      fetch_community_posts(community_name, sort, posts_per_page),
-    ])
-
-    return {
-      community,
-      posts: posts_result.posts,
-    }
-  } catch (error) {
-    if (import.meta.env.DEV) console.error('Failed to fetch community preview data:', error)
-    return null
-  }
-}
-
-// ============================================
-// Community Preview Query Hook
-// ============================================
-
-export function useCommunityPreviewQuery(
-  community_name: () => string | undefined,
-  posts_per_page: () => number,
-  enabled: () => boolean,
-  sort: () => CommunitySortOrder = () => 'trending'
-) {
-  const [debouncedName, setDebouncedName] = createSignal(community_name())
-  let debounceTimer: ReturnType<typeof setTimeout> | null = null
-
-  createEffect(() => {
-    const name = community_name()
-    if (debounceTimer) clearTimeout(debounceTimer)
-    debounceTimer = setTimeout(() => {
-      setDebouncedName(name)
-    }, 500)
-
-    onCleanup(() => {
-      if (debounceTimer) clearTimeout(debounceTimer)
-    })
-  })
-
-  return createQuery(() => ({
-    queryKey: ['community-preview', debouncedName(), posts_per_page(), sort()] as const,
-    queryFn: () => fetchCommunityPreviewData(debouncedName() || '', posts_per_page(), sort()),
-    enabled: enabled() && !!debouncedName(),
-    staleTime: 1000 * 60 * 2,
-    retry: 1,
-  }))
-}

@@ -69,17 +69,6 @@ export const IS_NOT_MAINNET = HIVE_CHAIN_ID !== MAINNET_CHAIN_ID;
 // Blog owner username (determines whose config to load and favicon)
 export const HIVE_USERNAME = get_server_env("HIVE_USERNAME", "");
 
-// Community mode detection
-// Hive community accounts follow the pattern "hive-" followed by ONLY digits (e.g. "hive-123456")
-const COMMUNITY_PATTERN = /^hive-\d+$/;
-
-export const IS_COMMUNITY = COMMUNITY_PATTERN.test(HIVE_USERNAME);
-
-/** Check if a given Hive account name is a community */
-export function is_community(name: string): boolean {
-  return COMMUNITY_PATTERN.test(name);
-}
-
 // Config storage settings (where user configs are stored on Hive)
 // These can be overridden via environment variables
 export const CONFIG_PARENT_AUTHOR = get_server_env("CONFIG_PARENT_AUTHOR", "barddev");
@@ -110,10 +99,6 @@ export const HIVE_API_ENDPOINTS = MAINNET_FALLBACK_ENDPOINTS.includes(
 export const APPEARANCE_CONFIG_PREFIX = "!hive-blog-appearance";
 export const APPEARANCE_CONFIG_TYPE = "blog_appearance_config";
 export const LEGACY_CONFIG_APP = "hive-blog-config/1.0";
-
-// Docker service config identification (created by hive-blog-service)
-export const DOCKER_CONFIG_TYPE = "blog_docker_config";
-export const DOCKER_CONFIG_PREFIX = "!hive-blog-docker";
 
 // Layout Constants
 export const LAYOUT_CONSTANTS = {

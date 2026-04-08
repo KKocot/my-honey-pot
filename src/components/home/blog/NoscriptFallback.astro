@@ -7,6 +7,7 @@
  * Renders posts or comments based on activeTab
  */
 import type { BridgePost, BridgeComment } from '@hiveio/workerbee/blog-logic'
+import { HIVE_USERNAME } from '../../../lib/config'
 
 interface Props {
   active_tab: string
@@ -23,7 +24,7 @@ const { active_tab, blog_logic_posts, hive_comments } = Astro.props
     {blog_logic_posts.map((post) => (
       <article class="bg-bg-card border border-border p-6 rounded-2xl">
         <h2 class="font-bold text-text mb-2 text-xl">
-          <a href={`/${post.author}/${post.permlink}`} class="hover:text-primary transition-colors">
+          <a href={post.author !== HIVE_USERNAME ? `/${post.author}/${post.permlink}` : `/${post.permlink}`} class="hover:text-primary transition-colors">
             {post.title}
           </a>
         </h2>

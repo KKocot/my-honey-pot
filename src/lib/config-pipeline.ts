@@ -11,7 +11,6 @@
 
 import {
   get_default_settings,
-  strip_community_fields,
   type SettingsData,
   type PageLayout,
   ALL_PAGE_ELEMENT_IDS,
@@ -136,15 +135,15 @@ function ensure_layout_fallbacks(
  * 5. Merge with mode-specific defaults (user or community)
  * 6. Ensure layout fallbacks
  *
- * @param username - Hive username or community name
- * @param is_community - Whether this is a community mode blog
+ * @param username - Hive username
+ * @param _is_community - Deprecated, always false in user-blog mode
  * @returns Full SettingsData with all fields populated
  */
 export async function load_and_prepare_config(
   username: string,
-  is_community: boolean
+  _is_community: boolean = false
 ): Promise<SettingsData> {
-  const defaults = get_default_settings(is_community);
+  const defaults = get_default_settings(false);
 
   const raw_config = await load_raw_config_from_hive(username);
 
@@ -152,10 +151,7 @@ export async function load_and_prepare_config(
     return { ...defaults, hiveUsername: username };
   }
 
-  // Strip community fields when in user mode
-  const cleaned = is_community
-    ? raw_config
-    : strip_community_fields(raw_config);
+  const cleaned = raw_config;
 
   // Migrate card layouts
   const migrated_cards = migrate_card_layouts(cleaned);

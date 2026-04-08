@@ -6,7 +6,7 @@ import '../styles/global.css'
 import NodeSwitcher from '../components/ui/NodeSwitcher.tsx'
 import { loadConfigFromHive } from '../components/admin/hive-broadcast'
 import { themePresets, type ThemeColors, get_default_settings } from '../components/admin/types'
-import { HIVE_USERNAME, IS_COMMUNITY, hive_avatar_url } from '../lib/config'
+import { HIVE_USERNAME, hive_avatar_url } from '../lib/config'
 import { is_dark_color } from '../shared/utils/color'
 
 interface SettingsWithTheme {
@@ -44,7 +44,7 @@ const faviconUrl = hiveUsername
   : '/favicon.svg'
 
 // Default to mode-aware theme colors (community uses ocean, user uses light)
-const mode_defaults = get_default_settings(IS_COMMUNITY)
+const mode_defaults = get_default_settings(false)
 const default_preset = themePresets.find((p) => p.id === mode_defaults.siteTheme)
 let themeColors: ThemeColors = default_preset?.colors || themePresets[0].colors
 

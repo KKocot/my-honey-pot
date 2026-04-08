@@ -8,6 +8,8 @@ import { Phishing } from "./renderer/security/Phishing";
 import { SecurityChecker, SecurityError } from "./renderer/security/SecurityChecker";
 import { PreliminarySanitizer } from "./renderer/sanitization/PreliminarySanitizer";
 
+const IMAGE_EXTENSION_PATTERN = /\.(?:jpe?g|png|gif|webp|svg|ico|tiff?)(?:\?[^"]*)?$/i;
+
 const md = new MarkdownIt({
   html: true,
   breaks: true,
@@ -113,6 +115,24 @@ purify.addHook("afterSanitizeAttributes", (node) => {
   }
 });
 
+/**
+ * Convert <a> tags that are bare image URLs into <img> tags.
+ * Matches links where the text content equals the href and the URL ends with an image extension.
+ * This handles the common Hive pattern where users paste raw image URLs as plain text.
+ */
+function convert_image_links(html: string): string {
+  return html.replace(
+    /<a\s[^>]*href="(https?:\/\/[^"]+)"[^>]*>\1<\/a>/gi,
+    (_match, url: string) => {
+      if (IMAGE_EXTENSION_PATTERN.test(url)) {
+        const proxied = url.startsWith(HIVE_IMAGES_ENDPOINT) ? url : hive_image_proxy(url, 768);
+        return `<img src="${proxied}" alt="Embedded Image" loading="lazy" />`;
+      }
+      return _match;
+    },
+  );
+}
+
 export function render_comment_body(body: string): string {
   if (!body || !body.trim()) return "";
 
@@ -133,5 +153,5 @@ export function render_comment_body(body: string): string {
     throw error;
   }
 
-  return clean_html;
+  return convert_image_links(clean_html);
 }

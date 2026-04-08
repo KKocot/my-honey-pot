@@ -51,7 +51,7 @@ function filter_pinned_posts(posts: BridgePost[], pinned_permlinks?: string[]): 
 // Renders multiple post cards with layout support
 // ============================================
 
-const PostsGrid: Component<{ posts: BridgePost[]; settings: SiteSettings; layout?: CardLayout }> = (props) => {
+const PostsGrid: Component<{ posts: BridgePost[]; settings: SiteSettings; layout?: CardLayout; hive_username: string }> = (props) => {
   const is_vertical = () => props.settings.postsLayout !== 'list';
 
   const card_settings = createMemo((): PostCardSettings => ({
@@ -88,7 +88,7 @@ const PostsGrid: Component<{ posts: BridgePost[]; settings: SiteSettings; layout
         <Show when={grid_settings().layout === 'list'}>
           <div style={`display: flex; flex-direction: column; gap: ${grid_settings().gap_px}px; padding: 8px;`}>
             <For each={props.posts}>
-              {(post, index) => <PostCardItem post={post} settings={props.settings} card_settings={card_settings()} is_vertical={false} index={index()} />}
+              {(post, index) => <PostCardItem post={post} settings={props.settings} card_settings={card_settings()} is_vertical={false} index={index()} hive_username={props.hive_username} />}
             </For>
           </div>
         </Show>
@@ -98,7 +98,7 @@ const PostsGrid: Component<{ posts: BridgePost[]; settings: SiteSettings; layout
             <For each={props.posts}>
               {(post, index) => (
                 <div style={`break-inside: avoid; margin-bottom: ${grid_settings().gap_px}px;`}>
-                  <PostCardItem post={post} settings={props.settings} card_settings={card_settings()} is_vertical={true} index={index()} />
+                  <PostCardItem post={post} settings={props.settings} card_settings={card_settings()} is_vertical={true} index={index()} hive_username={props.hive_username} />
                 </div>
               )}
             </For>
@@ -108,7 +108,7 @@ const PostsGrid: Component<{ posts: BridgePost[]; settings: SiteSettings; layout
         <Show when={grid_settings().layout === 'grid'}>
           <div style={`display: grid; grid-template-columns: repeat(${grid_settings().columns}, 1fr); gap: ${grid_settings().gap_px}px; padding: 8px;`}>
             <For each={props.posts}>
-              {(post, index) => <PostCardItem post={post} settings={props.settings} card_settings={card_settings()} is_vertical={true} index={index()} />}
+              {(post, index) => <PostCardItem post={post} settings={props.settings} card_settings={card_settings()} is_vertical={true} index={index()} hive_username={props.hive_username} />}
             </For>
           </div>
         </Show>
@@ -125,6 +125,7 @@ const PostCardItem: Component<{
   card_settings: PostCardSettings;
   is_vertical: boolean;
   index: number;
+  hive_username: string;
 }> = (props) => {
   // Effective vertical = prop override OR settings override OR layout-based
   const effective_vertical = () => props.is_vertical || props.settings.cardLayout === 'vertical' || props.settings.postsLayout !== 'list';
@@ -136,7 +137,9 @@ const PostCardItem: Component<{
 
   // Extract onClick handler to prevent re-render
   const handle_post_click = (permlink: string) => {
-    window.location.href = `/${props.post.author}/${permlink}`
+    window.location.href = props.post.author !== props.hive_username
+      ? `/${props.post.author}/${permlink}`
+      : `/${permlink}`
   }
 
   // Trigger scroll animation on mount with staggered delay
@@ -420,6 +423,7 @@ const BlogContentInner: Component<BlogContentProps> = (props) => {
             posts={filter_pinned_posts(posts_query.data?.posts ?? [], props.pinned_post_permlinks)}
             settings={props.settings}
             layout={props.post_card_layout}
+            hive_username={props.hive_username}
           />
         </Show>
       </Show>
