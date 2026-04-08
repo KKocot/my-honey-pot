@@ -1,0 +1,14 @@
+---
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 Krzysztof Kocot
+
+import AdminLayout from '../../layouts/AdminLayout.astro'
+import { SubmitPanel } from '../../components/admin/panels/SubmitPanel'
+import { HIVE_USERNAME } from '../../lib/config'
+
+const hiveUsername = HIVE_USERNAME
+---
+
+<AdminLayout title={`Submit Post - ${hiveUsername ? `${hiveUsername} Blog` : 'Hive Blog'}`} activeTab="submit">
+  <SubmitPanel client:only="solid-js" />
+</AdminLayout>
