@@ -12,7 +12,7 @@ import { renderPostBody } from "../../../../lib/renderer";
 
 // --- Types ---
 
-type EditorMode = "write" | "preview";
+type EditorMode = "write" | "preview" | "split";
 
 interface MarkdownEditorProps {
   value: string;
@@ -223,6 +223,9 @@ export function MarkdownEditor(props: MarkdownEditorProps) {
         if (update.docChanged) {
           const value = update.state.doc.toString();
           props.onInput(value);
+          if (mode() === "split") {
+            set_preview_html(renderPostBody(value));
+          }
         }
       }),
       // Custom theme overrides for integration with our design tokens
@@ -296,6 +299,20 @@ export function MarkdownEditor(props: MarkdownEditorProps) {
     set_mode("preview");
   }
 
+  function switch_to_split() {
+    const html = renderPostBody(props.value);
+    set_preview_html(html);
+    set_mode("split");
+    requestAnimationFrame(() => sync_value_if_needed());
+  }
+
+  function focus_editor_end() {
+    if (!editor_view) return;
+    const end = editor_view.state.doc.length;
+    editor_view.dispatch({ selection: { anchor: end } });
+    editor_view.focus();
+  }
+
   function tab_class(target: EditorMode): string {
     const is_active = mode() === target;
     return `px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
@@ -325,10 +342,17 @@ export function MarkdownEditor(props: MarkdownEditorProps) {
         >
           Preview
         </button>
+        <button
+          type="button"
+          onClick={switch_to_split}
+          class={tab_class("split")}
+        >
+          Split
+        </button>
       </div>
 
       {/* Toolbar (write mode only) */}
-      <Show when={mode() === "write"}>
+      <Show when={mode() === "write" || mode() === "split"}>
         <div
           class="flex flex-wrap items-center gap-0.5 px-2 py-1.5
             bg-bg-secondary border-x border-border"
@@ -352,15 +376,24 @@ export function MarkdownEditor(props: MarkdownEditorProps) {
       {/* Editor / Preview */}
       <div
         class="border border-border rounded-b-lg overflow-hidden"
-        classList={{ "border-t-0": mode() === "write" }}
+        classList={{
+          "border-t-0": mode() !== "preview",
+          "grid grid-cols-2": mode() === "split",
+        }}
       >
         <div
           ref={editor_container}
+          onClick={(e: MouseEvent) => {
+            const target = e.target as HTMLElement;
+            if (target.closest(".cm-line")) return;
+            focus_editor_end();
+          }}
           class="markdown-editor"
-          style={{ display: mode() === "write" ? undefined : "none" }}
+          classList={{ "border-r border-border": mode() === "split" }}
+          style={{ display: mode() === "preview" ? "none" : undefined }}
         />
 
-        <Show when={mode() === "preview"}>
+        <Show when={mode() === "preview" || mode() === "split"}>
           <div
             class="min-h-[20rem] max-h-[60vh] overflow-auto p-6 bg-bg-card prose prose-invert max-w-none"
             innerHTML={preview_html()}
