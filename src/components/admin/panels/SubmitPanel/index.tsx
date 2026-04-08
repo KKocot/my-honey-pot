@@ -21,7 +21,7 @@ import { hive_avatar_url } from "../../../../lib/config";
  * SubmitPanel -- main panel for creating and publishing new posts to Hive.
  * Handles authentication, post editing, and broadcast flow.
  */
-export function SubmitPanel() {
+export function SubmitPanel(props: { hiveUsername?: string }) {
   const [show_login_modal, set_show_login_modal] = createSignal(false);
   const [is_submitting, set_is_submitting] = createSignal(false);
   const [reauth_session, set_reauth_session] = createSignal(needsReauth());
@@ -225,6 +225,7 @@ export function SubmitPanel() {
       <div class="bg-bg-card rounded-xl p-6 border border-border">
         <PostEditor
           username={currentUser()?.username}
+          hive_username={props.hiveUsername}
           is_submitting={is_submitting()}
           onSubmit={handle_submit}
         />

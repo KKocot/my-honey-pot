@@ -6,11 +6,13 @@ import { Button } from "../../../ui";
 import { MarkdownEditor } from "./MarkdownEditor";
 import { TagInput } from "./TagInput";
 import type { PostData, RewardType, Beneficiary } from "./broadcast-post";
+import { CommunitySelector } from "./CommunitySelector";
 
 // --- Types ---
 
 interface PostEditorProps {
   username?: string;
+  hive_username?: string;
   is_submitting: boolean;
   onSubmit: (post: PostData) => void;
 }
@@ -59,6 +61,7 @@ interface DraftData {
   body: string;
   tags: string[];
   summary: string;
+  community: string;
   reward_type: RewardType;
   beneficiaries: Beneficiary[];
   saved_at: number;
@@ -112,6 +115,7 @@ export function PostEditor(props: PostEditorProps) {
   const [tags, set_tags] = createSignal<string[]>([]);
   const [summary, set_summary] = createSignal("");
   const [reward_type, set_reward_type] = createSignal<RewardType>("50_50");
+  const [community, set_community] = createSignal("");
   const [beneficiaries, set_beneficiaries] = createSignal<Beneficiary[]>([]);
   const [errors, set_errors] = createSignal<ValidationErrors>({});
   const [draft_loaded, set_draft_loaded] = createSignal(false);
@@ -127,6 +131,7 @@ export function PostEditor(props: PostEditorProps) {
       set_body(draft.body);
       set_tags(draft.tags);
       set_summary(draft.summary || "");
+      set_community(draft.community || "");
       set_reward_type(draft.reward_type || "50_50");
       set_beneficiaries(draft.beneficiaries || []);
       set_draft_loaded(true);
@@ -146,6 +151,7 @@ export function PostEditor(props: PostEditorProps) {
         body: body(),
         tags: tags(),
         summary: summary(),
+        community: community(),
         reward_type: reward_type(),
         beneficiaries: beneficiaries(),
         saved_at: Date.now(),
@@ -157,7 +163,7 @@ export function PostEditor(props: PostEditorProps) {
   // Watch all form fields for auto-save
   createEffect(
     on(
-      [title, body, tags, summary, reward_type, beneficiaries],
+      [title, body, tags, summary, community, reward_type, beneficiaries],
       () => {
         schedule_save();
       },
@@ -214,6 +220,7 @@ export function PostEditor(props: PostEditorProps) {
       title: title().trim(),
       body: body(),
       tags: tags(),
+      community: community() || undefined,
       summary: summary().trim() || undefined,
       reward_type: reward_type(),
       beneficiaries: valid_beneficiaries,
@@ -227,6 +234,7 @@ export function PostEditor(props: PostEditorProps) {
     set_body("");
     set_tags([]);
     set_summary("");
+    set_community("");
     set_reward_type("50_50");
     set_beneficiaries([]);
     set_errors({});
@@ -293,6 +301,13 @@ export function PostEditor(props: PostEditorProps) {
           <p class="mt-1 text-xs text-error">{errors().title}</p>
         </Show>
       </div>
+
+      {/* Community */}
+      <CommunitySelector
+        username={props.hive_username}
+        selected={community()}
+        onChange={set_community}
+      />
 
       {/* Body (Markdown Editor) */}
       <div>

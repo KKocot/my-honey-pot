@@ -10,5 +10,5 @@ const hiveUsername = HIVE_USERNAME
 ---
 
 <AdminLayout title={`Submit Post - ${hiveUsername ? `${hiveUsername} Blog` : 'Hive Blog'}`} activeTab="submit">
-  <SubmitPanel client:only="solid-js" />
+  <SubmitPanel client:only="solid-js" hiveUsername={hiveUsername} />
 </AdminLayout>

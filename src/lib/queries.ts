@@ -67,6 +67,8 @@ export const query_keys = {
   // Post replies (comments under a specific post)
   post_replies: (author: string, permlink: string) =>
     ["post_replies", author, permlink] as const,
+
+  user_subscriptions: (username: string) => ["user_subscriptions", username] as const,
 };
 
 // ============================================
@@ -393,5 +395,33 @@ export async function fetch_post_replies(
   } catch (error) {
     console.error("fetch_post_replies failed:", error instanceof Error ? error.message : error);
     return { tree: [], total_count: 0 };
+  }
+}
+
+// ============================================
+// User Subscriptions (communities)
+// ============================================
+
+export interface CommunitySubscription {
+  community: string; // e.g. "hive-123456"
+  title: string; // e.g. "Photography Lovers"
+  role: string; // e.g. "guest"
+}
+
+export async function fetch_user_subscriptions(
+  username: string
+): Promise<CommunitySubscription[]> {
+  try {
+    const raw = await withRetry((chain) =>
+      chain.api.bridge.list_all_subscriptions({ account: username })
+    );
+    return raw.map((entry) => ({
+      community: String(entry[0]),
+      title: String(entry[1]),
+      role: String(entry[2]),
+    }));
+  } catch (error) {
+    console.error("fetch_user_subscriptions failed:", error instanceof Error ? error.message : error);
+    return [];
   }
 }

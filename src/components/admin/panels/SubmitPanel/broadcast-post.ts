@@ -25,6 +25,7 @@ export interface PostData {
   title: string;
   body: string;
   tags: string[];
+  community?: string;
   summary?: string;
   reward_type: RewardType;
   beneficiaries: Beneficiary[];
@@ -142,7 +143,7 @@ export async function broadcast_post(
     // automatically generates the comment_options operation during finalize.
     tx.pushOperation(
       new BlogPostOperation({
-        category: post.tags[0],
+        category: post.community || post.tags[0],
         author: username,
         permlink,
         title: post.title,
