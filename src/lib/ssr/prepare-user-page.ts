@@ -48,15 +48,16 @@ function resolve_tabs(
   );
   const show_comments_tab = comments_tab_config?.enabled !== false;
 
-  const tab_from_url = requested_tab || "posts";
+  const tab_from_url = requested_tab || "blog";
   const known_tab_ids = [
+    "blog",
     "posts",
     "comments",
     ...(settings.navigationTabs?.map((t) => t.id) || []),
   ];
   const validated_tab = known_tab_ids.includes(tab_from_url)
     ? tab_from_url
-    : "posts";
+    : "blog";
 
   const threads_tab_config = settings.navigationTabs?.find(
     (tab) => tab.id === "threads"
@@ -64,8 +65,8 @@ function resolve_tabs(
   const show_threads_tab = threads_tab_config?.enabled === true;
 
   let active_tab = validated_tab;
-  if (active_tab === "comments" && !show_comments_tab) active_tab = "posts";
-  if (active_tab === "threads" && !show_threads_tab) active_tab = "posts";
+  if (active_tab === "comments" && !show_comments_tab) active_tab = "blog";
+  if (active_tab === "threads" && !show_threads_tab) active_tab = "blog";
 
   const active_category_tab = settings.navigationTabs?.find(
     (tab) => tab.id === active_tab && tab.tag
@@ -125,8 +126,17 @@ export async function prepare_user_page(
   );
 
   const posts_limit = settings.postsPerPage || 20;
-  const posts_sort_order: AccountPostsSortOption =
-    settings.postsSortOrder || "blog";
+
+  // Determine sort based on active tab
+  let posts_sort_order: AccountPostsSortOption;
+  if (active_tab === "blog") {
+    posts_sort_order = "blog";
+  } else if (active_tab === "posts") {
+    posts_sort_order = "posts";
+  } else {
+    posts_sort_order = settings.postsSortOrder || "blog";
+  }
+
   const comments_sort_order: CommentSortOption =
     settings.commentsSortOrder || "comments";
 

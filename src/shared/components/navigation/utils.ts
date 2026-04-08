@@ -17,6 +17,7 @@ export function getTabCount(
   commentsCount: number
 ): number | undefined {
   if (!tab.showCount) return undefined
+  if (tab.id === 'blog') return postsCount
   if (tab.id === 'posts') return postsCount
   if (tab.id === 'comments') return commentsCount
   return undefined
@@ -26,10 +27,9 @@ export function getTabCount(
  * Build href for navigation item based on tab type
  */
 export function buildNavHref(tab: { id: string; tag?: string }): string {
-  if (tab.id === 'posts') {
+  if (tab.id === 'blog') {
     return '/'
   }
-  // Category tabs link to /?tab={id} (filtered by tag on the server)
   return `/?tab=${encodeURIComponent(tab.id)}`
 }
 
@@ -73,7 +73,7 @@ export function createNavigationSettings(config: {
 }): NavigationSettings {
   return {
     tabs: config.navigationTabs ?? defaultNavigationTabs,
-    activeTab: config.activeTab ?? 'posts',
+    activeTab: config.activeTab ?? 'blog',
     postsCount: config.postsCount ?? 0,
     commentsCount: config.commentsCount ?? 0,
   }

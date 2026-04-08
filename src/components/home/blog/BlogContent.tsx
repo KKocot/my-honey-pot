@@ -272,11 +272,19 @@ const BlogContentInner: Component<BlogContentProps> = (props) => {
     return tab?.tag || null;
   };
 
+  // Determine sort order based on active tab
+  const effective_sort_order = (): AccountPostsSortOption => {
+    const tab = active_tab();
+    if (tab === "blog") return "blog";
+    if (tab === "posts") return "posts";
+    return props.posts_sort_order;
+  };
+
   // Posts query
   const posts_query = createQuery(() => ({
     queryKey: query_keys.posts(
       props.hive_username,
-      props.posts_sort_order,
+      effective_sort_order(),
       props.posts_per_page,
       page_cursor(),
       active_category_tag()
@@ -284,12 +292,12 @@ const BlogContentInner: Component<BlogContentProps> = (props) => {
     queryFn: () =>
       fetch_posts(
         props.hive_username,
-        props.posts_sort_order,
+        effective_sort_order(),
         props.posts_per_page,
         page_cursor(),
         active_category_tag()
       ),
-    enabled: active_tab() === "posts" || !!active_category_tag(),
+    enabled: active_tab() === "blog" || active_tab() === "posts" || !!active_category_tag(),
     staleTime: 1000 * 60 * 5,
   }));
 

@@ -6,7 +6,7 @@ import type { NavigationTab } from '../types/index'
 import { createLocalInput } from '../hooks'
 
 // Built-in tab IDs that cannot be removed
-const BUILT_IN_TAB_IDS = ['posts', 'threads', 'comments']
+const BUILT_IN_TAB_IDS = ['blog', 'posts', 'threads', 'comments']
 
 // Check if tab is built-in
 const isBuiltIn = (tabId: string) => BUILT_IN_TAB_IDS.includes(tabId)

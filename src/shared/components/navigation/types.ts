@@ -43,6 +43,7 @@ export interface NavigationSettings {
  * Default navigation tabs
  */
 export const defaultNavigationTabs: NavigationTabConfig[] = [
+  { id: 'blog', label: 'Blog', enabled: true, showCount: false },
   { id: 'posts', label: 'Posts', enabled: true, showCount: false },
   { id: 'threads', label: 'Hive Threads', enabled: false, showCount: false },
   { id: 'comments', label: 'Comments', enabled: true, showCount: false },

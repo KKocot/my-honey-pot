@@ -96,6 +96,22 @@ function merge_with_defaults(
 }
 
 // ============================================
+// Navigation tabs migration (add blog tab if missing)
+// ============================================
+
+function migrate_navigation_tabs(settings: SettingsData): void {
+  if (!settings.navigationTabs?.length) return;
+
+  const has_blog_tab = settings.navigationTabs.some((t) => t.id === "blog");
+  if (!has_blog_tab) {
+    settings.navigationTabs = [
+      { id: "blog", label: "Blog", enabled: true, showCount: false },
+      ...settings.navigationTabs,
+    ];
+  }
+}
+
+// ============================================
 // Ensure complex layouts have valid fallbacks
 // ============================================
 
@@ -164,6 +180,9 @@ export async function load_and_prepare_config(
 
   // Migrate page layout (filter obsolete elements)
   merged.pageLayout = migrate_page_layout(cleaned.pageLayout, defaults);
+
+  // Migrate navigation tabs (add blog tab if missing)
+  migrate_navigation_tabs(merged);
 
   // Ensure all complex layouts have valid structures
   ensure_layout_fallbacks(merged, defaults);

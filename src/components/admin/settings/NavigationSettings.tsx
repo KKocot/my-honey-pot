@@ -11,7 +11,7 @@ import { TabItem } from './TabItem'
 // ============================================
 
 // Built-in tab IDs that cannot be removed
-const BUILT_IN_TAB_IDS = ['posts', 'threads', 'comments']
+const BUILT_IN_TAB_IDS = ['blog', 'posts', 'threads', 'comments']
 
 // Check if tab is a category tab (has tag defined)
 const isCategoryTab = (tab: NavigationTab) => {

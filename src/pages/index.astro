@@ -113,7 +113,7 @@ const globalProperties = user_page?.global_properties ?? null
 const accountManabars = user_page?.account_manabars ?? null
 const blogLogicPosts = user_page?.blog_logic_posts ?? []
 const hiveComments = user_page?.hive_comments ?? []
-const activeTab = user_page?.active_tab ?? 'posts'
+const activeTab = user_page?.active_tab ?? 'blog'
 const showCommentsTab = user_page?.show_comments_tab ?? false
 const activeCategoryTag = user_page?.active_category_tag ?? null
 const postsSortOrder = user_page?.posts_sort_order ?? 'blog'
@@ -159,7 +159,7 @@ function buildNextPageUrl(tab: string, nextCursor: IPaginationCursor | undefined
   return nextUrl.pathname + nextUrl.search
 }
 
-const nextPostsPageUrl = buildNextPageUrl('posts', nextPostsCursor)
+const nextPostsPageUrl = buildNextPageUrl(activeTab === 'blog' ? 'blog' : 'posts', nextPostsCursor)
 const nextCommentsPageUrl = buildNextPageUrl('comments', nextCommentsCursor)
 const cursor = (url.searchParams.get('start_author') && url.searchParams.get('start_permlink')) ? true : false
 const isFirstPage = !cursor

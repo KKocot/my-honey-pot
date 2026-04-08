@@ -288,6 +288,7 @@ export const defaultSettings: SettingsData = {
   scrollAnimationDuration: 400,
   scrollAnimationDelay: 100,
   navigationTabs: [
+    { id: 'blog', label: 'Blog', enabled: true, showCount: false },
     { id: 'posts', label: 'Posts', enabled: true, showCount: false },
     { id: 'threads', label: 'Hive Threads', enabled: false, showCount: false },
     { id: 'comments', label: 'Comments', enabled: true, showCount: false },
