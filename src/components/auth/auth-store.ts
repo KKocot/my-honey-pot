@@ -1,184 +1,234 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 Krzysztof Kocot
 
-import { createSignal } from 'solid-js'
+import { createSignal } from "solid-js";
+import {
+  get_persisted_session,
+  persist_session,
+  clear_persisted_session,
+  migrate_legacy_storage,
+} from "./auth-persistence";
+import { KEYCHAIN_MANAGED_MARKER } from "./constants";
 
-export type LoginType = 'hbauth' | 'keychain' | 'wif'
+export type LoginType = "hbauth" | "keychain" | "wif";
 
 export interface AuthUser {
-  username: string
-  privateKey: string
-  keyType: 'posting' | 'active'
-  loginType: LoginType
+  username: string;
+  privateKey: string;
+  keyType: "posting" | "active";
+  loginType: LoginType;
 }
-
-// Session storage key - only stores username, NEVER the private key
-const SESSION_KEY = 'hbauth-session'
 
 // Session timeout in milliseconds (30 minutes of inactivity)
-const SESSION_TIMEOUT_MS = 30 * 60 * 1000
+const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
 
 // Create signals for auth state
-const [currentUser, setCurrentUser] = createSignal<AuthUser | null>(null)
-const [isAuthenticated, setIsAuthenticated] = createSignal(false)
+const [currentUser, setCurrentUser] = createSignal<AuthUser | null>(null);
+const [isAuthenticated, setIsAuthenticated] = createSignal(false);
 
 // Track last activity for session timeout
-let lastActivityTimestamp = Date.now()
-let timeoutCheckInterval: ReturnType<typeof setInterval> | null = null
-
-// Session info stored in sessionStorage (without private key)
-interface StoredSession {
-  username: string
-  keyType: 'posting' | 'active'
-  loginType: LoginType
-}
-
-const VALID_KEY_TYPES = new Set(['posting', 'active'])
-const VALID_LOGIN_TYPES = new Set<string>(['hbauth', 'keychain', 'wif'])
-
-function is_stored_session(value: unknown): value is StoredSession {
-  if (typeof value !== 'object' || value === null) return false
-  if (!('username' in value) || !('keyType' in value) || !('loginType' in value))
-    return false
-  return (
-    typeof value.username === 'string' &&
-    typeof value.keyType === 'string' &&
-    VALID_KEY_TYPES.has(value.keyType) &&
-    typeof value.loginType === 'string' &&
-    VALID_LOGIN_TYPES.has(value.loginType)
-  )
-}
+let lastActivityTimestamp = Date.now();
+let timeoutCheckInterval: ReturnType<typeof setInterval> | null = null;
 
 // Check if session has expired due to inactivity
 function checkSessionTimeout() {
-  const user = currentUser()
-  if (!user) return
+  const user = currentUser();
+  if (!user) return;
 
-  const now = Date.now()
+  const now = Date.now();
   if (now - lastActivityTimestamp > SESSION_TIMEOUT_MS) {
-    logout()
+    logout();
   }
 }
 
 // Update last activity timestamp
 export function updateActivity() {
-  lastActivityTimestamp = Date.now()
+  lastActivityTimestamp = Date.now();
 }
 
 // Start timeout checker
-function startTimeoutChecker() {
-  // Clear any existing interval first (prevent multiple intervals in HMR)
-  if (timeoutCheckInterval) {
-    clearInterval(timeoutCheckInterval)
-    timeoutCheckInterval = null
-  }
+let listenersAttached = false;
 
-  timeoutCheckInterval = setInterval(checkSessionTimeout, 60 * 1000) // Check every minute
+function startTimeoutChecker() {
+  // Clear any existing interval and listeners first (prevent duplicates in HMR)
+  stopTimeoutChecker();
+
+  timeoutCheckInterval = setInterval(checkSessionTimeout, 60 * 1000); // Check every minute
 
   // Also listen for user activity
-  if (typeof window !== 'undefined') {
-    const activityEvents = ['mousedown', 'keydown', 'scroll', 'touchstart']
+  if (typeof window !== "undefined" && !listenersAttached) {
+    const activityEvents = ["mousedown", "keydown", "scroll", "touchstart"];
     activityEvents.forEach((event) => {
-      window.addEventListener(event, updateActivity, { passive: true })
-    })
+      window.addEventListener(event, updateActivity, { passive: true });
+    });
+    listenersAttached = true;
   }
 }
 
 // Stop timeout checker
 function stopTimeoutChecker() {
   if (timeoutCheckInterval) {
-    clearInterval(timeoutCheckInterval)
-    timeoutCheckInterval = null
+    clearInterval(timeoutCheckInterval);
+    timeoutCheckInterval = null;
   }
 
   // Remove event listeners on cleanup
-  if (typeof window !== 'undefined') {
-    const activityEvents = ['mousedown', 'keydown', 'scroll', 'touchstart']
+  if (typeof window !== "undefined") {
+    const activityEvents = ["mousedown", "keydown", "scroll", "touchstart"];
     activityEvents.forEach((event) => {
-      window.removeEventListener(event, updateActivity)
-    })
+      window.removeEventListener(event, updateActivity);
+    });
+    listenersAttached = false;
   }
 }
 
-// Get stored session info (username only, no private key)
-function getStoredSession(): StoredSession | null {
-  if (typeof sessionStorage === 'undefined') return null
-
-  const session = sessionStorage.getItem(SESSION_KEY)
-  if (!session) return null
-
-  try {
-    const parsed: unknown = JSON.parse(session)
-    if (!is_stored_session(parsed)) {
-      sessionStorage.removeItem(SESSION_KEY)
-      return null
-    }
-    return parsed
-  } catch {
-    sessionStorage.removeItem(SESSION_KEY)
-    return null
-  }
-}
-
-// Check if user needs to re-authenticate (has stored session but no key in memory)
-export function needsReauth(): StoredSession | null {
-  const stored = getStoredSession()
-  const user = currentUser()
+// Check if user needs to re-authenticate (has persisted session but no key in memory)
+export function needsReauth(): {
+  username: string;
+  keyType: "posting" | "active";
+  loginType: LoginType;
+} | null {
+  const stored = get_persisted_session();
+  const user = currentUser();
 
   // If we have stored session but no user in memory, need reauth
   if (stored && !user) {
-    return stored
+    return stored;
   }
 
-  return null
+  return null;
 }
 
-// Login - store user in memory, only username in sessionStorage
+// Login - store user in memory, persist metadata to localStorage
 export function login(user: AuthUser) {
-  if (!user || typeof user !== 'object') {
-    throw new Error('Invalid user object');
+  if (!user || typeof user !== "object") {
+    throw new Error("Invalid user object");
   }
-  if (!user.username || typeof user.username !== 'string') {
-    throw new Error('Invalid username');
+  if (!user.username || typeof user.username !== "string") {
+    throw new Error("Invalid username");
   }
-  if (!user.keyType || !['posting', 'active'].includes(user.keyType)) {
-    throw new Error('Invalid keyType');
-  }
-
-  setCurrentUser(user)
-  setIsAuthenticated(true)
-  lastActivityTimestamp = Date.now()
-
-  // Only store username and keyType in sessionStorage - NEVER the private key
-  if (typeof sessionStorage !== 'undefined') {
-    const sessionInfo: StoredSession = {
-      username: user.username,
-      keyType: user.keyType,
-      loginType: user.loginType,
-    }
-    sessionStorage.setItem(SESSION_KEY, JSON.stringify(sessionInfo))
+  if (!user.keyType || !["posting", "active"].includes(user.keyType)) {
+    throw new Error("Invalid keyType");
   }
 
-  startTimeoutChecker()
+  setCurrentUser(user);
+  setIsAuthenticated(true);
+  lastActivityTimestamp = Date.now();
+
+  // Persist session metadata to localStorage (NEVER the private key)
+  persist_session(user.username, user.loginType, user.keyType);
+
+  startTimeoutChecker();
 }
 
 // Logout - clear session
 export function logout() {
-  setCurrentUser(null)
-  setIsAuthenticated(false)
-  stopTimeoutChecker()
+  setCurrentUser(null);
+  setIsAuthenticated(false);
+  stopTimeoutChecker();
 
-  if (typeof sessionStorage !== 'undefined') {
-    sessionStorage.removeItem(SESSION_KEY)
+  clear_persisted_session();
+}
+
+/**
+ * Restore session from localStorage on app startup.
+ * Migrates legacy sessionStorage data, then attempts auto-restore
+ * based on the persisted login type.
+ *
+ * - keychain: auto-restore if extension is installed
+ * - hbauth: auto-restore if user has registered keys in HB-Auth (async check)
+ * - wif: cannot auto-restore (key was only in memory), clears persisted session
+ *
+ * Safe to call multiple times — uses singleton promise guard.
+ */
+let restore_promise: Promise<void> | null = null;
+
+export function restore_session(): Promise<void> {
+  if (!restore_promise) {
+    restore_promise = _restore_session_impl();
+  }
+  return restore_promise;
+}
+
+async function _restore_session_impl(): Promise<void> {
+  if (typeof window === "undefined") return;
+
+  // Step 1: Migrate legacy sessionStorage -> localStorage
+  migrate_legacy_storage();
+
+  // Step 2: Read persisted session
+  const session = get_persisted_session();
+  if (!session) return;
+
+  const { username, loginType, keyType } = session;
+
+  // Step 3: Attempt auto-restore based on login type
+  if (loginType === "keychain") {
+    // Dynamic import to avoid pulling KeychainProvider into SSR
+    const { has_keychain } = await import("./KeychainLogin");
+
+    if (has_keychain()) {
+      setCurrentUser({
+        username,
+        privateKey: KEYCHAIN_MANAGED_MARKER,
+        keyType,
+        loginType: "keychain",
+      });
+      setIsAuthenticated(true);
+      lastActivityTimestamp = Date.now();
+      startTimeoutChecker();
+    } else {
+      // Extension not available -- clear persisted session
+      clear_persisted_session();
+    }
+    return;
+  }
+
+  if (loginType === "hbauth") {
+    try {
+      const { getOnlineClient } = await import("../../lib/hbauth-service");
+      const client = await getOnlineClient();
+      const users = await client.getRegisteredUsers();
+      const has_user = users.some(
+        (u) => u.username.toLowerCase() === username.toLowerCase(),
+      );
+
+      if (has_user) {
+        // HB-Auth has keys for this user. We can't know if the session
+        // is still unlocked without attempting auth, so we set the user
+        // optimistically. If the session is locked, the user will see
+        // needsReauth() and must re-enter their password.
+        const { HBAUTH_MANAGED_MARKER } = await import("../../lib/wif-signer");
+        setCurrentUser({
+          username,
+          privateKey: HBAUTH_MANAGED_MARKER,
+          keyType,
+          loginType: "hbauth",
+        });
+        setIsAuthenticated(true);
+        lastActivityTimestamp = Date.now();
+        startTimeoutChecker();
+      }
+      // If user not found in HB-Auth, keep persisted session
+      // so needsReauth() can show the reauth banner
+    } catch {
+      // HB-Auth service unavailable -- keep persisted session for needsReauth()
+    }
+    return;
+  }
+
+  if (loginType === "wif") {
+    // WIF key was only in memory -- cannot auto-restore
+    clear_persisted_session();
   }
 }
 
 // Export signals for reactive use in components
-export { currentUser, isAuthenticated }
+export { currentUser, isAuthenticated };
 
 // Cleanup on page unload (for HMR and production)
-if (typeof window !== 'undefined') {
-  window.addEventListener('beforeunload', () => {
-    stopTimeoutChecker()
-  })
+if (typeof window !== "undefined") {
+  window.addEventListener("beforeunload", () => {
+    stopTimeoutChecker();
+  });
 }
