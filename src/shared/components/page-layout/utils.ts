@@ -33,7 +33,7 @@ export function get_section_wrapper_class(slot: PageSlotPosition): string {
  */
 export function get_element_wrapper_class(orientation: SectionOrientation, slot?: PageSlotPosition): string {
   if (orientation === 'horizontal') {
-    return 'flex-shrink-0'
+    return 'flex-shrink-0 max-w-full'
   }
   // In sidebars, don't force w-full - let content determine width
   if (slot && is_sidebar(slot)) {
