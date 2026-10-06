@@ -3,6 +3,7 @@
 
 import { Show } from "solid-js";
 import { settings, updateSettings } from "../store";
+import { DEFAULT_FOOTER_DATA } from "../../../shared/components/footer/types";
 
 // ============================================
 // Component
@@ -51,28 +52,20 @@ export function FooterSettings() {
 
           <div class="border-t border-border pt-4">
             <div class="flex items-center justify-center gap-3 flex-wrap text-text-muted text-sm text-center">
-              <Show
-                when={footer_text().trim()}
-                fallback={
-                  <span>
-                    Built by{" "}
-                    <span class="text-primary font-medium">
-                      {settings.hiveUsername || "yourname"}
-                    </span>
-                  </span>
-                }
-              >
-                <span>{footer_text().trim()}</span>
+              <Show when={footer_text().trim()}>
+                {(text) => (
+                  <>
+                    <span>{text()}</span>
+                    <span class="text-border">|</span>
+                  </>
+                )}
               </Show>
-
-              <span class="text-border">|</span>
-              <span class="inline-flex items-center gap-1 text-xs bg-bg-secondary px-2 py-1 rounded">
-                Ko-fi
-              </span>
-
-              <span class="text-border">|</span>
-              <span>Powered by Hive</span>
+              <span>Powered by {DEFAULT_FOOTER_DATA.platform_name}</span>
             </div>
+            <p class="text-xs text-text-muted mt-3 text-center">
+              Platform branding is set by the operator: a credit link (only
+              when this field is empty) and a Ko-fi button may also appear.
+            </p>
           </div>
         </div>
       </div>

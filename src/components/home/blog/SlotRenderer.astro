@@ -13,6 +13,7 @@ import Navigation from '../layout/Navigation.astro'
 import AuthorProfile from '../cards/AuthorProfile.astro'
 import BlogLogicPostsGrid from './BlogLogicPostsGrid.astro'
 import CommentCard from '../cards/CommentCard.astro'
+import { renderPostBody } from '../../../lib/renderer'
 import Footer from '../layout/Footer.astro'
 import { createHeaderData, renderHeaderCompact, renderHeaderBottom } from '../../../shared/components/header'
 import {
@@ -222,7 +223,7 @@ const activeSections = sections.filter(s => s.active !== false && s.elements.len
               <div class="space-y-4">
                 {threads.tree.map(node => (
                   <article class="bg-bg-card rounded-xl border border-border p-4">
-                    <div class="prose prose-sm max-w-none text-text" set:html={node.comment.body} />
+                    <div class="prose prose-sm max-w-none text-text" set:html={renderPostBody(node.comment.body)} />
                     <div class="flex items-center gap-3 mt-3 pt-3 border-t border-border text-xs text-text-muted">
                       <time>{new Date(node.comment.created).toLocaleDateString()}</time>
                       {node.comment.children > 0 && (

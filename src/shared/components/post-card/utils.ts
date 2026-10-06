@@ -7,8 +7,16 @@
 
 import type { PostCardData, PostCardSettings } from './types'
 import type { BridgePost } from '@hiveio/workerbee/blog-logic'
-import { getSummary, stripMarkdownSimple } from '../../formatters'
-import { hive_image_proxy } from '../../../lib/config'
+import { getSummary, stripMarkdownSimple, safe_url } from '../../formatters'
+import { hive_image_proxy, HIVE_BLOG_URL } from '../../../lib/config'
+
+/** Owner's posts link to the local route; others (reblogs) to the original on the external Hive frontend. */
+export function get_post_href(author: string, permlink: string, owner: string): string {
+  const local_href = `/${encodeURIComponent(permlink)}`
+  if (author.toLowerCase() === owner.toLowerCase()) return local_href
+  const base = HIVE_BLOG_URL.replace(/\/+$/, '')
+  return safe_url(`${base}/@${encodeURIComponent(author)}/${encodeURIComponent(permlink)}`) || local_href
+}
 
 /**
  * Parse thumbnail from HivePost json_metadata
@@ -18,9 +26,9 @@ export function getPostThumbnail(post: BridgePost, thumbnailSizePx: number): str
     const metadata = typeof post.json_metadata === 'string'
       ? JSON.parse(post.json_metadata)
       : post.json_metadata
-    const image = metadata?.image?.[0]
-    if (image && image.startsWith('http')) {
-      return hive_image_proxy(image, thumbnailSizePx * 2)
+    const image = safe_url(metadata?.image?.[0])
+    if (image) {
+      return safe_url(hive_image_proxy(image, thumbnailSizePx * 2)) || null
     }
   } catch { /* ignore */ }
   return null
@@ -86,11 +94,9 @@ export function getSimpleSummary(body: string, maxLength: number): string {
  * Get thumbnail URL with proxy
  */
 export function getThumbnailUrl(imageUrl: string | undefined, thumbnailSizePx: number): string | null {
-  if (!imageUrl || imageUrl.length === 0) return null
-  if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
-    return hive_image_proxy(imageUrl, thumbnailSizePx * 2)
-  }
-  return null
+  const image = safe_url(imageUrl)
+  if (!image) return null
+  return safe_url(hive_image_proxy(image, thumbnailSizePx * 2)) || null
 }
 
 /**

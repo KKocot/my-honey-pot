@@ -1,47 +1,49 @@
-# Build stage
-FROM node:24-alpine AS builder
+FROM node:24-alpine AS base
 
-RUN corepack enable && corepack prepare pnpm@10 --activate
+ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+RUN corepack enable && corepack prepare pnpm@10.34.6 --activate
 
 WORKDIR /app
 
-# Copy package files, lockfile and pnpm config
+FROM base AS builder
+
 COPY package.json pnpm-lock.yaml .npmrc ./
 
-# Install dependencies
+# postinstall copies hb-auth assets into public/auth/assets, so it must run before the build
 RUN pnpm install --frozen-lockfile
 
-# Copy source code
 COPY . .
 
-# Build the application
 RUN pnpm run build
 
-# Production stage
+FROM base AS prod-deps
+
+COPY package.json pnpm-lock.yaml .npmrc ./
+
+# Scripts skipped: postinstall only feeds public/, which is already baked into dist/client
+RUN pnpm install --prod --frozen-lockfile --ignore-scripts
+
 FROM node:24-alpine AS runner
 
 WORKDIR /app
 
-# Create non-root user for security
-RUN addgroup --system --gid 1001 nodejs && \
-    adduser --system --uid 1001 astro
+RUN addgroup -S -g 1001 nodejs && \
+    adduser -S -D -H -u 1001 -G nodejs astro
 
-# Copy built application
-COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/package.json ./
+COPY --from=prod-deps --chown=1001:1001 /app/node_modules ./node_modules
+COPY --from=builder --chown=1001:1001 /app/dist ./dist
+COPY --from=builder --chown=1001:1001 /app/package.json ./
 
-# Set ownership
-RUN chown -R astro:nodejs /app
+ENV HOST=0.0.0.0 \
+    PORT=4321 \
+    NODE_ENV=production \
+    NODE_OPTIONS=--max-old-space-size=192
 
-USER astro
+USER 1001:1001
 
-# Expose port
 EXPOSE 4321
 
-ENV HOST=0.0.0.0
-ENV PORT=4321
-ENV NODE_ENV=production
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
+    CMD ["node", "-e", "fetch('http://127.0.0.1:'+(process.env.PORT||4321)+'/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
 
-# Start the server
 CMD ["node", "./dist/server/entry.mjs"]

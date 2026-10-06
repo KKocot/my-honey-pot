@@ -4,6 +4,7 @@
 import { createSignal, createMemo, createEffect, Show, For, ErrorBoundary, onCleanup, onMount, type Component } from "solid-js";
 import { QueryClientProvider, createQuery, type DehydratedState, hydrate } from "@tanstack/solid-query";
 import { query_keys, fetch_posts, fetch_comments, fetch_post_replies, create_query_client } from "../../../lib/queries";
+import { renderPostBody } from "../../../lib/renderer";
 import type { BridgePost, BridgeComment, AccountPostsSortOption, CommentSortOption, IPaginationCursor } from "@hiveio/workerbee/blog-logic";
 import type { SiteSettings, CardLayout } from "../types";
 import {
@@ -12,6 +13,7 @@ import {
   type PostCardSettings,
   type PostsGridSettings,
 } from "../../../shared/components/post-card";
+import { get_post_href } from "../../../shared/components/post-card/utils";
 import {
   createCommentCardData,
   createCommentCardSettings,
@@ -135,12 +137,8 @@ const PostCardItem: Component<{
   // Scroll animation visibility state
   const [is_visible, set_is_visible] = createSignal(false);
 
-  // Extract onClick handler to prevent re-render
-  const handle_post_click = (permlink: string) => {
-    window.location.href = props.post.author !== props.hive_username
-      ? `/${props.post.author}/${permlink}`
-      : `/${permlink}`
-  }
+  const post_href = createMemo(() => get_post_href(props.post.author, props.post.permlink, props.hive_username))
+  const is_external = () => !post_href().startsWith("/")
 
   // Trigger scroll animation on mount with staggered delay
   onMount(() => {
@@ -215,13 +213,20 @@ const PostCardItem: Component<{
 
   return (
     <article
-      class="bg-bg-card rounded-xl overflow-hidden cursor-pointer"
+      class="relative bg-bg-card rounded-xl overflow-hidden cursor-pointer"
       style={card_style_string()}
       onMouseEnter={() => set_is_hovered(true)}
       onMouseLeave={() => set_is_hovered(false)}
-      onClick={() => handle_post_click(props.post.permlink)}
-      innerHTML={content_html()}
-    />
+    >
+      <a
+        href={post_href()}
+        target={is_external() ? "_blank" : undefined}
+        rel={is_external() ? "noopener noreferrer" : undefined}
+        aria-label={props.post.title || props.post.permlink}
+        class="post-card-link absolute inset-0 z-0 rounded-[inherit] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
+      />
+      <div class="contents" innerHTML={content_html()} />
+    </article>
   );
 };
 
@@ -398,7 +403,7 @@ const BlogContentInner: Component<BlogContentProps> = (props) => {
                 <For each={data().tree}>
                   {(node) => (
                     <article class="bg-bg-card rounded-xl border border-border p-4">
-                      <div class="prose prose-sm max-w-none text-text" innerHTML={node.comment.body} />
+                      <div class="prose prose-sm max-w-none text-text" innerHTML={renderPostBody(node.comment.body)} />
                       <div class="flex items-center gap-3 mt-3 pt-3 border-t border-border text-xs text-text-muted">
                         <time>{new Date(node.comment.created).toLocaleDateString()}</time>
                         <Show when={node.comment.children > 0}>

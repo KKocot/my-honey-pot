@@ -108,7 +108,7 @@ function is_safe_url(url: string): boolean {
 export function build_social_url(link: SocialLink): string {
   // Backward compatibility: if old 'url' field exists and is a full URL, validate protocol
   if (link.url && (link.url.startsWith('http://') || link.url.startsWith('https://'))) {
-    return is_safe_url(link.url) ? link.url : ''
+    return is_safe_url(link.url) ? new URL(link.url).href : ''
   }
 
   // Custom links use username as full URL
@@ -117,19 +117,21 @@ export function build_social_url(link: SocialLink): string {
     // Auto-prefix https:// if missing protocol
     if (url && !url.startsWith('http://') && !url.startsWith('https://')) {
       const fullUrl = `https://${url}`
-      return is_safe_url(fullUrl) ? fullUrl : ''
+      return is_safe_url(fullUrl) ? new URL(fullUrl).href : ''
     }
-    return is_safe_url(url) ? url : ''
+    return is_safe_url(url) ? new URL(url).href : ''
   }
 
-  // Build URL from base + username
+  // Stored settings may name a platform this build no longer knows
+  if (!Object.hasOwn(platformInfos, link.platform)) return ''
   const info = platformInfos[link.platform]
   if (!info.baseUrl) return ''
 
   const username = link.username || link.url || ''
-  if (!username) return ''
+  if (!username || !is_valid_username(username, link.platform)) return ''
 
-  return `${info.baseUrl}${username}`
+  const full_url = `${info.baseUrl}${username}`
+  return is_safe_url(full_url) ? new URL(full_url).href : ''
 }
 
 /**

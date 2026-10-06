@@ -25,4 +25,4 @@ export {
   getDisplayUrl,
 } from './text'
 
-export { escape_html } from './html'
+export { escape_html, safe_url, safe_relative_path, safe_css_url } from './html'

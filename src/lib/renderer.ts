@@ -2,7 +2,7 @@
 // Copyright (C) 2026 Krzysztof Kocot
 
 import { DefaultRenderer, TablePlugin, HiveLinkRewritePlugin, ImagePlaceholderPlugin } from './renderer/index';
-import { escape_html } from '../shared/formatters/html';
+import { escape_html, safe_relative_path } from '../shared/formatters/html';
 import { HIVE_IMAGES_ENDPOINT, HIVE_BLOG_URL, hive_image_proxy } from './config';
 
 function escape_regex(str: string): string {
@@ -10,6 +10,11 @@ function escape_regex(str: string): string {
 }
 
 const ESCAPED_IMAGES_ENDPOINT = escape_regex(HIVE_IMAGES_ENDPOINT);
+
+// Browsers treat "//host", "/\host" and "/<tab>/host" (control chars stripped) as protocol-relative.
+export function is_relative_internal(url: string): boolean {
+  return safe_relative_path(url) !== '';
+}
 
 const renderer = new DefaultRenderer({
   baseUrl: `${HIVE_BLOG_URL}/`,
@@ -30,11 +35,9 @@ const renderer = new DefaultRenderer({
   hashtagUrlFn: (hashtag: string) => `${HIVE_BLOG_URL}/trending/${hashtag}`,
   communityUrlFn: (community: string) => `${HIVE_BLOG_URL}/${community}`,
   isLinkSafeFn: (url: string) =>
-    !!url.match(`^(/(?!/)|${ESCAPED_IMAGES_ENDPOINT})`) ||
-    !!url.match(`^(/(?!/)|#)`),
+    is_relative_internal(url) || url.startsWith('#') || !!url.match(`^${ESCAPED_IMAGES_ENDPOINT}`),
   addExternalCssClassToMatchingLinksFn: (url: string) =>
-    !url.match(`^(/(?!/)|${ESCAPED_IMAGES_ENDPOINT})`) &&
-    !url.match(`^(/(?!/)|#)`)
+    !is_relative_internal(url) && !url.startsWith('#') && !url.match(`^${ESCAPED_IMAGES_ENDPOINT}`)
 });
 
 export function renderPostBody(body: string): string {

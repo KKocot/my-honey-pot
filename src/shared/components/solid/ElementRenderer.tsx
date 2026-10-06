@@ -35,6 +35,7 @@ import {
   createFooterData,
 } from '../footer'
 import { PostCard } from './PostCard'
+import { renderPostBody } from '../../../lib/renderer'
 
 interface ElementRendererProps {
   elementId: string
@@ -68,7 +69,6 @@ function renderAuthorProfile(_layout: 'horizontal' | 'vertical' = 'horizontal', 
   const globalProps = currentData?.globalProps
   if (!profile) return null
 
-  // Create normalized data using shared utility
   const profileData = createAuthorProfileData(
     profile.name,
     profile,
@@ -225,7 +225,7 @@ function ThreadsSection(props: { data: Accessor<HiveData | null> }) {
         <For each={threads()}>
           {(thread) => (
             <article class="bg-bg-card rounded-xl border border-border p-4">
-              <div class="prose prose-sm max-w-none text-text" innerHTML={thread.body} />
+              <div class="prose prose-sm max-w-none text-text" innerHTML={renderPostBody(thread.body)} />
               <div class="flex items-center gap-3 mt-3 pt-3 border-t border-border text-xs text-text-muted">
                 <time>{new Date(thread.created).toLocaleDateString()}</time>
                 <Show when={thread.children > 0}>

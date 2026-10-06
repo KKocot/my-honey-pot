@@ -117,6 +117,65 @@ docker logs -f my-honey-pot
 
 Your blog will be available at your domain via HTTPS through Traefik.
 
+## Running via hive-blog-service
+
+[hive-blog-service](https://github.com/KKocot/hive-blog-service) starts one container per blog from a prebuilt image. This section is for the operator of that service.
+
+### Build and tag the image
+
+The service expects the image `my-honey-pot:latest` on the Docker host:
+
+```bash
+docker build -t my-honey-pot:latest .
+# or
+docker compose build
+```
+
+Build-time variables (`PUBLIC_HIVE_API_ENDPOINT`, `PUBLIC_HIVE_CHAIN_ID`, `PUBLIC_HIVE_IMAGES_ENDPOINT`, `PUBLIC_HIVE_BLOG_URL`, `PUBLIC_HIVE_SIGNER_URL`) are inlined into the bundle, so they apply to every blog created from the image. Changing them means rebuilding the image. Defaults target Hive mainnet.
+
+### Runtime environment
+
+Set per container by the service:
+
+| Variable | Required | Description |
+| --- | --- | --- |
+| `HIVE_USERNAME` | yes | Blog owner account (personal blogs only) |
+| `PUBLIC_SITE_URL` | yes | Public URL of the blog, e.g. `https://alice.blogs.example` |
+| `HOST` | no | Defaults to `0.0.0.0` in the image |
+| `PORT` | no | Defaults to `4321` in the image |
+| `NODE_ENV` | no | Defaults to `production` in the image |
+| `CONFIG_PARENT_AUTHOR`, `CONFIG_PARENT_PERMLINK` | no | Where blog configs are stored on Hive (default `barddev/my-blog-configs`) |
+
+### Health check
+
+`GET /healthz` returns `200 {"status":"ok"}` without contacting Hive, so a slow or unavailable Hive node does not mark the container unhealthy. The image has a built-in `HEALTHCHECK` against this endpoint (`docker inspect --format '{{.State.Health.Status}}' <container>`).
+
+### Read-only mode and limits
+
+The image runs as UID/GID `1001:1001` and writes nothing outside `/tmp`, so it works with the hardened container spec used by the service:
+
+```bash
+docker run -d \
+  --read-only --tmpfs /tmp:rw,noexec,nosuid,nodev,size=64m \
+  --cap-drop ALL --security-opt no-new-privileges \
+  -m 256m --cpus 0.5 --pids-limit 256 \
+  -e HIVE_USERNAME=alice -e PUBLIC_SITE_URL=https://alice.blogs.example \
+  -p 4321:4321 my-honey-pot:latest
+```
+
+The Node heap is capped with `NODE_OPTIONS=--max-old-space-size=192` to stay inside the 256 MB memory limit. Raise both together if you change the limit.
+
+### Branding
+
+Optional operator branding is read at runtime (container restart is enough, no rebuild). Empty values hide the element; URLs must use `http` or `https`. The current hive-blog-service container spec does not pass these variables, so blogs created by it render without branding until the service adds them.
+
+| Variable | Description |
+| --- | --- |
+| `BRANDING_NAME` | "Built by" name in the footer |
+| `BRANDING_URL` | Link for the "Built by" name |
+| `BRANDING_KOFI_URL` | Ko-fi button in the footer |
+| `BRANDING_EDITOR_URL` | Link to the external blog editor |
+
 ## Admin Panel
 
 Access the admin panel at `yourdomain.com/admin` to customize your blog.

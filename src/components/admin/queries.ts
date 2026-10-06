@@ -389,8 +389,8 @@ async function fetchHivePreviewData(username: string, postsPerPage: number): Pro
       for (const [key, entry] of Object.entries(threadsDiscussion)) {
         if (key === rootKey) continue
         const post = entry as BridgePost
-        // Only include direct replies to the root post (not nested replies)
-        if (post.parent_author === username && post.parent_permlink === 'my-threads') {
+        // Only the owner's own direct replies: anyone can reply under my-threads
+        if (post.author === username && post.parent_author === username && post.parent_permlink === 'my-threads') {
           threadsArray.push(post)
         }
       }

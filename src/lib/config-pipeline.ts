@@ -17,6 +17,11 @@ import {
 } from "../components/admin/types/index";
 import { migrateCardLayout } from "../components/admin/types/layout";
 import { load_raw_config_from_hive } from "../components/admin/hive-broadcast";
+import {
+  read_through_server_cache,
+  server_cache_keys,
+  with_hive_timeout,
+} from "./queries";
 
 // ============================================
 // Card layout migration (all 3 card types)
@@ -138,6 +143,19 @@ function ensure_layout_fallbacks(
   }
 }
 
+/**
+ * Server: deadline + shared 60 s cache, so N blogs on one host do not rescan the shared
+ * config post on every render. Browser (admin) reads fresh so a saved config shows up at once.
+ */
+async function load_raw_config(username: string): Promise<Partial<SettingsData> | null> {
+  if (typeof window !== "undefined") return load_raw_config_from_hive(username);
+  return read_through_server_cache(
+    server_cache_keys.blog_config(username),
+    () => with_hive_timeout("load_blog_config", () => load_raw_config_from_hive(username)),
+    (config) => config !== null
+  );
+}
+
 // ============================================
 // Public API
 // ============================================
@@ -161,7 +179,7 @@ export async function load_and_prepare_config(
 ): Promise<SettingsData> {
   const defaults = get_default_settings(false);
 
-  const raw_config = await load_raw_config_from_hive(username);
+  const raw_config = await load_raw_config(username);
 
   if (!raw_config) {
     return { ...defaults, hiveUsername: username };

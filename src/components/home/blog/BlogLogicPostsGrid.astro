@@ -11,6 +11,8 @@ import {
   createPostCardDataFromBridge,
   renderPostCard,
 } from '../../../shared/components/post-card'
+import { get_post_href } from '../../../shared/components/post-card/utils'
+import { HIVE_USERNAME } from '../../../lib/config'
 
 interface Props {
   posts: BridgePost[]
@@ -83,14 +85,14 @@ const pinned_badge = `<div class="absolute top-2 right-2 z-10 flex items-center 
 
 const pinned_cards_html = pinnedPosts.map((post) => {
   const postData = createPostCardDataFromBridge(post, { thumbnailSizePx, maxTags })
-  const cardHtml = renderPostCard(postData, cardSettings, isVertical, `/${post.permlink}`)
+  const cardHtml = renderPostCard(postData, cardSettings, isVertical, get_post_href(post.author, post.permlink, HIVE_USERNAME))
   return `<div class="relative border-2 border-primary rounded-2xl overflow-hidden">${pinned_badge}${cardHtml}</div>`
 })
 
 // Render regular post cards
 const regular_cards_html = regularPosts.map((post) => {
   const postData = createPostCardDataFromBridge(post, { thumbnailSizePx, maxTags })
-  return renderPostCard(postData, cardSettings, isVertical, `/${post.permlink}`)
+  return renderPostCard(postData, cardSettings, isVertical, get_post_href(post.author, post.permlink, HIVE_USERNAME))
 })
 
 const all_cards_html = [...pinned_cards_html, ...regular_cards_html]

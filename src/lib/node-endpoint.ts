@@ -12,7 +12,10 @@ export function get_current_endpoint(): string {
     const stored = window.localStorage.getItem('hive-node-endpoint');
     if (stored) {
       try {
-        return JSON.parse(stored) as string;
+        const parsed: unknown = JSON.parse(stored);
+        if (typeof parsed === 'string' && new URL(parsed).protocol === 'https:') {
+          return parsed;
+        }
       } catch {
         // Ignore malformed value
       }

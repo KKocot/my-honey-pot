@@ -3,10 +3,12 @@
 
 import MarkdownIt from "markdown-it";
 import DOMPurify from "dompurify";
+import sanitize_html from "sanitize-html";
 import { HIVE_IMAGES_ENDPOINT, HIVE_BLOG_URL, hive_image_proxy } from "./config";
 import { Phishing } from "./renderer/security/Phishing";
 import { SecurityChecker, SecurityError } from "./renderer/security/SecurityChecker";
 import { PreliminarySanitizer } from "./renderer/sanitization/PreliminarySanitizer";
+import { renderPostBody } from "./renderer";
 
 const IMAGE_EXTENSION_PATTERN = /\.(?:jpe?g|png|gif|webp|svg|ico|tiff?)(?:\?[^"]*)?$/i;
 
@@ -53,67 +55,85 @@ const ALLOWED_ATTR = [
   "align",
 ];
 
+const ALLOWED_SCHEMES = ["http", "https", "hive"];
+const ALLOWED_URI_REGEXP = new RegExp(`^(?:(?:${ALLOWED_SCHEMES.join("|")}):)`, "i");
+
+const SSR_COMMENT_POLICY: sanitize_html.IOptions = {
+  allowedTags: ALLOWED_TAGS,
+  allowedAttributes: { "*": ALLOWED_ATTR },
+  allowedClasses: {
+    div: DIV_CLASS_WHITELIST,
+    span: [HLJS_PREFIX_PATTERN, ...HLJS_SUBSCOPE_WHITELIST],
+  },
+  allowedSchemes: ALLOWED_SCHEMES,
+  allowProtocolRelative: false,
+};
+
 const purify = DOMPurify();
 
-purify.addHook("afterSanitizeAttributes", (node) => {
-  if (node.tagName === "A") {
-    const href = node.getAttribute("href") || "";
+function register_purify_hooks(): void {
+  purify.addHook("afterSanitizeAttributes", (node) => {
+    if (node.tagName === "A") {
+      const href = node.getAttribute("href") || "";
 
-    if (Phishing.looksPhishy(href)) {
-      const span = document.createElement("span");
-      span.textContent = node.textContent || "";
-      node.replaceWith(span);
-      return;
-    }
+      if (Phishing.looksPhishy(href)) {
+        const span = document.createElement("span");
+        span.textContent = node.textContent || "";
+        node.replaceWith(span);
+        return;
+      }
 
-    const is_internal =
-      href.startsWith("/") ||
-      href.startsWith(HIVE_BLOG_URL) ||
-      href.startsWith(HIVE_IMAGES_ENDPOINT);
+      const is_internal =
+        href.startsWith("/") ||
+        href.startsWith(HIVE_BLOG_URL) ||
+        href.startsWith(HIVE_IMAGES_ENDPOINT);
 
-    if (!is_internal) {
-      node.setAttribute("target", "_blank");
-      node.setAttribute("rel", "noopener nofollow");
-      node.classList.add("link-external");
-    }
-  }
-
-  if (node.tagName === "IMG") {
-    const src = node.getAttribute("src") || "";
-    if (!src.startsWith(HIVE_IMAGES_ENDPOINT)) {
-      node.setAttribute("src", hive_image_proxy(src, 768));
-    }
-    node.setAttribute("loading", "lazy");
-  }
-
-  if (node.tagName === "SPAN") {
-    const cls = node.getAttribute("class");
-    if (cls) {
-      const allowed_classes = cls
-        .split(/\s+/)
-        .filter(
-          (c) => HLJS_PREFIX_PATTERN.test(c) || HLJS_SUBSCOPE_WHITELIST.has(c),
-        );
-      if (allowed_classes.length > 0) {
-        node.setAttribute("class", allowed_classes.join(" "));
-      } else {
-        node.removeAttribute("class");
+      if (!is_internal) {
+        node.setAttribute("target", "_blank");
+        node.setAttribute("rel", "noopener nofollow");
+        node.classList.add("link-external");
       }
     }
-  }
 
-  if (node.tagName === "DIV") {
-    const cls = node.getAttribute("class");
-    if (cls) {
-      const valid_class = DIV_CLASS_WHITELIST.find((e) => cls === e);
-      if (valid_class) {
-        node.setAttribute("class", valid_class);
-      } else {
-        node.removeAttribute("class");
+    if (node.tagName === "IMG") {
+      const src = node.getAttribute("src") || "";
+      if (!src.startsWith(HIVE_IMAGES_ENDPOINT)) {
+        node.setAttribute("src", hive_image_proxy(src, 768));
+      }
+      node.setAttribute("loading", "lazy");
+    }
+
+    if (node.tagName === "SPAN") {
+      const cls = node.getAttribute("class");
+      if (cls) {
+        const allowed_classes = cls
+          .split(/\s+/)
+          .filter(
+            (c) => HLJS_PREFIX_PATTERN.test(c) || HLJS_SUBSCOPE_WHITELIST.has(c),
+          );
+        if (allowed_classes.length > 0) {
+          node.setAttribute("class", allowed_classes.join(" "));
+        } else {
+          node.removeAttribute("class");
+        }
       }
     }
-  }
-});
+
+    if (node.tagName === "DIV") {
+      const cls = node.getAttribute("class");
+      if (cls) {
+        const valid_class = DIV_CLASS_WHITELIST.find((e) => cls === e);
+        if (valid_class) {
+          node.setAttribute("class", valid_class);
+        } else {
+          node.removeAttribute("class");
+        }
+      }
+    }
+  });
+}
+
+if (purify.isSupported) register_purify_hooks();
 
 /**
  * Convert <a> tags that are bare image URLs into <img> tags.
@@ -136,12 +156,18 @@ function convert_image_links(html: string): string {
 export function render_comment_body(body: string): string {
   if (!body || !body.trim()) return "";
 
+  // DOMPurify without a DOM (SSR) has no sanitize(); render via the post pipeline, then
+  // narrow its broader post policy (embeds, iframes) down to the comment allowlist.
+  if (typeof window === "undefined" || !purify.isSupported) {
+    return sanitize_html(renderPostBody(body), SSR_COMMENT_POLICY);
+  }
+
   const sanitized_input = PreliminarySanitizer.preliminarySanitize(body);
   const raw_html = md.render(sanitized_input);
   const clean_html = purify.sanitize(raw_html, {
     ALLOWED_TAGS,
     ALLOWED_ATTR,
-    ALLOWED_URI_REGEXP: /^(?:(?:https?|hive):)/i,
+    ALLOWED_URI_REGEXP,
   });
 
   try {

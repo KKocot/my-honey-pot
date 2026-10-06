@@ -16,16 +16,10 @@ const DEFAULT_SESSION_TIMEOUT = 24 * 60 * 60 * 1000;
 // ============================================================================
 
 /**
- * Get the worker URL with proper path handling
- * Worker must be served from /auth/worker.js in the public directory
+ * Served by src/pages/auth/worker.js.ts with its own CSP; must stay next to
+ * public/auth/assets because the worker resolves its WASM relative to its own URL.
  */
 function getWorkerUrl(): string {
-  // Server-side: return default path
-  if (typeof window === 'undefined') {
-    return '/auth/worker.js';
-  }
-
-  // Client-side: use relative path (Astro serves from public/)
   return '/auth/worker.js';
 }
 

@@ -16,17 +16,18 @@ function get_public_env(
   return fallback;
 }
 
-// Helper for server-only env vars (no PUBLIC_ prefix)
-// Vite loads .env into import.meta.env (SSR) but NOT into process.env.
-// Check import.meta.env first (Vite dev/SSR), then process.env (production Node.js).
-function get_server_env(key: string, fallback: string): string {
-  if (typeof import.meta !== "undefined" && import.meta.env) {
-    const meta_val = (import.meta.env as Record<string, string | undefined>)[key];
-    if (typeof meta_val === "string" && meta_val.trim() !== "") return meta_val;
-  }
+/**
+ * Server env read at call time: process.env first (container runtime env wins), then
+ * import.meta.env (Vite loads .env there in dev), then `fallback`. Values are trimmed.
+ */
+export function get_server_env(key: string, fallback: string = ""): string {
   if (typeof process !== "undefined" && process.env) {
     const val = process.env[key];
-    if (typeof val === "string" && val.trim() !== "") return val;
+    if (typeof val === "string" && val.trim() !== "") return val.trim();
+  }
+  if (typeof import.meta !== "undefined" && import.meta.env) {
+    const meta_val = (import.meta.env as Record<string, string | undefined>)[key];
+    if (typeof meta_val === "string" && meta_val.trim() !== "") return meta_val.trim();
   }
   return fallback;
 }
@@ -80,7 +81,6 @@ export const CONFIG_PARENT_PERMLINK = get_server_env(
 // Fallback API endpoints for retry logic (ordered by preference)
 // When using a non-mainnet endpoint (mirrornet/testnet), only that endpoint is used
 // to avoid mixing networks in fallback rotation
-// NOTE: Keep in sync with mainnet_domains in astro.config.mjs (CSP connect-src)
 const MAINNET_FALLBACK_ENDPOINTS = [
   'https://api.openhive.network',
   'https://api.hive.blog',

@@ -3,83 +3,93 @@
 // Copyright (C) 2026 Krzysztof Kocot
 
 import Layout from '../layouts/Layout.astro'
+import NotFound from './404.astro'
 import Footer from '../components/home/layout/Footer.astro'
 import { PostComments } from '../components/post/PostComments'
 import ExternalLinkDialog from '../components/post/ExternalLinkDialog'
-import { configureEndpoints, DataProvider, getWax, Post, type BridgePost } from '@hiveio/workerbee/blog-logic'
-import { HIVE_USERNAME, HIVE_API_ENDPOINTS, HIVE_BLOG_URL, hive_avatar_url } from '../lib/config'
+import type { BridgePost } from '@hiveio/workerbee/blog-logic'
+import { HIVE_USERNAME, HIVE_BLOG_URL, hive_avatar_url } from '../lib/config'
+import { fetch_single_post_or_throw, HiveUnavailableError } from '../lib/queries'
+import { load_and_prepare_config } from '../lib/config-pipeline'
+import { get_branding } from '../lib/branding'
+import { get_default_settings, type SettingsData } from '../components/admin/types'
+import { safe_url } from '../shared/formatters'
 import { VoteButton } from '../components/ui/VoteButton'
-
-// Configure workerbee to use our custom Hive API endpoints
-configureEndpoints(HIVE_API_ENDPOINTS)
 import { renderPostBody } from '../lib/renderer'
 
-// Parse slug: community mode uses "author/permlink", user mode uses "permlink"
-const { slug } = Astro.params
-const slug_value = slug ?? ''
+const owner = HIVE_USERNAME.toLowerCase()
 
-let author: string
-let permlink: string
-
-if (slug_value.includes('/')) {
-  // Strip community prefix if present (e.g. "hive-XXXXX/@author/permlink" → "@author/permlink")
-  const cleaned = slug_value.replace(/^hive-\d+\//, '')
-  const parts = cleaned.split('/')
-  if (parts.length !== 2) {
-    return Astro.redirect('/404')
-  }
-  // Strip @ prefix from author (Hive API returns URLs with @, our routing doesn't use it)
-  author = parts[0].replace(/^@/, '')
-  permlink = parts[1]
-} else {
-  author = HIVE_USERNAME
-  permlink = slug_value
+// Only the owner's posts are served ("permlink" or "@owner/permlink"); other authors and
+// community paths (community mode is off: is_community_mode() === false) are a real 404.
+function resolve_owner_permlink(slug: string): string | null {
+  const parts = slug.split('/')
+  if (parts.length === 1) return parts[0] || null
+  if (parts.length !== 2) return null
+  const url_author = parts[0].replace(/^@/, '').toLowerCase()
+  return url_author === owner && parts[1] ? parts[1] : null
 }
 
-let post: Post | null = null
-let rawPost: BridgePost | null = null
-let postContent: string = ''
-let error: string | null = null
+const permlink = (owner && resolve_owner_permlink(Astro.params.slug ?? '')) || ''
+const author = owner
 
-if (!author || !permlink) {
-  error = 'Invalid post address.'
-} else {
-  try {
-    const chain = await getWax()
-    const dataProvider = new DataProvider(chain)
-    await dataProvider.fetchPost({ author, permlink })
-    rawPost = dataProvider.getComment({ author, permlink })
+let raw_post: BridgePost | null = null
+let hive_unavailable = false
+let settings: SettingsData = { ...get_default_settings(false), hiveUsername: author }
 
-    if (!rawPost || !rawPost.author) {
-      error = 'Post not found.'
-    } else {
-      post = new Post({ author, permlink }, dataProvider)
-      postContent = await post.getContent()
-    }
-  } catch (e) {
-    console.error('Error fetching Hive post:', e)
-    error = 'Error fetching post from Hive blockchain.'
+if (permlink) {
+  const [post_result, config_result] = await Promise.allSettled([
+    fetch_single_post_or_throw(author, permlink),
+    load_and_prepare_config(author),
+  ])
+  if (post_result.status === 'fulfilled') {
+    raw_post = post_result.value
+  } else if (post_result.reason instanceof HiveUnavailableError) {
+    hive_unavailable = true
+    console.error('Hive unavailable while fetching post:', post_result.reason.message)
+  } else {
+    throw post_result.reason
   }
+  if (config_result.status === 'fulfilled') settings = config_result.value
 }
 
-// Get tags from Blog Logic Post
-const tags = post?.tags ?? []
+// Rendered in place, not via Astro.rewrite: a rewrite re-runs the CSP middleware and the
+// outer CSP header nonce would no longer match the nonce on the 404 page scripts.
+const not_found = !hive_unavailable && (!raw_post || raw_post.author.toLowerCase() !== owner)
+if (not_found) {
+  Astro.response.status = 404
+}
 
-// Get comments count (async call done during data fetching)
-let commentsCount = 0
-if (post) {
+// ADR hive-blog-service: unavailable Hive API is a 503 so monitoring sees the outage
+const error = hive_unavailable ? 'Hive blockchain is temporarily unavailable. Please try again shortly.' : null
+if (hive_unavailable) {
+  Astro.response.status = 503
+  Astro.response.headers.set('Retry-After', '30')
+}
+
+function read_tags(post: BridgePost): string[] {
   try {
-    commentsCount = await post.getCommentsCount()
+    const metadata = typeof post.json_metadata === 'string' ? JSON.parse(post.json_metadata) : post.json_metadata
+    const tags: unknown = metadata?.tags
+    return Array.isArray(tags) ? tags.filter((tag): tag is string => typeof tag === 'string') : []
   } catch {
-    // If counting fails, use 0
+    return []
   }
 }
 
-// Community-specific fields from rawPost
-const author_role = rawPost?.author_role ?? ''
-const author_title = rawPost?.author_title ?? ''
-const is_pinned = rawPost?.stats?.is_pinned === true
-const is_gray = rawPost?.stats?.gray === true
+const post = raw_post
+const tags = post ? read_tags(post) : []
+const comments_count = post?.children ?? 0
+
+const post_path = `@${encodeURIComponent(author)}/${encodeURIComponent(permlink)}`
+const view_on_base = get_branding().editor_url || safe_url(HIVE_BLOG_URL)
+const view_on_url = view_on_base ? safe_url(`${view_on_base.replace(/\/+$/, '')}/${post_path}`) : ''
+const view_on_label = view_on_url ? new URL(view_on_url).hostname : ''
+
+// Community-specific fields from raw_post
+const author_role = raw_post?.author_role ?? ''
+const author_title = raw_post?.author_title ?? ''
+const is_pinned = raw_post?.stats?.is_pinned === true
+const is_gray = raw_post?.stats?.gray === true
 
 // Role badge color mapping
 const ROLE_BADGE_COLORS: Record<string, string> = {
@@ -92,12 +102,17 @@ const ROLE_BADGE_COLORS: Record<string, string> = {
 }
 const role_badge_class = ROLE_BADGE_COLORS[author_role] ?? ROLE_BADGE_COLORS.guest
 
-const raw_payout = (rawPost?.payout ?? 0) > 0
-  ? rawPost?.payout ?? 0
-  : parseFloat(rawPost?.pending_payout_value ?? '0') || 0
+const raw_payout = (raw_post?.payout ?? 0) > 0
+  ? raw_post?.payout ?? 0
+  : parseFloat(raw_post?.pending_payout_value ?? '0') || 0
 ---
 
-<Layout title={`${post?.title ?? 'Post'} | ${HIVE_USERNAME ? `${HIVE_USERNAME} Blog` : 'Hive Blog'}`}>
+{not_found ? <NotFound settings={permlink ? settings : undefined} /> : (
+<Layout
+  title={`${post?.title || 'Post'} | ${HIVE_USERNAME ? `${HIVE_USERNAME} Blog` : 'Hive Blog'}`}
+  canonical={`/${encodeURIComponent(permlink)}`}
+  settings={settings}
+>
   <div class="max-w-3xl mx-auto px-4 py-8">
     <a
       href="/"
@@ -140,7 +155,7 @@ const raw_payout = (rawPost?.payout ?? 0) > 0
             src={hive_avatar_url(post.author)}
             alt={post.author}
             class="w-10 h-10 rounded-full border border-border"
-            onerror="this.src='/hive-logo.png'"
+            data-fallback="/hive-logo.png"
           />
           <div>
             <div class="flex items-center gap-2">
@@ -162,7 +177,7 @@ const raw_payout = (rawPost?.payout ?? 0) > 0
               <p class="text-text-muted text-xs">{author_title}</p>
             )}
             <p class="text-text-muted text-sm">
-              {post.publishedAt.toLocaleDateString('en-US', {
+              {new Date(post.created).toLocaleDateString('en-US', {
                 year: 'numeric',
                 month: 'long',
                 day: 'numeric',
@@ -173,7 +188,7 @@ const raw_payout = (rawPost?.payout ?? 0) > 0
 
         <div
           class="prose prose-lg max-w-none mb-6 rendered-content"
-          set:html={renderPostBody(postContent)}
+          set:html={renderPostBody(post.body ?? '')}
         />
 
         <div class="flex flex-wrap items-center gap-x-6 gap-y-2 pt-4 border-t border-border text-text-muted">
@@ -181,7 +196,7 @@ const raw_payout = (rawPost?.payout ?? 0) > 0
             client:only="solid-js"
             author={post.author}
             permlink={post.permlink}
-            initial_votes_count={post.votesCount}
+            initial_votes_count={post.active_votes?.length ?? 0}
             initial_payout={raw_payout}
             show_payout={true}
             size="md"
@@ -190,19 +205,21 @@ const raw_payout = (rawPost?.payout ?? 0) > 0
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
             </svg>
-            {commentsCount} comments
+            {comments_count} comments
           </span>
-          <a
-            href={`https://beeyard.bard-dev.com/@${post.author}/${post.permlink}`}
-            target="_blank"
-            rel="noopener"
-            class="inline-flex items-center gap-1 text-sm text-text-muted hover:text-primary transition-colors"
-          >
-            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-            </svg>
-            BeeYard
-          </a>
+          {view_on_url && (
+            <a
+              href={view_on_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              class="inline-flex items-center gap-1 text-sm text-text-muted hover:text-primary transition-colors"
+            >
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+              </svg>
+              View on {view_on_label}
+            </a>
+          )}
         </div>
 
         {tags.length > 0 && (
@@ -225,7 +242,7 @@ const raw_payout = (rawPost?.payout ?? 0) > 0
       />
     )}
   </div>
-  <Footer class="max-w-3xl mx-auto px-4" />
+  <Footer class="max-w-3xl mx-auto px-4" footer_text={settings.footer_text} />
   <ExternalLinkDialog client:only="solid-js" />
   <script>
     function init_image_placeholders() {
@@ -258,3 +275,4 @@ const raw_payout = (rawPost?.payout ?? 0) > 0
     document.addEventListener("astro:after-swap", init_image_placeholders);
   </script>
 </Layout>
+)}

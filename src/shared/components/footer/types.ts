@@ -5,6 +5,7 @@
  * Footer types - shared between Astro and SolidJS
  */
 
+// Empty author_name hides "Built by"; empty kofi_url hides the Ko-fi button.
 export interface FooterData {
   author_name: string
   author_url: string
@@ -19,9 +20,9 @@ export interface FooterSettings {
 }
 
 export const DEFAULT_FOOTER_DATA: FooterData = {
-  author_name: 'BardDev',
-  author_url: 'https://bard-dev.com',
-  kofi_url: 'https://ko-fi.com/K3K713SMAY',
+  author_name: '',
+  author_url: '',
+  kofi_url: '',
   kofi_image_url: 'https://storage.ko-fi.com/cdn/kofi6.png?v=6',
   platform_name: 'Hive Blockchain',
 }

@@ -6,125 +6,131 @@
  *  - https://github.com/openhive-network/condenser/blob/master/src/app/utils/SanitizeConfig.js
  */
 
+export interface IframeWhitelistEntry {
+  re: RegExp;
+  fn: (src: string) => string | null;
+  allow: string;
+}
+
+const IFRAME_ALLOW_BASE = 'fullscreen; encrypted-media; picture-in-picture';
+const IFRAME_ALLOW_AUTOPLAY = `${IFRAME_ALLOW_BASE}; autoplay`;
+const TWITCH_PARENT_RE = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)*$/i;
+const THREE_SPEAK_ID_RE = /^[a-z0-9][a-z0-9.-]{1,15}\/[a-z0-9][a-z0-9-]{0,255}$/i;
+
+function parseHttpUrl(src: string, hostname: string): URL | null {
+  if (!src) {
+    return null;
+  }
+  try {
+    const url = new URL(src.startsWith('//') ? `https:${src}` : src);
+    const isHttp = url.protocol === 'https:' || url.protocol === 'http:';
+    return isHttp && url.hostname === hostname && !url.username && !url.password ? url : null;
+  } catch {
+    return null;
+  }
+}
+
+function twitterEmbed(src: string): string | null {
+  const m = src?.match(/^@?(?:(?:https?:)?\/\/)?(?:www\.)?(?:twitter|x)\.com\/(?:\w+\/)?status\/(\d{1,20})(?:[/?#]|$)/i);
+  return m ? `https://platform.twitter.com/embed/Tweet.html?id=${m[1]}` : null;
+}
+
+function threeSpeakEmbed(src: string): string | null {
+  const host = src?.match(/^(?:https?:)?\/\/((?:www\.)?3speak\.(?:tv|online|co))\//i);
+  const url = host ? parseHttpUrl(src, host[1].toLowerCase()) : null;
+  const id = url?.searchParams.get('v');
+  return id && THREE_SPEAK_ID_RE.test(id) ? `https://3speak.tv/embed?v=${id}` : null;
+}
+
 /**
  * Static configuration class for content sanitization and iframe handling.
  *
- * This class provides configuration settings for:
- * - Whitelisted iframe sources with their validation and transformation rules
- * - Text to display when images are hidden due to low ratings
- * - Allowed HTML tags for content rendering
- *
- * The iframe whitelist includes support for:
- * - Twitter/X.com embedded tweets
- * - Vimeo video embeds
- * - YouTube video embeds
- * - SoundCloud audio players
- * - Twitch.tv video players
- * - Spotify embeds (playlists, shows, episodes, albums, tracks, artists)
- * - 3speak video embeds
+ * Each iframe whitelist entry matches an anchored provider URL and rebuilds the
+ * src from the extracted ID, so author-supplied query/fragment never reaches the DOM.
  */
 export class StaticConfig {
   public static sanitization = {
+    iframeSandbox: 'allow-scripts allow-same-origin allow-popups allow-presentation',
     iframeWhitelist: [
       {
-        // eslint-disable-next-line security/detect-unsafe-regex
-        re: /^(?:@?(?:https?:)?\/\/)?(?:www\.)?(twitter|x)\.com\/(?:\w+\/status|status)\/(\d{1,20})/i,
-        fn: (src: string) => {
-          if (!src) {
-            return null;
-          }
-          const cleanSrc = src.replace(/^(@|https?:\/\/)/, '');
-          const match = cleanSrc.match(/(?:twitter|x)\.com\/(?:\w+\/status|status)\/(\d{1,20})/i);
-          if (!match || match.length !== 2) {
-            return null;
-          }
-          return `https://platform.twitter.com/embed/Tweet.html?id=${match[1]}`;
-        }
+        re: /^@?(?:(?:https?:)?\/\/)?(?:www\.)?(?:twitter|x)\.com\/(?:\w+\/)?status\/\d{1,20}(?:[/?#]|$)/i,
+        fn: twitterEmbed,
+        allow: IFRAME_ALLOW_BASE
       },
       {
-        // eslint-disable-next-line security/detect-unsafe-regex
-        re: /^(https?:)?\/\/player.vimeo.com\/video\/.*/i,
+        re: /^(?:https?:)?\/\/player\.vimeo\.com\/video\/\d{1,20}(?:[/?#]|$)/i,
         fn: (src: string) => {
-          // <iframe src="https://player.vimeo.com/video/179213493" width="640" height="360" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen></iframe>
-          if (!src) {
+          const url = parseHttpUrl(src, 'player.vimeo.com');
+          const id = url?.pathname.match(/^\/video\/(\d{1,20})\/?$/)?.[1];
+          if (!url || !id) {
             return null;
           }
-          const m = src.match(/https:\/\/player\.vimeo\.com\/video\/([0-9]+)/);
-          if (!m || m.length !== 2) {
+          // Unlisted Vimeo videos require the privacy hash `h`.
+          const hash = url.searchParams.get('h');
+          return `https://player.vimeo.com/video/${id}` + (hash && /^[0-9a-f]{1,32}$/i.test(hash) ? `?h=${hash}` : '');
+        },
+        allow: IFRAME_ALLOW_BASE
+      },
+      {
+        re: /^(?:https?:)?\/\/(?:www\.)?youtube\.com\/embed\/[A-Za-z0-9_-]{1,64}(?:[/?#]|$)/i,
+        fn: (src: string) => {
+          const id = src?.match(/^(?:https?:)?\/\/(?:www\.)?youtube\.com\/embed\/([A-Za-z0-9_-]{1,64})(?:[/?#]|$)/i)?.[1];
+          return id ? `https://www.youtube.com/embed/${id}` : null;
+        },
+        allow: IFRAME_ALLOW_BASE
+      },
+      {
+        re: /^(?:https?:)?\/\/w\.soundcloud\.com\/player\/?\?/i,
+        fn: (src: string) => {
+          const inner = parseHttpUrl(src, 'w.soundcloud.com')?.searchParams.get('url') ?? '';
+          const api = parseHttpUrl(inner, 'api.soundcloud.com')?.pathname.match(/^\/(?:tracks|playlists|users)\/\d{1,20}$/)?.[0];
+          const web = parseHttpUrl(inner, 'soundcloud.com')?.pathname.match(/^\/[\w-]{1,64}(?:\/[\w-]{1,128}){0,2}$/)?.[0];
+          const path = api ? `api.soundcloud.com${api}` : web ? `soundcloud.com${web}` : null;
+          if (!path) {
             return null;
           }
-          return 'https://player.vimeo.com/video/' + m[1];
-        }
+          const trackUrl = encodeURIComponent(`https://${path}`);
+          return `https://w.soundcloud.com/player/?url=${trackUrl}&auto_play=false&hide_related=false&show_comments=true&show_user=true&show_reposts=false&visual=true`;
+        },
+        allow: IFRAME_ALLOW_AUTOPLAY
       },
       {
-        // eslint-disable-next-line security/detect-unsafe-regex
-        re: /^(https?:)?\/\/www.youtube.com\/embed\/.*/i,
+        re: /^(?:https?:)?\/\/player\.twitch\.tv\/?\?/i,
         fn: (src: string) => {
-          return src.replace(/\?.+$/, ''); // strip query string (yt: autoplay=1,controls=0,showinfo=0, etc)
-        }
-      },
-      {
-        re: /^https:\/\/w.soundcloud.com\/player\/.*/i,
-        fn: (src: string) => {
-          if (!src) {
+          const params = parseHttpUrl(src, 'player.twitch.tv')?.searchParams;
+          if (!params) {
             return null;
           }
-          // <iframe width="100%" height="450" scrolling="no" frameborder="no" src="https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/257659076&amp;auto_play=false&amp;hide_related=false&amp;show_comments=true&amp;show_user=true&amp;show_reposts=false&amp;visual=true"></iframe>
-          const m = src.match(/url=(.+?)&/);
-          if (!m || m.length !== 2) {
+          const channel = params.get('channel');
+          const video = params.get('video');
+          let target: string;
+          if (channel && /^\w{1,25}$/.test(channel)) {
+            target = `channel=${channel}`;
+          } else if (video && /^v?\d{1,20}$/.test(video)) {
+            target = `video=${video}`;
+          } else {
             return null;
           }
-          return `https://w.soundcloud.com/player/?url=${m[1]}&auto_play=false&hide_related=false&show_comments=true&show_user=true&show_reposts=false&visual=true`;
-        }
+          const parents = params.getAll('parent').filter((p) => p.length <= 253 && TWITCH_PARENT_RE.test(p));
+          const autoplay = params.get('autoplay') === 'false' ? '&autoplay=false' : '';
+          return `https://player.twitch.tv/?${target}${parents.map((p) => `&parent=${p}`).join('')}${autoplay}`;
+        },
+        allow: IFRAME_ALLOW_AUTOPLAY
       },
       {
-        // eslint-disable-next-line security/detect-unsafe-regex
-        re: /^(https?:)?\/\/player.twitch.tv\/.*/i,
+        re: /^(?:https?:)?\/\/open\.spotify\.com\/(?:embed|embed-podcast)\/(?:playlist|show|episode|album|track|artist)\/[A-Za-z0-9]{1,64}(?:[/?#]|$)/i,
         fn: (src: string) => {
-          // <iframe src="https://player.twitch.tv/?channel=ninja" frameborder="0" allowfullscreen="true" scrolling="no" height="378" width="620">
-          return src;
-        }
+          const m = src?.match(/^(?:https?:)?\/\/open\.spotify\.com\/(embed|embed-podcast)\/(playlist|show|episode|album|track|artist)\/([A-Za-z0-9]{1,64})(?:[/?#]|$)/i);
+          return m ? `https://open.spotify.com/${m[1].toLowerCase()}/${m[2].toLowerCase()}/${m[3]}` : null;
+        },
+        allow: IFRAME_ALLOW_AUTOPLAY
       },
       {
-        re: /^https:\/\/open\.spotify\.com\/(embed|embed-podcast)\/(playlist|show|episode|album|track|artist)\/(.*)/i,
-        fn: (src: string) => {
-          return src;
-        }
-      },
-      {
-        // eslint-disable-next-line security/detect-unsafe-regex
-        re: /^(?:https?:)?\/\/(?:3speak\.(?:tv|online|co))\/embed\?v=([^&\s]+)/i,
-        fn: (src: string) => {
-          if (!src) return null;
-          const match = src.match(/3speak\.(?:tv|online|co)\/embed\?v=([^&\s]+)/i);
-          if (!match || match.length !== 2) return null;
-          return `https://3speak.tv/embed?v=${match[1]}`;
-        }
-      },
-      {
-        // eslint-disable-next-line security/detect-unsafe-regex
-        re: /^(?:https?:)?\/\/(?:3speak\.(?:tv|online|co))\/watch\?v=([^&\s]+)/i,
-        fn: (src: string) => {
-          if (!src) return null;
-          const match = src.match(/3speak\.(?:tv|online|co)\/watch\?v=([^&\s]+)/i);
-          if (!match || match.length !== 2) return null;
-          return `https://3speak.tv/embed?v=${match[1]}`;
-        }
-      },
-      {
-        re: /^(?:https:)\/\/(?:www\.)?(twitter|x)\.com\/(?:\w+\/status|status)\/(\d{1,20})/i,
-        fn: (src: string) => {
-          if (!src) {
-            return null;
-          }
-          const match = src.match(/(?:twitter|x)\.com\/(?:\w+\/status|status)\/(\d{1,20})/i);
-          if (!match || match.length !== 2) {
-            return null;
-          }
-          return `https://platform.twitter.com/embed/Tweet.html?id=${match[1]}`;
-        }
+        re: /^(?:https?:)?\/\/(?:www\.)?3speak\.(?:tv|online|co)\/(?:embed|watch)\?/i,
+        fn: threeSpeakEmbed,
+        allow: IFRAME_ALLOW_BASE
       }
-    ],
+    ] satisfies IframeWhitelistEntry[],
     noImageText: '(Image not shown due to low ratings)',
     allowedTags: `
     div, iframe, del, span,

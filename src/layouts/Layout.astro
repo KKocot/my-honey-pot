@@ -4,10 +4,12 @@
 
 import '../styles/global.css'
 import NodeSwitcher from '../components/ui/NodeSwitcher.tsx'
-import { loadConfigFromHive } from '../components/admin/hive-broadcast'
+import { load_and_prepare_config } from '../lib/config-pipeline'
 import { themePresets, type ThemeColors, get_default_settings } from '../components/admin/types'
 import { HIVE_USERNAME, hive_avatar_url } from '../lib/config'
 import { is_dark_color } from '../shared/utils/color'
+import { build_canonical_url, get_site_base } from '../lib/site-url'
+import { safe_relative_path, safe_url } from '../shared/formatters'
 
 interface SettingsWithTheme {
   siteTheme?: string
@@ -18,7 +20,8 @@ interface Props {
   title: string
   description?: string
   ogImage?: string
-  canonicalUrl?: string
+  /** Absolute URL or site-relative path overriding the request-derived canonical */
+  canonical?: string
   settings?: SettingsWithTheme | null
 }
 
@@ -34,9 +37,15 @@ const {
   title,
   description = defaultDescription,
   ogImage,
-  canonicalUrl = Astro.url.href,
+  canonical,
   settings: propsSettings
 } = Astro.props
+
+const site_base = get_site_base()
+const canonical_path = safe_relative_path(canonical)
+const canonicalUrl =
+  safe_url(canonical) ||
+  (canonical_path ? `${site_base || Astro.url.origin}${canonical_path}` : build_canonical_url(Astro.url, site_base))
 
 // Build favicon URL from Hive avatar (if username is set)
 const faviconUrl = hiveUsername
@@ -48,16 +57,14 @@ const mode_defaults = get_default_settings(false)
 const default_preset = themePresets.find((p) => p.id === mode_defaults.siteTheme)
 let themeColors: ThemeColors = default_preset?.colors || themePresets[0].colors
 
-// Use settings from props if available, otherwise load from Hive
+// Cached + time-boxed pipeline: pages without settings (404) must not rescan Hive or hang on an outage
 let settings = propsSettings
 
-if (!settings) {
-  if (hiveUsername) {
-    try {
-      settings = await loadConfigFromHive(hiveUsername)
-    } catch {
-      // Keep null
-    }
+if (!settings && hiveUsername) {
+  try {
+    settings = await load_and_prepare_config(hiveUsername)
+  } catch (error) {
+    console.error('Layout: blog config unavailable, rendering with defaults:', error instanceof Error ? error.message : error)
   }
 }
 
@@ -91,6 +98,7 @@ const themeStyle = `
   --theme-info: ${themeColors.info};
 `
 const themeMode = is_dark_color(themeColors.bg) ? 'dark' : 'light'
+const nonce = Astro.locals.nonce
 ---
 
 <!doctype html>
@@ -125,6 +133,52 @@ const themeMode = is_dark_color(themeColors.bg) ? 'dark' : 'light'
 
     <!-- Theme Color (for mobile browsers) -->
     <meta name="theme-color" content={themeColors.primary} />
+
+    {/* Replaces inline onerror/onload blocked by CSP; lives in <head> to catch errors fired before body parsing ends */}
+    <script is:inline nonce={nonce}>
+      (function () {
+        var AVATAR_FALLBACK = '/hive-logo.png';
+        var FAVICON_PREFIX = 'https://www.google.com/s2/favicons';
+        var LINK_ICON = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white" stroke="white"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>');
+        var LINK_ICON_BG = '#6B7280';
+
+        function is_social_favicon(img) {
+          return img.src.indexOf(FAVICON_PREFIX) === 0 && img.parentElement && img.parentElement.hasAttribute('data-custom-link');
+        }
+
+        function apply_favicon_fallback(img) {
+          img.dataset.fallbackApplied = '1';
+          img.src = LINK_ICON;
+          img.parentElement.style.background = LINK_ICON_BG;
+          img.parentElement.classList.remove('p-1');
+          img.parentElement.classList.add('p-2');
+        }
+
+        function avatar_fallback_for(img) {
+          if (img.dataset.fallback) return img.dataset.fallback;
+          if (img.closest('.post-card')) return AVATAR_FALLBACK;
+          if (/\/u\/[^/]+\/avatar(\/|$)/.test(img.src)) return AVATAR_FALLBACK;
+          return null;
+        }
+
+        document.addEventListener('error', function (e) {
+          var img = e.target;
+          if (!(img instanceof HTMLImageElement) || img.dataset.fallbackApplied) return;
+          if (is_social_favicon(img)) return apply_favicon_fallback(img);
+          var fallback = avatar_fallback_for(img);
+          if (!fallback) return;
+          img.dataset.fallbackApplied = '1';
+          if (fallback === 'hide') img.style.display = 'none';
+          else img.src = fallback;
+        }, true);
+
+        document.addEventListener('load', function (e) {
+          var img = e.target;
+          if (!(img instanceof HTMLImageElement) || img.dataset.fallbackApplied) return;
+          if (is_social_favicon(img) && (img.naturalWidth <= 2 || img.naturalHeight <= 2)) apply_favicon_fallback(img);
+        }, true);
+      })();
+    </script>
   </head>
   <body class="bg-bg text-text min-h-screen transition-colors duration-300">
     <slot />
@@ -136,7 +190,7 @@ const themeMode = is_dark_color(themeColors.bg) ? 'dark' : 'light'
     </div>
 
     <!-- Event delegation for custom social links (external navigation warning) -->
-    <script is:inline>
+    <script is:inline nonce={nonce}>
       document.addEventListener('click', function(e) {
         const link = e.target.closest('[data-custom-link]');
         if (link) {

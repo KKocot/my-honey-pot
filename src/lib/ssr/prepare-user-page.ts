@@ -9,10 +9,13 @@ import {
   fetch_database_account,
   fetch_global_properties,
   fetch_manabars,
-  fetch_posts,
-  fetch_comments,
-  fetch_post_replies,
+  fetch_posts_or_throw,
+  fetch_comments_or_throw,
+  fetch_post_replies_or_throw,
   fetch_single_post,
+  read_through_server_cache,
+  server_cache_keys,
+  HiveUnavailableError,
   type FetchPostsResult,
   type FetchCommentsResult,
   type FetchPostRepliesResult,
@@ -28,6 +31,14 @@ import type {
 import { get_default_settings } from "../../components/admin/types/settings";
 import type { SiteSettings } from "../../components/home/types";
 import type { UserPageData, UserQueryParams } from "./types";
+
+export interface UserPageResult extends UserPageData {
+  /** Hive API timed out or failed; the page should be served with 503. */
+  hive_unavailable: boolean;
+}
+
+const HIVE_UNAVAILABLE_MESSAGE =
+  "Hive blockchain API is temporarily unavailable. Please try again shortly.";
 
 // ============================================
 // Tab resolution
@@ -91,6 +102,26 @@ function parse_cursor(
 }
 
 // ============================================
+// Cached profile reads (shared across requests on the server)
+// ============================================
+
+function fetch_profile_cached(username: string) {
+  return read_through_server_cache(
+    server_cache_keys.profile(username),
+    () => fetch_profile(username),
+    (profile) => profile !== null
+  );
+}
+
+function fetch_global_properties_cached() {
+  return read_through_server_cache(
+    server_cache_keys.global_properties(),
+    () => fetch_global_properties(),
+    (properties) => properties !== null
+  );
+}
+
+// ============================================
 // Main SSR function
 // ============================================
 
@@ -102,8 +133,9 @@ function parse_cursor(
 export async function prepare_user_page(
   hive_username: string,
   query_params: UserQueryParams
-): Promise<UserPageData> {
+): Promise<UserPageResult> {
   let error: string | null = null;
+  let hive_unavailable = false;
 
   // Load settings through unified pipeline (migrations + mode-specific defaults)
   let settings: SiteSettings;
@@ -112,6 +144,7 @@ export async function prepare_user_page(
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
     console.error("Failed to load config from Hive:", message);
+    if (err instanceof HiveUnavailableError) hive_unavailable = true;
     settings = { ...get_default_settings(false), hiveUsername: hive_username };
   }
 
@@ -156,19 +189,16 @@ export async function prepare_user_page(
   try {
     // Fetch pinned posts in parallel with profile/account data
     const pinned_permlinks = settings.pinnedPostPermlinks ?? [];
-    const pinned_promise = pinned_permlinks.length > 0
-      ? Promise.all(
-          pinned_permlinks.map((permlink) =>
-            fetch_single_post(hive_username, permlink)
-          )
-        )
-      : Promise.resolve([]);
+    // Pinned posts are secondary (like the profile): a failed one is dropped, not a 503
+    const pinned_promise = Promise.all(
+      pinned_permlinks.map((permlink) => fetch_single_post(hive_username, permlink))
+    );
 
     // Prefetch profile, account, global properties, manabars in parallel
     await Promise.allSettled([
       query_client.prefetchQuery({
         queryKey: query_keys.profile(hive_username),
-        queryFn: () => fetch_profile(hive_username),
+        queryFn: () => fetch_profile_cached(hive_username),
       }),
       query_client.prefetchQuery({
         queryKey: query_keys.database_account(hive_username),
@@ -176,7 +206,7 @@ export async function prepare_user_page(
       }),
       query_client.prefetchQuery({
         queryKey: query_keys.global_properties(),
-        queryFn: () => fetch_global_properties(),
+        queryFn: () => fetch_global_properties_cached(),
       }),
       query_client.prefetchQuery({
         queryKey: query_keys.manabars(hive_username),
@@ -187,8 +217,7 @@ export async function prepare_user_page(
     // Fetch content based on active tab
     if (active_tab === "threads") {
       // Threads = comments under the author's "my-threads" post
-      const threads_result = await fetch_post_replies(hive_username, "my-threads");
-      threads = threads_result;
+      threads = await fetch_post_replies_or_throw(hive_username, "my-threads");
     } else if (active_tab === "comments" && show_comments_tab) {
       await query_client.prefetchQuery({
         queryKey: query_keys.comments(
@@ -198,7 +227,7 @@ export async function prepare_user_page(
           cursor
         ),
         queryFn: () =>
-          fetch_comments(
+          fetch_comments_or_throw(
             hive_username,
             comments_sort_order,
             posts_limit,
@@ -213,6 +242,11 @@ export async function prepare_user_page(
           posts_limit,
           cursor
         )
+      );
+      throw_if_query_failed(
+        query_client.getQueryState(
+          query_keys.comments(hive_username, comments_sort_order, posts_limit, cursor)
+        )?.error
       );
       if (comments_data) {
         hive_comments = comments_data.comments;
@@ -229,7 +263,7 @@ export async function prepare_user_page(
           active_category_tag
         ),
         queryFn: () =>
-          fetch_posts(
+          fetch_posts_or_throw(
             hive_username,
             posts_sort_order,
             posts_limit,
@@ -247,6 +281,17 @@ export async function prepare_user_page(
           active_category_tag
         )
       );
+      throw_if_query_failed(
+        query_client.getQueryState(
+          query_keys.posts(
+            hive_username,
+            posts_sort_order,
+            posts_limit,
+            cursor,
+            active_category_tag
+          )
+        )?.error
+      );
       if (posts_data) {
         blog_logic_posts = posts_data.posts;
         has_more_posts = posts_data.has_more;
@@ -255,15 +300,17 @@ export async function prepare_user_page(
       }
     }
     // Collect pinned posts (runs in parallel with above fetches)
-    const pinned_results = await pinned_promise;
-    pinned_posts = pinned_results.filter(
+    pinned_posts = (await pinned_promise).filter(
       (post): post is BridgePost => post !== null
     );
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
     console.error("Error fetching Hive data:", message);
+    if (err instanceof HiveUnavailableError) hive_unavailable = true;
     error = "Error fetching data from Hive blockchain.";
   }
+
+  if (hive_unavailable) error = HIVE_UNAVAILABLE_MESSAGE;
 
   const hive_profile =
     query_client.getQueryData(query_keys.profile(hive_username)) ?? null;
@@ -300,5 +347,10 @@ export async function prepare_user_page(
     threads,
     pinned_posts,
     error,
+    hive_unavailable,
   };
+}
+
+function throw_if_query_failed(query_error: Error | null | undefined): void {
+  if (query_error) throw query_error;
 }

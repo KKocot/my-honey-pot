@@ -2,6 +2,8 @@
 // Copyright (C) 2026 Krzysztof Kocot
 
 import { For, Show } from 'solid-js'
+import { settings } from '../../store'
+import { DEFAULT_FOOTER_DATA } from '../../../../shared/components/footer/types'
 
 // ============================================
 // Mock Preview Components
@@ -129,7 +131,10 @@ export function MockFooter(props: { compact?: boolean }) {
   return (
     <div class={`bg-bg-card rounded border border-border text-center ${props.compact ? 'p-1' : 'p-2'}`}>
       <div class={`text-text-muted ${props.compact ? 'text-[6px]' : 'text-[8px]'}`}>
-        Built by BardDev | Ko-fi | Powered by Hive
+        <Show when={settings.footer_text?.trim()}>
+          {(text) => <>{text()} | </>}
+        </Show>
+        Powered by {DEFAULT_FOOTER_DATA.platform_name}
       </div>
     </div>
   )

@@ -35,6 +35,12 @@ const settings: SiteSettings = user_page?.settings ?? {}
 const dehydrated_state = user_page?.dehydrated_state ?? null
 const error = user_page?.error ?? null
 
+// ADR hive-blog-service: unavailable Hive API is a 503 so monitoring sees the outage
+if (user_page?.hive_unavailable) {
+  Astro.response.status = 503
+  Astro.response.headers.set('Retry-After', '30')
+}
+
 // ============================================
 // Settings with defaults
 // ============================================
@@ -199,7 +205,7 @@ const slotRendererProps = {
 }
 ---
 
-<Layout title={siteName} settings={settings}>
+<Layout title={siteName} description={siteDescription} settings={settings}>
   <div class="max-w-7xl mx-auto px-4 py-16">
 
     {error && (

@@ -17,13 +17,11 @@ const ExternalLinkDialog: Component = () => {
 
   const is_external_link = (el: HTMLAnchorElement): boolean => {
     const href = el.getAttribute("href") ?? "";
-    if (!href || href.startsWith("#") || href.startsWith("/")) return false;
-    if (el.classList.contains("link-external")) return true;
+    if (!href) return false;
     try {
-      const url = new URL(href, window.location.origin);
-      return url.origin !== window.location.origin;
+      return new URL(href, window.location.href).origin !== window.location.origin;
     } catch {
-      return false;
+      return el.classList.contains("link-external");
     }
   };
 

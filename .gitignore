@@ -37,5 +37,8 @@ npm-debug.log*
 playwright-report/
 test-results/
 tests/screenshots/
+
+# Vitest
+.vitest/
 public/auth/assets/*.wasm
 .vercel

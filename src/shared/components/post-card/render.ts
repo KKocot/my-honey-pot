@@ -9,14 +9,36 @@
 
 import type { PostCardData, PostCardSettings, CardSection, CardSectionChild, CardLayout, PostsGridSettings } from './types'
 import { getPostSummary, formatPayout } from './utils'
-import { escape_html } from '../../formatters'
-import { hive_avatar_url } from '../../../lib/config'
+import { escape_html, safe_url, safe_relative_path } from '../../formatters'
+import { hive_avatar_url, HIVE_BLOG_URL } from '../../../lib/config'
+import { SHADOW_MAP } from '../../constants'
 
-/**
- * Validate URL (must start with http/https)
- */
-function is_valid_url(url: string): boolean {
-  return url.startsWith('http://') || url.startsWith('https://')
+const HOVER_EFFECTS = ['none', 'shadow', 'lift', 'scale', 'glow'] as const
+type HoverEffect = (typeof HOVER_EFFECTS)[number]
+
+// Settings come from an on-chain Hive comment: ranges mirror the admin sliders, defaults mirror settings-schema.
+function clamp_number(raw: unknown, min: number, max: number, fallback: number): number {
+  return typeof raw === 'number' && Number.isFinite(raw) ? Math.min(max, Math.max(min, raw)) : fallback
+}
+
+function safe_hover_effect(raw: unknown): HoverEffect {
+  return HOVER_EFFECTS.find((effect) => effect === raw) ?? 'none'
+}
+
+function safe_shadow(raw: unknown): string {
+  return typeof raw === 'string' && Object.hasOwn(SHADOW_MAP, raw) ? raw : 'md'
+}
+
+function sanitize_card_settings(settings: PostCardSettings): PostCardSettings {
+  return {
+    ...settings,
+    thumbnailSizePx: clamp_number(settings.thumbnailSizePx, 32, 400, 96),
+    cardPaddingPx: clamp_number(settings.cardPaddingPx, 0, 64, 24),
+    cardBorderRadiusPx: clamp_number(settings.cardBorderRadiusPx, 0, 48, 16),
+    titleSizePx: clamp_number(settings.titleSizePx, 12, 48, 20),
+    summaryMaxLength: clamp_number(settings.summaryMaxLength, 50, 500, 150),
+    maxTags: Math.trunc(clamp_number(settings.maxTags, 1, 10, 5)),
+  }
 }
 
 /**
@@ -60,20 +82,25 @@ function renderElement(
 
   switch (elementId) {
     case 'thumbnail':
-      if (!data.thumbnail || !is_valid_url(data.thumbnail)) return ''
+      const thumbnail = escape_html(safe_url(data.thumbnail))
+      if (!thumbnail) return ''
       if (isVertical) {
-        return `<div class="rounded-lg overflow-hidden flex-shrink-0 bg-cover bg-center w-full h-40"><img src="${data.thumbnail}" alt="" class="w-full h-full object-cover" onerror="this.style.display='none'" /></div>`
+        return `<div class="rounded-lg overflow-hidden flex-shrink-0 bg-cover bg-center w-full h-40"><img src="${thumbnail}" alt="" data-fallback="hide" class="w-full h-full object-cover" /></div>`
       }
-      return `<img src="${data.thumbnail}" alt="" style="width: ${settings.thumbnailSizePx}px; height: ${settings.thumbnailSizePx}px; object-fit: cover; border-radius: 8px; flex-shrink: 0;" onerror="this.style.display='none'" />`
+      return `<img src="${thumbnail}" alt="" data-fallback="hide" style="width: ${settings.thumbnailSizePx}px; height: ${settings.thumbnailSizePx}px; object-fit: cover; border-radius: 8px; flex-shrink: 0;" />`
 
     case 'avatar':
       if (!data.author) return ''
       const author = escape_html(data.author)
-      const avatarUrl = hive_avatar_url(author, "small")
+      const avatarUrl = escape_html(safe_url(hive_avatar_url(encodeURIComponent(data.author), "small")))
+      const profile_href = escape_html(
+        safe_url(`${HIVE_BLOG_URL.replace(/\/+$/, '')}/@${encodeURIComponent(data.author)}`)
+      )
+      const profile_attrs = profile_href ? `href="${profile_href}" target="_blank" rel="noopener noreferrer" ` : ''
       if (isVertical) {
-        return `<a href="/@${author}" class="flex items-center gap-2 no-underline" onclick="event.stopPropagation()"><img src="${avatarUrl}" alt="" class="rounded-full flex-shrink-0" style="width: 24px; height: 24px;" onerror="this.style.display='none'" /><span class="text-xs text-text-muted truncate">@${author}</span></a>`
+        return `<a ${profile_attrs}class="relative z-10 flex items-center gap-2 self-start no-underline"><img src="${avatarUrl}" alt="" class="rounded-full flex-shrink-0" style="width: 24px; height: 24px;" /><span class="text-xs text-text-muted truncate">@${author}</span></a>`
       }
-      return `<a href="/@${author}" class="flex-shrink-0 no-underline" onclick="event.stopPropagation()"><img src="${avatarUrl}" alt="" class="rounded-full" style="width: 40px; height: 40px;" onerror="this.style.display='none'" /></a>`
+      return `<a ${profile_attrs}aria-label="@${author}" class="relative z-10 flex-shrink-0 no-underline"><img src="${avatarUrl}" alt="" class="rounded-full" style="width: 40px; height: 40px;" /></a>`
 
     case 'title':
       return `<h3 class="font-semibold text-text line-clamp-2" style="font-size: ${settings.titleSizePx}px;">${escape_html(data.title)}</h3>`
@@ -169,8 +196,9 @@ export function renderPostCardContent(
     return '' // No layout defined
   }
 
+  const safe_settings = sanitize_card_settings(settings)
   return layout.sections
-    .map(section => renderSection(section, data, settings, isVertical, linkHref))
+    .map(section => renderSection(section, data, safe_settings, isVertical, linkHref))
     .filter(html => html.length > 0)
     .join('')
 }
@@ -178,7 +206,7 @@ export function renderPostCardContent(
 /**
  * Render complete post card as HTML string (with article wrapper)
  * For static rendering in Astro - uses CSS classes for hover effects
- * Entire card is wrapped in anchor for full clickability
+ * Card link is an overlay (not a wrapper) so nested links like the avatar stay valid HTML
  * @returns Sanitized HTML string (uses escape_html for all user content)
  */
 export function renderPostCard(
@@ -188,37 +216,42 @@ export function renderPostCard(
   linkHref?: string,
   extraStyle?: string
 ): string {
-  // Validate href before using it
-  let href = linkHref ?? `/${data.permlink}`
-  if (linkHref && !is_valid_url(linkHref) && !linkHref.startsWith('/')) {
-    href = `/${data.permlink}` // Fallback to permlink
-  }
+  const fallback_href = `/${encodeURIComponent(data.permlink)}`
+  const external_href = linkHref ? safe_url(linkHref) : ''
+  const href = escape_html(
+    external_href || (linkHref ? safe_relative_path(linkHref) : '') || fallback_href
+  )
+  const external_attrs = external_href ? ' target="_blank" rel="noopener noreferrer"' : ''
   const borderStyle = settings.cardBorder ? 'border: 1px solid var(--color-border);' : ''
+  const safe_settings = sanitize_card_settings(settings)
 
   // Build hover effect CSS classes
-  const hoverEffect = settings.cardHoverEffect || 'none'
+  const hoverEffect = safe_hover_effect(settings.cardHoverEffect)
   const hoverClass = hoverEffect !== 'none' ? `hover-${hoverEffect}` : ''
   const shadowAttr = (hoverEffect === 'shadow' || hoverEffect === 'lift') && settings.cardHoverShadow
-    ? `data-shadow="${settings.cardHoverShadow}"`
+    ? `data-shadow="${safe_shadow(settings.cardHoverShadow)}"`
     : ''
 
   // Build CSS variables for hover customization
   const cssVars: string[] = []
   if (settings.cardTransitionDuration) {
-    cssVars.push(`--card-transition: ${settings.cardTransitionDuration}ms`)
+    cssVars.push(`--card-transition: ${clamp_number(settings.cardTransitionDuration, 50, 500, 200)}ms`)
   }
   if (settings.cardHoverScale && (hoverEffect === 'scale' || hoverEffect === 'lift')) {
-    cssVars.push(`--card-hover-scale: ${settings.cardHoverScale}`)
+    cssVars.push(`--card-hover-scale: ${clamp_number(settings.cardHoverScale, 1, 1.15, 1.02)}`)
   }
   if (settings.cardHoverBrightness && hoverEffect === 'glow') {
-    cssVars.push(`--card-hover-brightness: ${settings.cardHoverBrightness}`)
+    cssVars.push(`--card-hover-brightness: ${clamp_number(settings.cardHoverBrightness, 1, 1.2, 1)}`)
   }
 
-  const cardStyle = `padding: ${settings.cardPaddingPx}px; border-radius: ${settings.cardBorderRadiusPx}px; ${borderStyle} ${cssVars.join('; ')}${cssVars.length ? ';' : ''} ${extraStyle || ''}`
+  const cardStyle = `padding: ${safe_settings.cardPaddingPx}px; border-radius: ${safe_settings.cardBorderRadiusPx}px; ${borderStyle} ${cssVars.join('; ')}${cssVars.length ? ';' : ''} ${escape_html(extraStyle || '')}`
 
   const contentHtml = renderPostCardContent(data, settings, isVertical, linkHref)
 
-  return `<a href="${href}" class="post-card-link block no-underline"><article class="post-card bg-bg-card rounded-xl overflow-hidden cursor-pointer ${hoverClass}" ${shadowAttr} style="${cardStyle}">${contentHtml}</article></a>`
+  const label = escape_html(data.title || data.permlink)
+  const overlay_link = `<a href="${href}"${external_attrs} aria-label="${label}" class="post-card-link absolute inset-0 z-0 rounded-[inherit] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"></a>`
+
+  return `<article class="post-card relative bg-bg-card rounded-xl overflow-hidden cursor-pointer ${hoverClass}" ${shadowAttr} style="${cardStyle}">${overlay_link}${contentHtml}</article>`
 }
 
 /**
@@ -227,7 +260,8 @@ export function renderPostCard(
 export function renderPostsGrid(cards_html: string[], settings: PostsGridSettings): string {
   if (cards_html.length === 0) return ''
 
-  const gap = settings.gap_px
+  const gap = clamp_number(settings.gap_px, 0, 64, 24)
+  const columns = Math.round(clamp_number(settings.columns, 1, 4, 2))
 
   if (settings.layout === 'list') {
     return `<div style="display: flex; flex-direction: column; gap: ${gap}px;">${cards_html.join('')}</div>`
@@ -237,11 +271,11 @@ export function renderPostsGrid(cards_html: string[], settings: PostsGridSetting
     const wrapped = cards_html.map(html =>
       `<div style="break-inside: avoid; margin-bottom: ${gap}px;">${html}</div>`
     ).join('')
-    return `<div style="column-count: ${settings.columns}; column-gap: ${gap}px;">${wrapped}</div>`
+    return `<div style="column-count: ${columns}; column-gap: ${gap}px;">${wrapped}</div>`
   }
 
   // grid (default)
-  return `<div style="display: grid; grid-template-columns: repeat(${settings.columns}, 1fr); gap: ${gap}px;">${cards_html.join('')}</div>`
+  return `<div style="display: grid; grid-template-columns: repeat(${columns}, 1fr); gap: ${gap}px;">${cards_html.join('')}</div>`
 }
 
 // Export helper for checking element visibility

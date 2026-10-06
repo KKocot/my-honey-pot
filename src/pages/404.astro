@@ -1,0 +1,37 @@
+---
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 Krzysztof Kocot
+
+import Layout from '../layouts/Layout.astro'
+import { HIVE_USERNAME } from '../lib/config'
+import type { SettingsData } from '../components/admin/types'
+
+interface Props {
+  /** Already loaded blog config; when absent Layout loads it through the cached pipeline */
+  settings?: SettingsData
+}
+
+const { settings } = Astro.props
+
+Astro.response.status = 404
+
+const blog_name = HIVE_USERNAME ? `${HIVE_USERNAME} Blog` : 'Hive Blog'
+---
+
+<Layout title={`Page not found | ${blog_name}`} description="The page you are looking for does not exist." settings={settings}>
+  <main class="min-h-screen flex items-center justify-center px-4">
+    <div class="max-w-md text-center">
+      <p class="text-6xl font-bold text-primary mb-4">404</p>
+      <h1 class="text-2xl font-semibold text-text mb-2">Page not found</h1>
+      <p class="text-text-muted mb-8">
+        The page you are looking for does not exist or has been moved.
+      </p>
+      <a
+        href="/"
+        class="inline-block px-6 py-3 rounded-lg bg-primary text-primary-text hover:opacity-90 transition-opacity"
+      >
+        Back to {blog_name}
+      </a>
+    </div>
+  </main>
+</Layout>

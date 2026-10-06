@@ -3,6 +3,7 @@
 // Copyright (C) 2026 Krzysztof Kocot
 
 import { renderFooter, createFooterData, createFooterSettings } from '../../../shared/components/footer'
+import { get_branding } from '../../../lib/branding'
 
 interface Props {
   class?: string
@@ -10,7 +11,11 @@ interface Props {
 }
 
 const { class: className = '', footer_text } = Astro.props
+const branding = get_branding()
 const footer_data = createFooterData({
+  author_name: branding.name,
+  author_url: branding.url,
+  kofi_url: branding.kofi_url,
   custom_text: footer_text,
 })
 const footer_settings = createFooterSettings({ class: className })

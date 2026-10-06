@@ -1,6 +1,7 @@
 services:
   my-honey-pot:
     build: .
+    image: my-honey-pot:latest
     container_name: my-honey-pot
     restart: unless-stopped
     environment:
@@ -8,18 +9,30 @@ services:
       - HOST=0.0.0.0
       - PORT=4321
       - HIVE_USERNAME=${HIVE_USERNAME}
-    deploy:
-      resources:
-        limits:
-          memory: 512M
-        reservations:
-          memory: 256M
+      - PUBLIC_SITE_URL=${PUBLIC_SITE_URL:-}
+      - CONFIG_PARENT_AUTHOR=${CONFIG_PARENT_AUTHOR:-}
+      - CONFIG_PARENT_PERMLINK=${CONFIG_PARENT_PERMLINK:-}
+      - BRANDING_NAME=${BRANDING_NAME:-}
+      - BRANDING_URL=${BRANDING_URL:-}
+      - BRANDING_KOFI_URL=${BRANDING_KOFI_URL:-}
+      - BRANDING_EDITOR_URL=${BRANDING_EDITOR_URL:-}
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=64m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 256m
+    memswap_limit: 256m
+    cpus: 0.5
+    pids_limit: 256
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:4321/"]
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:'+(process.env.PORT||4321)+'/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
       interval: 30s
-      timeout: 10s
+      timeout: 5s
       retries: 3
-      start_period: 45s
+      start_period: 30s
     expose:
       - "4321"
     networks:

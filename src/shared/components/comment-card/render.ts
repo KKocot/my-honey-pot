@@ -7,14 +7,11 @@
 
 import type { CommentCardData, CommentCardSettings, CardSection, CardSectionChild } from './types'
 import { processCommentBody, formatTimeAgo } from './utils'
-import { escape_html } from '../../formatters'
+import { escape_html, safe_url, safe_relative_path } from '../../formatters'
 import { externalLinkIcon } from '../../icons'
 
-/**
- * Validate URL (must start with http/https or be relative path)
- */
-function is_valid_url(url: string): boolean {
-  return url.startsWith('http://') || url.startsWith('https://') || url.startsWith('/')
+function to_safe_href(url: string): string {
+  return safe_url(url) || safe_relative_path(url)
 }
 
 /**
@@ -68,8 +65,7 @@ function renderReplyContext(data: CommentCardData, settings: CommentCardSettings
 function renderAvatar(data: CommentCardData, settings: CommentCardSettings): string {
   if (!settings.showAvatar) return ''
 
-  // Validate avatar URL
-  const avatarUrl = is_valid_url(data.avatarUrl) ? data.avatarUrl : '/hive-logo.png'
+  const avatarUrl = escape_html(to_safe_href(data.avatarUrl) || '/hive-logo.png')
 
   return `
     <div class="flex-shrink-0">
@@ -78,7 +74,6 @@ function renderAvatar(data: CommentCardData, settings: CommentCardSettings): str
         alt="${escape_html(data.author)}"
         style="width: ${settings.avatarSize}px; height: ${settings.avatarSize}px;"
         class="rounded-full border border-border"
-        onerror="this.src='/hive-logo.png'"
       />
     </div>
   `
@@ -180,7 +175,7 @@ function renderLayoutElement(
       return `<div class="flex items-center gap-1.5 text-sm text-text-muted">${payoutIcon}<span>$${data.payout.toFixed(2)}</span></div>`
     }
     case 'viewLink': {
-      if (!is_valid_url(data.url)) return ''
+      if (!to_safe_href(data.url)) return ''
       return `<div class="flex items-center gap-1.5 text-sm text-primary">${externalLinkIcon}<span>View</span></div>`
     }
     case 'actionBar':
@@ -278,8 +273,7 @@ export function renderCommentCard(
     ? ''
     : 'bg-bg-card rounded-xl border border-border'
 
-  // Validate URL before using it
-  const href = is_valid_url(data.url) ? data.url : '#'
+  const href = escape_html(to_safe_href(data.url) || '#')
 
   const contentHtml = renderCommentCardContent(data, settings)
 

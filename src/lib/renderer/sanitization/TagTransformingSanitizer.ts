@@ -108,25 +108,22 @@ export class TagTransformingSanitizer {
           const srcAtty = attributes.src;
           for (const item of StaticConfig.sanitization.iframeWhitelist) {
             if (item.re.test(srcAtty)) {
-              const src = typeof item.fn === 'function' ? item.fn(srcAtty) : srcAtty;
+              const src = item.fn(srcAtty);
               if (!src) {
                 break;
               }
+              // Author-supplied sandbox/allow are ignored: a missing sandbox would grant the embed full privileges.
               const attribs: sanitize.Attributes = {
                   src,
                   width: this.options.iframeWidth + '',
                   height: this.options.iframeHeight + '',
                   frameborder: '0',
                   allowfullscreen: 'allowfullscreen',
+                  sandbox: StaticConfig.sanitization.iframeSandbox,
+                  allow: item.allow,
                   referrerpolicy: 'no-referrer',
                   loading: 'lazy'
               };
-              if (attributes.sandbox) {
-                  attribs.sandbox = attributes.sandbox;
-              }
-              if (attributes.allow) {
-                  attribs.allow = attributes.allow;
-              }
               const iframeToBeReturned: sanitize.Tag = {
                 tagName: 'iframe',
                 attribs

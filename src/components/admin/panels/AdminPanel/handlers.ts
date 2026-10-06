@@ -34,7 +34,7 @@ export async function handle_broadcast_to_hive(
 
       setTimeout(() => {
         setHasUnsavedChanges(false)
-        showToast(`${action} config on Hive! View at: ${url}`, 'success')
+        showToast(`${action} config on Hive! The blog shows the changes within ~1 min. View at: ${url}`, 'success')
       }, 5000)
     } else {
       showToast(`Failed: ${result.error}`, 'error')

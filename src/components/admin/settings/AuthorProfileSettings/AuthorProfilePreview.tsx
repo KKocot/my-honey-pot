@@ -56,6 +56,11 @@ export function AuthorProfilePreview() {
   const displayNameSize = createMemo(() => settings.authorDisplayNameSizePx ?? 18)
   const aboutSize = createMemo(() => settings.authorAboutSizePx ?? 14)
   const reputationSize = createMemo(() => settings.authorReputationSizePx ?? 12)
+  const previewable_links = createMemo(() =>
+    (settings.socialLinks || []).filter(
+      (l) => (l.username || l.url) && Object.hasOwn(platformInfos, l.platform)
+    )
+  )
   const statsSize = createMemo(() => settings.authorStatsSizePx ?? 14)
   const metaSize = createMemo(() => settings.authorMetaSizePx ?? 12)
 
@@ -180,10 +185,10 @@ export function AuthorProfilePreview() {
         </div>
 
         {/* Social Links Preview */}
-        <Show when={(settings.socialLinks || []).filter(l => l.username || l.url).length > 0}>
+        <Show when={previewable_links().length > 0}>
           <div class="mt-4 pt-4 border-t border-border">
             <div class="flex flex-wrap gap-2">
-              <For each={(settings.socialLinks || []).filter(l => l.username || l.url)}>
+              <For each={previewable_links()}>
                 {(link) => {
                   const info = platformInfos[link.platform]
                   const href = build_social_url(link)
