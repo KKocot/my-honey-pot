@@ -24,7 +24,7 @@ test.describe('HB-Auth Login Flow', () => {
     await page.waitForTimeout(2000)
 
     const title = await page.title()
-    expect(title).toContain('Admin Panel')
+    expect(title).toMatch(/^Settings - .+ Blog$/)
 
     // Check Login button is visible
     const loginButton = page.locator('button:has-text("Login")').first()
