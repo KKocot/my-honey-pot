@@ -15,10 +15,9 @@
     "astro": "astro",
     "test": "playwright test",
     "test:ui": "playwright test --ui",
-    "test:community": "playwright test --project=community-mode",
-    "test:user-mode": "playwright test --project=user-mode",
     "test:unit": "vitest run",
-    "postinstall": "mkdir -p public/auth/assets && cp -r node_modules/@hiveio/hb-auth/dist/assets/* public/auth/assets/"
+    "postinstall": "mkdir -p public/auth/assets && cp -r node_modules/@hiveio/hb-auth/dist/assets/* public/auth/assets/",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@astrojs/node": "^11.1.6",
@@ -57,6 +56,7 @@
     "@types/markdown-it": "^14.1.2",
     "@types/node": "^25.0.9",
     "@types/sanitize-html": "^2.16.0",
+    "typescript": "5.9.3",
     "vitest": "^5.0.3"
   },
   "pnpm": {

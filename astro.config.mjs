@@ -11,8 +11,7 @@ const is_vercel = Boolean(process.env.VERCEL || process.env.VERCEL_ENV);
 
 const adapter = is_vercel
   ? vercel({
-      webAnalytics: { enabled: false },
-      functionPerRoute: false
+      webAnalytics: { enabled: false }
     })
   : node({
       mode: 'standalone'
