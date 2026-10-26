@@ -3,8 +3,6 @@
 
 import { createSignal, Show, For, onMount, onCleanup } from "solid-js";
 import { HIVE_API_ENDPOINTS } from "../../lib/config";
-import { setOnlineClientRpcEndpoint } from "../../lib/hbauth-service";
-import { reset_broadcast_chain } from "../../lib/broadcast-chain";
 
 const STORAGE_KEY = "hive-node-endpoint";
 const CUSTOM_VALUE = "__custom__";
@@ -21,8 +19,16 @@ function read_stored_endpoint(): string | null {
   }
 }
 
-/** Save endpoint to localStorage and update runtime clients */
-function apply_endpoint(url: string): void {
+/** Save endpoint to localStorage and update runtime clients; throws if the client chunks fail to load */
+async function apply_endpoint(url: string): Promise<void> {
+  // Lazy: wax/hb-auth stay out of the island bundle. Clients keep the old endpoint until this
+  // resolves; persisting only afterwards keeps localStorage and runtime in sync if it rejects.
+  const [{ setOnlineClientRpcEndpoint }, { reset_broadcast_chain }] =
+    await Promise.all([
+      import("../../lib/hbauth-service"),
+      import("../../lib/broadcast-chain"),
+    ]);
+
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(url));
 
   try {
@@ -55,6 +61,7 @@ export default function NodeSwitcher() {
     is_known ? "" : default_endpoint,
   );
   const [custom_error, set_custom_error] = createSignal("");
+  const [apply_error, set_apply_error] = createSignal("");
 
   let container_ref: HTMLDivElement | undefined;
 
@@ -82,13 +89,30 @@ export default function NodeSwitcher() {
     }
   });
 
+  async function switch_endpoint(url: string, on_failure: () => void) {
+    set_apply_error("");
+    try {
+      await apply_endpoint(url);
+    } catch (error) {
+      console.error("Failed to switch API node", error);
+      on_failure();
+      set_apply_error("Could not switch node. Check your connection and try again.");
+    }
+  }
+
   function handle_select(value: string) {
+    const previous_selected = selected();
+    const previous_custom_url = custom_url();
     set_selected(value);
     set_custom_error("");
+    set_apply_error("");
 
     if (value !== CUSTOM_VALUE) {
       set_custom_url("");
-      apply_endpoint(value);
+      void switch_endpoint(value, () => {
+        set_selected(previous_selected);
+        set_custom_url(previous_custom_url);
+      });
     }
   }
 
@@ -99,7 +123,7 @@ export default function NodeSwitcher() {
       return;
     }
     set_custom_error("");
-    apply_endpoint(url);
+    void switch_endpoint(url, () => {});
   }
 
   /** Current active endpoint for display */
@@ -185,6 +209,12 @@ export default function NodeSwitcher() {
                 Custom...
               </button>
             </div>
+
+            <Show when={apply_error()}>
+              <p role="alert" class="mt-2 text-xs text-error px-1">
+                {apply_error()}
+              </p>
+            </Show>
 
             {/* Custom URL input */}
             <Show when={selected() === CUSTOM_VALUE}>

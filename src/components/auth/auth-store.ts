@@ -19,66 +19,99 @@ export interface AuthUser {
   loginType: LoginType;
 }
 
-// Session timeout in milliseconds (30 minutes of inactivity)
-const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
+/**
+ * Single session length for the app and HB-Auth (ADR 6ac5e13663221e857a3ba929):
+ * absolute from login, not extended by activity.
+ */
+export const SESSION_TIMEOUT_MS = 20 * 60 * 1000;
 
-// Create signals for auth state
+const SESSION_CHECK_INTERVAL_MS = 15 * 1000;
+
 const [currentUser, setCurrentUser] = createSignal<AuthUser | null>(null);
 const [isAuthenticated, setIsAuthenticated] = createSignal(false);
 
-// Track last activity for session timeout
-let lastActivityTimestamp = Date.now();
-let timeoutCheckInterval: ReturnType<typeof setInterval> | null = null;
+let session_deadline = 0;
+let check_interval: ReturnType<typeof setInterval> | null = null;
+let expiry_timer: ReturnType<typeof setTimeout> | null = null;
+let hbauth_check_in_flight = false;
+// Bumped on login/logout so a slow restore never overrides a newer auth action
+let auth_generation = 0;
 
-// Check if session has expired due to inactivity
-function checkSessionTimeout() {
+async function is_hbauth_session_active(username: string): Promise<boolean> {
+  const { getOnlineClient } = await import("../../lib/hbauth-service");
+  const client = await getOnlineClient();
+  const users = await client.getRegisteredUsers();
+  const lower = username.toLowerCase();
+  return users.some((u) => u.username.toLowerCase() === lower && u.unlocked);
+}
+
+async function end_hbauth_session(username: string): Promise<void> {
+  try {
+    const { getOnlineClient } = await import("../../lib/hbauth-service");
+    const client = await getOnlineClient();
+    await client.logout(username);
+  } catch (err) {
+    console.error("Failed to end HB-Auth session:", err);
+  }
+}
+
+async function sync_with_hbauth(): Promise<void> {
+  const user = currentUser();
+  if (!user || user.loginType !== "hbauth" || hbauth_check_in_flight) return;
+
+  hbauth_check_in_flight = true;
+  try {
+    const active = await is_hbauth_session_active(user.username);
+    if (!active && currentUser() === user) logout();
+  } catch {
+    // HB-Auth unreachable: the app deadline still bounds the session
+  } finally {
+    hbauth_check_in_flight = false;
+  }
+}
+
+async function watch_hbauth_session_end(): Promise<void> {
+  try {
+    const { getOnlineClient } = await import("../../lib/hbauth-service");
+    const client = await getOnlineClient();
+    await client.setSessionEndCallback(sync_with_hbauth);
+  } catch {
+    // Polling in check_session covers HB-Auth expiry without the callback
+  }
+}
+
+function check_session() {
   const user = currentUser();
   if (!user) return;
 
-  const now = Date.now();
-  if (now - lastActivityTimestamp > SESSION_TIMEOUT_MS) {
+  if (Date.now() >= session_deadline) {
     logout();
-  }
-}
-
-// Update last activity timestamp
-export function updateActivity() {
-  lastActivityTimestamp = Date.now();
-}
-
-// Start timeout checker
-let listenersAttached = false;
-
-function startTimeoutChecker() {
-  // Clear any existing interval and listeners first (prevent duplicates in HMR)
-  stopTimeoutChecker();
-
-  timeoutCheckInterval = setInterval(checkSessionTimeout, 60 * 1000); // Check every minute
-
-  // Also listen for user activity
-  if (typeof window !== "undefined" && !listenersAttached) {
-    const activityEvents = ["mousedown", "keydown", "scroll", "touchstart"];
-    activityEvents.forEach((event) => {
-      window.addEventListener(event, updateActivity, { passive: true });
-    });
-    listenersAttached = true;
-  }
-}
-
-// Stop timeout checker
-function stopTimeoutChecker() {
-  if (timeoutCheckInterval) {
-    clearInterval(timeoutCheckInterval);
-    timeoutCheckInterval = null;
+    return;
   }
 
-  // Remove event listeners on cleanup
-  if (typeof window !== "undefined") {
-    const activityEvents = ["mousedown", "keydown", "scroll", "touchstart"];
-    activityEvents.forEach((event) => {
-      window.removeEventListener(event, updateActivity);
-    });
-    listenersAttached = false;
+  if (user.loginType === "hbauth") void sync_with_hbauth();
+}
+
+function start_session(user: AuthUser, deadline: number) {
+  setCurrentUser(user);
+  setIsAuthenticated(true);
+  session_deadline = deadline;
+
+  stop_session_checker();
+  check_interval = setInterval(check_session, SESSION_CHECK_INTERVAL_MS);
+  expiry_timer = setTimeout(check_session, Math.max(0, deadline - Date.now()));
+
+  if (user.loginType === "hbauth") void watch_hbauth_session_end();
+}
+
+function stop_session_checker() {
+  if (check_interval) {
+    clearInterval(check_interval);
+    check_interval = null;
+  }
+  if (expiry_timer) {
+    clearTimeout(expiry_timer);
+    expiry_timer = null;
   }
 }
 
@@ -93,7 +126,8 @@ export function needsReauth(): {
 
   // If we have stored session but no user in memory, need reauth
   if (stored && !user) {
-    return stored;
+    const { username, keyType, loginType } = stored;
+    return { username, keyType, loginType };
   }
 
   return null;
@@ -111,23 +145,28 @@ export function login(user: AuthUser) {
     throw new Error("Invalid keyType");
   }
 
-  setCurrentUser(user);
-  setIsAuthenticated(true);
-  lastActivityTimestamp = Date.now();
+  const deadline = Date.now() + SESSION_TIMEOUT_MS;
+  auth_generation++;
 
   // Persist session metadata to localStorage (NEVER the private key)
-  persist_session(user.username, user.loginType, user.keyType);
+  persist_session(user.username, user.loginType, user.keyType, deadline);
 
-  startTimeoutChecker();
+  start_session(user, deadline);
 }
 
-// Logout - clear session
+/** Ends the app session; for HB-Auth users also ends the HB-Auth session. */
 export function logout() {
+  const user = currentUser();
+  auth_generation++;
+
   setCurrentUser(null);
   setIsAuthenticated(false);
-  stopTimeoutChecker();
+  stop_session_checker();
+  session_deadline = 0;
 
   clear_persisted_session();
+
+  if (user?.loginType === "hbauth") void end_hbauth_session(user.username);
 }
 
 /**
@@ -135,8 +174,9 @@ export function logout() {
  * Migrates legacy sessionStorage data, then attempts auto-restore
  * based on the persisted login type.
  *
- * - keychain: auto-restore if extension is installed
- * - hbauth: auto-restore if user has registered keys in HB-Auth (async check)
+ * - any type past the deadline persisted at login: logged out (reload never extends a session)
+ * - keychain: auto-restore once the extension injects itself (bounded wait)
+ * - hbauth: auto-restore only while the HB-Auth session is still unlocked
  * - wif: cannot auto-restore (key was only in memory), clears persisted session
  *
  * Safe to call multiple times — uses singleton promise guard.
@@ -160,57 +200,57 @@ async function _restore_session_impl(): Promise<void> {
   const session = get_persisted_session();
   if (!session) return;
 
-  const { username, loginType, keyType } = session;
+  const { username, loginType, keyType, expiresAt } = session;
+
+  if (loginType !== "wif" && Date.now() >= expiresAt) {
+    clear_persisted_session();
+    if (loginType === "hbauth") await end_hbauth_session(username);
+    return;
+  }
 
   // Step 3: Attempt auto-restore based on login type
   if (loginType === "keychain") {
+    const generation = auth_generation;
     // Dynamic import to avoid pulling KeychainProvider into SSR
-    const { has_keychain } = await import("./KeychainLogin");
+    const { wait_for_keychain } = await import("./KeychainLogin");
+    const available = await wait_for_keychain();
 
-    if (has_keychain()) {
-      setCurrentUser({
+    if (generation !== auth_generation) return;
+
+    if (available && Date.now() < expiresAt) {
+      start_session({
         username,
         privateKey: KEYCHAIN_MANAGED_MARKER,
         keyType,
         loginType: "keychain",
-      });
-      setIsAuthenticated(true);
-      lastActivityTimestamp = Date.now();
-      startTimeoutChecker();
+      }, expiresAt);
     } else {
-      // Extension not available -- clear persisted session
       clear_persisted_session();
     }
     return;
   }
 
   if (loginType === "hbauth") {
+    const generation = auth_generation;
     try {
-      const { getOnlineClient } = await import("../../lib/hbauth-service");
-      const client = await getOnlineClient();
-      const users = await client.getRegisteredUsers();
-      const has_user = users.some(
-        (u) => u.username.toLowerCase() === username.toLowerCase(),
-      );
+      // Locked wallet = HB-Auth session expired; keep persisted metadata so needsReauth() prompts
+      const active = await is_hbauth_session_active(username);
+      const { HBAUTH_MANAGED_MARKER } = await import("../../lib/wif-signer");
 
-      if (has_user) {
-        // HB-Auth has keys for this user. We can't know if the session
-        // is still unlocked without attempting auth, so we set the user
-        // optimistically. If the session is locked, the user will see
-        // needsReauth() and must re-enter their password.
-        const { HBAUTH_MANAGED_MARKER } = await import("../../lib/wif-signer");
-        setCurrentUser({
-          username,
-          privateKey: HBAUTH_MANAGED_MARKER,
-          keyType,
-          loginType: "hbauth",
-        });
-        setIsAuthenticated(true);
-        lastActivityTimestamp = Date.now();
-        startTimeoutChecker();
+      if (generation !== auth_generation || !active) return;
+
+      if (Date.now() >= expiresAt) {
+        clear_persisted_session();
+        await end_hbauth_session(username);
+        return;
       }
-      // If user not found in HB-Auth, keep persisted session
-      // so needsReauth() can show the reauth banner
+
+      start_session({
+        username,
+        privateKey: HBAUTH_MANAGED_MARKER,
+        keyType,
+        loginType: "hbauth",
+      }, expiresAt);
     } catch {
       // HB-Auth service unavailable -- keep persisted session for needsReauth()
     }
@@ -229,6 +269,6 @@ export { currentUser, isAuthenticated };
 // Cleanup on page unload (for HMR and production)
 if (typeof window !== "undefined") {
   window.addEventListener("beforeunload", () => {
-    stopTimeoutChecker();
+    stop_session_checker();
   });
 }

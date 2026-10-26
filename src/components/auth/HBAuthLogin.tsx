@@ -58,6 +58,8 @@ export function HBAuthLogin(props: HBAuthLoginProps) {
   const [error, setError] = createSignal<string | null>(null);
   const [stored_users, setStoredUsers] = createSignal<HBAuthUser[]>([]);
   const [auth_client, setAuthClient] = createSignal<OnlineClient | null>(null);
+  const [is_initializing, setIsInitializing] = createSignal(!IS_NOT_MAINNET);
+  const [init_error, setInitError] = createSignal<string | null>(null);
 
   let username_ref: HTMLInputElement | undefined;
   let password_ref: HTMLInputElement | undefined;
@@ -65,7 +67,12 @@ export function HBAuthLogin(props: HBAuthLoginProps) {
   onMount(async () => {
     if (IS_NOT_MAINNET) return;
 
-    username_ref?.focus();
+    await init_auth_client();
+  });
+
+  async function init_auth_client() {
+    setIsInitializing(true);
+    setInitError(null);
 
     try {
       const client = await getOnlineClient();
@@ -78,8 +85,16 @@ export function HBAuthLogin(props: HBAuthLoginProps) {
       }
     } catch (err) {
       console.error("Failed to initialize HB-Auth client:", err);
+      const message = err instanceof Error ? err.message : "Unknown error";
+      setInitError(`Failed to load login module: ${message}`);
+    } finally {
+      setIsInitializing(false);
     }
-  });
+
+    if (!init_error()) {
+      queueMicrotask(() => username_ref?.focus());
+    }
+  }
 
   function is_submit_disabled(): boolean {
     const user = username().trim();
@@ -259,6 +274,32 @@ export function HBAuthLogin(props: HBAuthLoginProps) {
       }
     >
       <div class={`w-full max-w-sm ${props.class ?? ""}`}>
+        <Show when={is_initializing()}>
+          <div
+            role="status"
+            aria-live="polite"
+            class="flex items-center justify-center gap-3 py-8 text-sm text-text-muted"
+          >
+            <SpinnerIcon class="h-5 w-5 motion-safe:animate-spin" />
+            Loading login module...
+          </div>
+        </Show>
+        <Show when={!is_initializing() && init_error()}>
+          <div role="alert" class="space-y-3 rounded-lg border border-error/30 bg-error/5 p-4">
+            <div class="flex items-start gap-2 text-sm text-error">
+              <ErrorIcon class="h-4 w-4 flex-shrink-0 mt-0.5" />
+              <span class="break-words">{init_error()}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => init_auth_client()}
+              class="w-full px-4 py-2 rounded-lg border border-border bg-bg-card text-sm font-medium text-text hover:bg-bg-secondary transition-colors"
+            >
+              Retry
+            </button>
+          </div>
+        </Show>
+        <Show when={!is_initializing() && !init_error()}>
         <div class="space-y-4">
           {/* Stored Users List */}
           <Show when={stored_users().length > 0 && props.mode === "login"}>
@@ -430,6 +471,7 @@ export function HBAuthLogin(props: HBAuthLoginProps) {
             </p>
           </div>
         </div>
+        </Show>
       </div>
     </Show>
   );

@@ -4,7 +4,7 @@
 import { createEffect, createSignal, Show, onMount, onCleanup, ErrorBoundary, on } from 'solid-js'
 import { QueryClientProvider } from '@tanstack/solid-query'
 import { Toast, showToast, Button } from '../../../ui'
-import { currentUser, isAuthenticated, login, logout, needsReauth, restore_session, type AuthUser } from '../../../auth'
+import { currentUser, isAuthenticated, login, logout, needsReauth, restore_session, LoginModal, type AuthUser } from '../../../auth'
 import { TemplateSelector } from '../../editors/TemplateSelector'
 import { LayoutEditor } from '../../editors/LayoutEditor'
 import { SiteSettings } from '../../settings/SiteSettings'
@@ -25,7 +25,6 @@ import {
   getLastFetchError,
 } from '../../queries'
 import { setHasUnsavedChanges, getHasUnsavedChanges } from '../../store'
-import { LoginModal } from './LoginModal'
 import { JsonPreviewModal } from './JsonPreviewModal'
 import { BottomBar } from './BottomBar'
 import { handle_broadcast_to_hive, handle_preview_json } from './handlers'
@@ -72,8 +71,11 @@ function AdminPanelContent(props: AdminPanelContentProps) {
   }
 
   onMount(async () => {
-    await restore_session()
-    set_is_restoring(false)
+    try {
+      await restore_session()
+    } finally {
+      set_is_restoring(false)
+    }
     setReauthSession(needsReauth())
 
     if (props.initialSettings) {
@@ -178,8 +180,18 @@ function AdminPanelContent(props: AdminPanelContentProps) {
         show={showLoginModal()}
         onClose={() => setShowLoginModal(false)}
         onSuccess={handleLoginSuccess}
+        description="Sign in with your Hive account to save your blog configuration to the blockchain. Your settings will be stored permanently and loaded automatically."
       />
 
+      <Show
+        when={!is_restoring()}
+        fallback={
+          <div role="status" aria-live="polite" class="flex items-center justify-center py-12">
+            <div class="motion-safe:animate-spin rounded-full h-8 w-8 border-b-2 border-primary" aria-hidden="true" />
+            <span class="ml-3 text-text-muted">Restoring session...</span>
+          </div>
+        }
+      >
       {/* Session expired banner */}
       <Show when={reauthSession()}>
         <div class="bg-warning/10 border border-warning rounded-lg p-4 mb-4">
@@ -290,6 +302,7 @@ function AdminPanelContent(props: AdminPanelContentProps) {
           on_full_preview={() => setShowPreview(true)}
           on_toggle_mobile_menu={() => setShowMobileMenu(!showMobileMenu())}
         />
+      </Show>
       </Show>
     </ErrorBoundary>
   )

@@ -4,8 +4,8 @@
 /**
  * Auth session persistence helpers for localStorage.
  *
- * Stores non-sensitive session metadata (username, login type, key type)
- * in localStorage so sessions survive page refresh.
+ * Stores non-sensitive session metadata (username, login type, key type,
+ * absolute expiry) in localStorage so sessions survive page refresh.
  * Private keys are NEVER persisted.
  */
 
@@ -18,6 +18,7 @@ import type { LoginType } from "./auth-store";
 const KEY_USERNAME = "mhp_username";
 const KEY_LOGIN_TYPE = "mhp_login_type";
 const KEY_KEY_TYPE = "mhp_key_type";
+const KEY_EXPIRES_AT = "mhp_session_expires_at";
 
 // Legacy key from old sessionStorage-based persistence
 const LEGACY_SESSION_KEY = "hbauth-session";
@@ -30,6 +31,8 @@ export interface PersistedSession {
   username: string;
   loginType: LoginType;
   keyType: "posting" | "active";
+  /** Epoch ms fixed at login; 0 when missing or invalid (treated as expired). */
+  expiresAt: number;
 }
 
 // ============================================
@@ -69,7 +72,14 @@ export function get_persisted_session(): PersistedSession | null {
     return null;
   }
 
-  return { username, loginType: login_type, keyType: key_type };
+  const expires_at = Number(localStorage.getItem(KEY_EXPIRES_AT));
+
+  return {
+    username,
+    loginType: login_type,
+    keyType: key_type,
+    expiresAt: Number.isFinite(expires_at) && expires_at > 0 ? expires_at : 0,
+  };
 }
 
 /** Persist session metadata to localStorage. Never stores private keys. */
@@ -77,12 +87,14 @@ export function persist_session(
   username: string,
   login_type: LoginType,
   key_type: "posting" | "active",
+  expires_at: number,
 ): void {
   if (typeof localStorage === "undefined") return;
 
   localStorage.setItem(KEY_USERNAME, username);
   localStorage.setItem(KEY_LOGIN_TYPE, login_type);
   localStorage.setItem(KEY_KEY_TYPE, key_type);
+  localStorage.setItem(KEY_EXPIRES_AT, String(expires_at));
 }
 
 /** Clear all persisted session data from localStorage. */
@@ -92,6 +104,7 @@ export function clear_persisted_session(): void {
   localStorage.removeItem(KEY_USERNAME);
   localStorage.removeItem(KEY_LOGIN_TYPE);
   localStorage.removeItem(KEY_KEY_TYPE);
+  localStorage.removeItem(KEY_EXPIRES_AT);
 }
 
 // ============================================
@@ -141,7 +154,8 @@ export function migrate_legacy_storage(): void {
       is_valid_login_type(parsed.loginType) &&
       is_valid_key_type(parsed.keyType)
     ) {
-      persist_session(parsed.username, parsed.loginType, parsed.keyType);
+      // Legacy data has no login time, so it is persisted as already expired
+      persist_session(parsed.username, parsed.loginType, parsed.keyType, 0);
     }
   } catch {
     // Corrupt data, ignore

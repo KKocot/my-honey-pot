@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 Krzysztof Kocot
 
-import { Show } from 'solid-js'
+import { Show, onCleanup, onMount } from 'solid-js'
 import { Button } from '../../../ui'
 import {
   handle_download_config,
@@ -19,9 +19,27 @@ interface BottomBarProps {
   on_toggle_mobile_menu: () => void
 }
 
+const FOOTER_CONTROLS_OFFSET_VAR = '--footer-controls-offset'
+
 export function BottomBar(props: BottomBarProps) {
+  let bar_ref: HTMLDivElement | undefined
+
+  // Lifts the layout's footer auth controls (Layout.astro) above this bar, including when the mobile menu expands
+  onMount(() => {
+    if (!bar_ref) return
+    const root = document.documentElement
+    const observer = new ResizeObserver(() => {
+      if (bar_ref) root.style.setProperty(FOOTER_CONTROLS_OFFSET_VAR, `${bar_ref.offsetHeight}px`)
+    })
+    observer.observe(bar_ref)
+    onCleanup(() => {
+      observer.disconnect()
+      root.style.removeProperty(FOOTER_CONTROLS_OFFSET_VAR)
+    })
+  })
+
   return (
-    <div class="fixed bottom-0 left-0 right-0 bg-bg-card/95 backdrop-blur-sm border-t border-border p-3 z-50">
+    <div ref={bar_ref} class="fixed bottom-0 left-0 right-0 bg-bg-card/95 backdrop-blur-sm border-t border-border p-3 z-50">
       <div class="max-w-4xl mx-auto">
         {/* Mobile: Hamburger + Save on Hive */}
         <div class="flex md:hidden items-center justify-between gap-2">
