@@ -3,13 +3,14 @@
 
 import { OnlineClient, OfflineClient, type ClientOptions } from '@hiveio/hb-auth';
 import { HIVE_CHAIN_ID, HIVE_API_ENDPOINT } from './config';
+import { SESSION_TIMEOUT_MS } from '../components/auth/auth-store';
 
 // ============================================================================
 // Configuration
 // ============================================================================
 
-/** Default session timeout in milliseconds (24 hours) */
-const DEFAULT_SESSION_TIMEOUT = 24 * 60 * 60 * 1000;
+/** hb-auth `sessionTimeout` is in seconds (beekeeper unlockTimeout), not milliseconds */
+export const HBAUTH_SESSION_TIMEOUT_S = SESSION_TIMEOUT_MS / 1000;
 
 // ============================================================================
 // Worker URL Resolution
@@ -47,7 +48,7 @@ function getDefaultClientOptions(): ClientOptions {
   }
 
   return {
-    sessionTimeout: DEFAULT_SESSION_TIMEOUT,
+    sessionTimeout: HBAUTH_SESSION_TIMEOUT_S,
     chainId: HIVE_CHAIN_ID,
     node: node || HIVE_API_ENDPOINT,
     workerUrl: getWorkerUrl(),

@@ -7,19 +7,11 @@
  * and signs the transaction accordingly.
  */
 
+import type { ISignatureTransaction } from "@hiveio/wax";
 import KeychainProvider from "@hiveio/wax-signers-keychain";
 import { getOnlineClient } from "./hbauth-service";
 import { is_raw_wif, sign_with_wif } from "./wif-signer";
 import { KEYCHAIN_MANAGED_MARKER } from "../components/auth/constants";
-
-interface SignableTransaction {
-  sigDigest: string;
-  addSignature(signature: unknown): void;
-}
-
-interface KeychainSignableTransaction extends SignableTransaction {
-  // KeychainProvider.signTransaction accepts the full tx object
-}
 
 /**
  * Sign a transaction using the appropriate method based on the private key value.
@@ -29,7 +21,7 @@ interface KeychainSignableTransaction extends SignableTransaction {
  * - Otherwise: assumes HB-Auth managed key in IndexedDB
  */
 export async function sign_transaction(
-  tx: KeychainSignableTransaction,
+  tx: ISignatureTransaction,
   username: string,
   private_key: string
 ): Promise<void> {

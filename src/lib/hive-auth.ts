@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 Krzysztof Kocot
 
-export const USERNAME_STORAGE_KEY = "hive-signer-username";
+export { is_valid_hive_username } from "../components/auth/constants";
 
-/** Hive username format: 3-16 chars, starts with letter, only [a-z0-9.-] */
-const HIVE_USERNAME_RE = /^[a-z][a-z0-9.-]{2,15}$/;
+export const USERNAME_STORAGE_KEY = "hive-signer-username";
 
 /** Read stored username from localStorage (best-effort) */
 export function get_stored_username(): string {
@@ -22,9 +21,4 @@ export function set_stored_username(username: string): void {
   } catch {
     // SSR or storage full -- ignore
   }
-}
-
-/** Validate Hive username format */
-export function is_valid_hive_username(username: string): boolean {
-  return HIVE_USERNAME_RE.test(username);
 }

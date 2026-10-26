@@ -27,6 +27,10 @@ import type {
   IPaginationCursor,
   BridgePost,
   BridgeComment,
+  IDatabaseAccount,
+  IProfile,
+  IGlobalProperties,
+  IAccountManabars,
 } from "@hiveio/workerbee/blog-logic";
 import { get_default_settings } from "../../components/admin/types/settings";
 import type { SiteSettings } from "../../components/home/types";
@@ -313,14 +317,14 @@ export async function prepare_user_page(
   if (hive_unavailable) error = HIVE_UNAVAILABLE_MESSAGE;
 
   const hive_profile =
-    query_client.getQueryData(query_keys.profile(hive_username)) ?? null;
+    query_client.getQueryData<IProfile>(query_keys.profile(hive_username)) ?? null;
   const hive_account =
-    query_client.getQueryData(query_keys.database_account(hive_username)) ??
+    query_client.getQueryData<IDatabaseAccount>(query_keys.database_account(hive_username)) ??
     null;
   const global_properties =
-    query_client.getQueryData(query_keys.global_properties()) ?? null;
+    query_client.getQueryData<IGlobalProperties>(query_keys.global_properties()) ?? null;
   const account_manabars =
-    query_client.getQueryData(query_keys.manabars(hive_username)) ?? null;
+    query_client.getQueryData<IAccountManabars>(query_keys.manabars(hive_username)) ?? null;
 
   const dehydrated_state = dehydrate_to_json(query_client);
 
