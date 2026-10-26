@@ -10,5 +10,10 @@ const hiveUsername = HIVE_USERNAME
 ---
 
 <AdminLayout title={`Submit Post - ${hiveUsername ? `${hiveUsername} Blog` : 'Hive Blog'}`} activeTab="submit">
-  <SubmitPanel client:only="solid-js" hiveUsername={hiveUsername} />
+  <SubmitPanel client:only="solid-js" hiveUsername={hiveUsername} ownerUsername={hiveUsername}>
+    <div slot="fallback" role="status" aria-live="polite" class="flex items-center justify-center py-12">
+      <div class="motion-safe:animate-spin rounded-full h-8 w-8 border-b-2 border-primary" aria-hidden="true"></div>
+      <span class="ml-3 text-text-muted">Loading editor...</span>
+    </div>
+  </SubmitPanel>
 </AdminLayout>

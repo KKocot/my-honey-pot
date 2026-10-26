@@ -154,9 +154,9 @@ export function FullPreview(props: FullPreviewProps) {
                               activeTab={activeTab}
                               setActiveTab={setActiveTab}
                               data={data}
-                              community_title={community_title()}
-                              community_posts={community_data()?.posts}
-                              community={community_data()?.community ?? null}
+                              community_title={undefined}
+                              community_posts={undefined}
+                              community={null}
                             />
                           </div>
                         )}
@@ -179,9 +179,9 @@ export function FullPreview(props: FullPreviewProps) {
                               activeTab={activeTab}
                               setActiveTab={setActiveTab}
                               data={data}
-                              community_title={community_title()}
-                              community_posts={community_data()?.posts}
-                              community={community_data()?.community ?? null}
+                              community_title={undefined}
+                              community_posts={undefined}
+                              community={null}
                             />
                           </div>
                         )}
@@ -199,9 +199,9 @@ export function FullPreview(props: FullPreviewProps) {
                             activeTab={activeTab}
                             setActiveTab={setActiveTab}
                             data={data}
-                            community_title={community_title()}
-                            community_posts={community_data()?.posts}
-                            community={community_data()?.community ?? null}
+                            community_title={undefined}
+                            community_posts={undefined}
+                            community={null}
                           />
                         </div>
                       )}
@@ -220,9 +220,9 @@ export function FullPreview(props: FullPreviewProps) {
                         activeTab={activeTab}
                         setActiveTab={setActiveTab}
                         data={data}
-                        community_title={community_title()}
-                        community_posts={community_data()?.posts}
-                        community={community_data()?.community ?? null}
+                        community_title={undefined}
+                        community_posts={undefined}
+                        community={null}
                       />
                     </div>
                   )}

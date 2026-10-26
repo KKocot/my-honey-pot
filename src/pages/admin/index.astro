@@ -29,5 +29,10 @@ if (hiveUsername) {
     client:only="solid-js"
     initialSettings={initialSettings}
     ownerUsername={hiveUsername}
-  />
+  >
+    <div slot="fallback" role="status" aria-live="polite" class="flex items-center justify-center py-12">
+      <div class="motion-safe:animate-spin rounded-full h-8 w-8 border-b-2 border-primary" aria-hidden="true"></div>
+      <span class="ml-3 text-text-muted">Loading admin panel...</span>
+    </div>
+  </AdminPanel>
 </AdminLayout>

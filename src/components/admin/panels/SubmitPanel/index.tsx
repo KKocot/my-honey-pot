@@ -9,10 +9,10 @@ import {
   logout,
   needsReauth,
   restore_session,
+  LoginModal,
   type AuthUser,
 } from "../../../auth";
 import { Toast, showToast } from "../../../ui";
-import { LoginModal } from "../AdminPanel/LoginModal";
 import { PostEditor } from "./PostEditor";
 import { broadcast_post, type PostData } from "./broadcast-post";
 import { hive_avatar_url } from "../../../../lib/config";
@@ -21,18 +21,25 @@ import { hive_avatar_url } from "../../../../lib/config";
  * SubmitPanel -- main panel for creating and publishing new posts to Hive.
  * Handles authentication, post editing, and broadcast flow.
  */
-export function SubmitPanel(props: { hiveUsername?: string }) {
+export function SubmitPanel(props: { hiveUsername?: string; ownerUsername?: string }) {
   const [show_login_modal, set_show_login_modal] = createSignal(false);
   const [is_submitting, set_is_submitting] = createSignal(false);
   const [reauth_session, set_reauth_session] = createSignal(needsReauth());
   const [published_url, set_published_url] = createSignal<string | null>(null);
+  const [is_restoring, set_is_restoring] = createSignal(true);
+
+  const is_owner = () => {
+    const user = currentUser();
+    if (!user || !props.ownerUsername) return false;
+    return user.username.toLowerCase() === props.ownerUsername.toLowerCase();
+  };
 
   onMount(async () => {
-    await restore_session();
-    // Check for existing session that needs re-authentication
-    const session = needsReauth();
-    if (session) {
-      set_reauth_session(session);
+    try {
+      await restore_session();
+    } finally {
+      set_reauth_session(needsReauth());
+      set_is_restoring(false);
     }
   });
 
@@ -52,6 +59,11 @@ export function SubmitPanel(props: { hiveUsername?: string }) {
     const user = currentUser();
     if (!user) {
       set_show_login_modal(true);
+      return;
+    }
+
+    if (!is_owner()) {
+      showToast("Only the blog owner can publish posts", "error");
       return;
     }
 
@@ -105,6 +117,7 @@ export function SubmitPanel(props: { hiveUsername?: string }) {
         show={show_login_modal()}
         onClose={() => set_show_login_modal(false)}
         onSuccess={handle_login_success}
+        description="Sign in with your Hive account to publish posts to the blockchain."
       />
 
       {/* Header */}
@@ -124,6 +137,9 @@ export function SubmitPanel(props: { hiveUsername?: string }) {
               class="w-6 h-6 rounded-full"
             />
             <span class="text-sm text-text">@{currentUser()?.username}</span>
+            <Show when={!is_owner()}>
+              <span class="text-xs text-warning bg-warning/10 px-2 py-0.5 rounded">View only</span>
+            </Show>
             <button
               onClick={handle_logout}
               class="text-text-muted hover:text-text text-sm hover:bg-bg-secondary px-2 py-1 rounded transition-colors"
@@ -134,6 +150,22 @@ export function SubmitPanel(props: { hiveUsername?: string }) {
         </Show>
       </div>
 
+      <Show
+        when={!is_restoring()}
+        fallback={
+          <div
+            role="status"
+            aria-live="polite"
+            class="flex items-center justify-center py-12"
+          >
+            <div
+              class="motion-safe:animate-spin rounded-full h-8 w-8 border-b-2 border-primary"
+              aria-hidden="true"
+            />
+            <span class="ml-3 text-text-muted">Restoring session...</span>
+          </div>
+        }
+      >
       {/* Session expired banner */}
       <Show when={reauth_session()}>
         <div class="bg-warning/10 border border-warning rounded-lg p-4 mb-6">
@@ -221,15 +253,29 @@ export function SubmitPanel(props: { hiveUsername?: string }) {
         </div>
       </Show>
 
-      {/* Post Editor Card */}
-      <div class="bg-bg-card rounded-xl p-6 border border-border">
-        <PostEditor
-          username={currentUser()?.username}
-          hive_username={props.hiveUsername}
-          is_submitting={is_submitting()}
-          onSubmit={handle_submit}
-        />
-      </div>
+      <Show
+        when={!isAuthenticated() || is_owner()}
+        fallback={
+          <div role="alert" class="bg-warning/10 border border-warning rounded-lg p-4">
+            <p class="text-sm text-warning font-medium">
+              Only the blog owner{props.ownerUsername ? ` (@${props.ownerUsername})` : ""} can publish posts.
+            </p>
+            <p class="text-xs text-text-muted mt-1">
+              You are signed in as @{currentUser()?.username}. Log out and sign in with the owner account to continue.
+            </p>
+          </div>
+        }
+      >
+        <div class="bg-bg-card rounded-xl p-6 border border-border">
+          <PostEditor
+            username={currentUser()?.username}
+            hive_username={props.hiveUsername}
+            is_submitting={is_submitting()}
+            onSubmit={handle_submit}
+          />
+        </div>
+      </Show>
+      </Show>
     </ErrorBoundary>
   );
 }

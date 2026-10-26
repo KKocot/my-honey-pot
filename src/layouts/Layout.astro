@@ -4,6 +4,7 @@
 
 import '../styles/global.css'
 import NodeSwitcher from '../components/ui/NodeSwitcher.tsx'
+import AuthControls from '../components/auth/AuthControls.tsx'
 import { load_and_prepare_config } from '../lib/config-pipeline'
 import { themePresets, type ThemeColors, get_default_settings } from '../components/admin/types'
 import { HIVE_USERNAME, hive_avatar_url } from '../lib/config'
@@ -184,9 +185,14 @@ const nonce = Astro.locals.nonce
     <slot />
 
 
-    <!-- Node Switcher -->
-    <div class="fixed bottom-4 left-4 z-40">
+    <!-- Node Switcher + auth controls -->
+    <!-- --footer-controls-offset is set by fixed bottom bars (admin BottomBar) so these controls stay above them -->
+    <div
+      data-footer-controls
+      data-owner-username={hiveUsername}
+      class="fixed bottom-[calc(var(--footer-controls-offset,0rem)+1rem)] left-4 right-4 z-40 flex flex-wrap items-end gap-2 pointer-events-none sm:right-auto [&>*]:pointer-events-auto">
       <NodeSwitcher client:idle />
+      <AuthControls client:idle ownerUsername={hiveUsername} />
     </div>
 
     <!-- Event delegation for custom social links (external navigation warning) -->

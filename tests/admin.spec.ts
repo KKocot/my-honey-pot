@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test'
+import { test, expect, type Locator, type Page } from '@playwright/test'
 
 /**
  * Admin panel tests
@@ -8,6 +8,19 @@ import { test, expect } from '@playwright/test'
 // Increase timeout for HB-Auth initialization
 test.setTimeout(60000)
 
+const footerLoginButton = (page: Page) => page.getByRole('button', { name: 'Login with Hive' })
+
+// The panel's own LoginModal: Save on Hive while logged out opens it.
+async function openLoginModal(page: Page): Promise<Locator> {
+  const saveButton = page.getByRole('button', { name: 'Save on Hive' })
+  await expect(saveButton).toBeVisible({ timeout: 30000 })
+  await saveButton.click()
+
+  const dialog = page.getByRole('dialog', { name: 'Login Required' })
+  await expect(dialog.locator('input[placeholder="Enter your username"]')).toBeVisible({ timeout: 10000 })
+  return dialog
+}
+
 test.describe('Admin Panel', () => {
 
   test('admin page loads correctly', async ({ page }) => {
@@ -15,8 +28,7 @@ test.describe('Admin Panel', () => {
     await page.waitForLoadState('networkidle')
 
     // Check title
-    const title = await page.title()
-    expect(title).toContain('Admin Panel')
+    await expect(page).toHaveTitle(/^Settings - .+ Blog$/)
 
     // Check back to site link
     const backLink = page.locator('a:has-text("Back to site")')
@@ -42,100 +54,79 @@ test.describe('Admin Panel', () => {
     await page.goto('/admin')
     await page.waitForLoadState('networkidle')
 
-    // Wait for SolidJS component to hydrate and query to complete
-    // The Login button appears after settingsQuery is no longer loading
-    const loginButton = page.locator('button:has-text("Login")')
-
-    // Wait up to 30 seconds for the button to appear
-    await expect(loginButton.first()).toBeVisible({ timeout: 30000 })
+    await expect(footerLoginButton(page)).toBeVisible({ timeout: 30000 })
   })
 
   test('login modal opens correctly', async ({ page }) => {
     await page.goto('/admin')
     await page.waitForLoadState('networkidle')
 
-    // Wait for Login button to appear
-    const loginButton = page.locator('button:has-text("Login")').first()
-    await expect(loginButton).toBeVisible({ timeout: 30000 })
+    const dialog = await openLoginModal(page)
 
-    // Click Login button
-    await loginButton.click()
+    await expect(dialog.getByRole('heading', { name: 'Login Required' })).toBeVisible()
+    await expect(dialog.getByRole('button', { name: 'Login', exact: true })).toBeVisible()
+    await expect(dialog.getByRole('button', { name: 'Register Key', exact: true })).toBeVisible()
+    await expect(dialog.getByRole('button', { name: 'Keychain', exact: true })).toBeVisible()
+    await expect(dialog.locator('input[placeholder="Enter password"]')).toBeVisible()
+  })
 
-    // Modal should appear with form elements - wait for them
-    await expect(page.locator('input[placeholder="Enter your username"]')).toBeVisible({ timeout: 10000 })
-    await expect(page.locator('input[placeholder="Enter password"]')).toBeVisible()
+  test('footer Login button is clickable on admin page', async ({ page }) => {
+    await page.goto('/admin')
+    await page.waitForLoadState('networkidle')
+
+    await footerLoginButton(page).click({ timeout: 10000 })
+    await expect(page.getByRole('dialog', { name: 'Login Required' })).toBeVisible()
   })
 
   test('register mode toggle works', async ({ page }) => {
     await page.goto('/admin')
     await page.waitForLoadState('networkidle')
 
-    // Wait for and open modal
-    const loginButton = page.locator('button:has-text("Login")').first()
-    await expect(loginButton).toBeVisible({ timeout: 30000 })
-    await loginButton.click()
+    const dialog = await openLoginModal(page)
 
-    // Wait for modal to open
-    await expect(page.locator('input[placeholder="Enter your username"]')).toBeVisible({ timeout: 10000 })
+    await dialog.getByRole('button', { name: 'Register Key', exact: true }).click()
 
-    // Switch to register mode
-    await page.locator('button:has-text("Register Key")').click()
+    await expect(dialog.locator('input[placeholder="5..."]')).toBeVisible({ timeout: 5000 })
+    await expect(dialog.getByRole('button', { name: 'Save Key' })).toBeVisible()
 
-    // WIF input should appear
-    await expect(page.locator('input[placeholder="5..."]')).toBeVisible({ timeout: 5000 })
-    await expect(page.locator('button:has-text("Save Key")')).toBeVisible()
+    await dialog.getByRole('button', { name: 'Login', exact: true }).click()
 
-    // Switch back to login
-    await page.locator('button:has-text("Login")').first().click()
-
-    // WIF input should disappear
-    await expect(page.locator('input[placeholder="5..."]')).not.toBeVisible({ timeout: 5000 })
-    await expect(page.locator('button:has-text("Unlock Blog")')).toBeVisible()
+    await expect(dialog.locator('input[placeholder="5..."]')).not.toBeVisible({ timeout: 5000 })
+    await expect(dialog.getByRole('button', { name: 'Unlock Blog' })).toBeVisible()
   })
 
-  test('form validation shows errors', async ({ page }) => {
+  test('submit stays disabled until all fields are filled', async ({ page }) => {
     await page.goto('/admin')
     await page.waitForLoadState('networkidle')
 
-    // Wait for and open modal
-    const loginButton = page.locator('button:has-text("Login")').first()
-    await expect(loginButton).toBeVisible({ timeout: 30000 })
-    await loginButton.click()
+    const dialog = await openLoginModal(page)
 
-    // Wait for modal
-    await expect(page.locator('button:has-text("Unlock Blog")')).toBeVisible({ timeout: 10000 })
+    const unlockButton = dialog.getByRole('button', { name: 'Unlock Blog' })
+    await expect(unlockButton).toBeDisabled()
 
-    // Try to submit empty form
-    await page.locator('button:has-text("Unlock Blog")').click()
+    await dialog.locator('input[placeholder="Enter your username"]').fill('testuser')
+    await expect(unlockButton).toBeDisabled()
 
-    // Should show error
-    const error = page.locator('text=Please fill in all fields')
-    await expect(error).toBeVisible({ timeout: 5000 })
+    await dialog.locator('input[placeholder="Enter password"]').fill('testpass')
+    await expect(unlockButton).toBeEnabled()
   })
 
   test('register form validates WIF format', async ({ page }) => {
     await page.goto('/admin')
     await page.waitForLoadState('networkidle')
 
-    // Wait for and open modal in register mode
-    const loginButton = page.locator('button:has-text("Login")').first()
-    await expect(loginButton).toBeVisible({ timeout: 30000 })
-    await loginButton.click()
+    const dialog = await openLoginModal(page)
 
-    await expect(page.locator('input[placeholder="Enter your username"]')).toBeVisible({ timeout: 10000 })
-    await page.locator('button:has-text("Register Key")').click()
-    await expect(page.locator('input[placeholder="5..."]')).toBeVisible({ timeout: 5000 })
+    await dialog.getByRole('button', { name: 'Register Key', exact: true }).click()
+    await expect(dialog.locator('input[placeholder="5..."]')).toBeVisible({ timeout: 5000 })
 
-    // Fill with invalid WIF
-    await page.locator('input[placeholder="Enter your username"]').fill('testuser')
-    await page.locator('input[placeholder="Enter password"]').fill('testpass')
-    await page.locator('input[placeholder="5..."]').fill('invalid-wif')
+    await dialog.locator('input[placeholder="Enter your username"]').fill('testuser')
+    await dialog.locator('input[placeholder="Enter password"]').fill('testpass')
+    await dialog.locator('input[placeholder="5..."]').fill('invalid-wif')
 
-    // Submit
-    await page.locator('button:has-text("Save Key")').click()
+    await dialog.getByRole('button', { name: 'Save Key' }).click()
 
-    // Should show WIF format error
-    const error = page.locator('text=Invalid WIF format')
+    const error = dialog.getByText('Invalid WIF format')
     await expect(error).toBeVisible({ timeout: 5000 })
   })
 
@@ -143,12 +134,9 @@ test.describe('Admin Panel', () => {
     await page.goto('/admin')
     await page.waitForLoadState('networkidle')
 
-    // Wait for and open modal
-    const loginButton = page.locator('button:has-text("Login")').first()
-    await expect(loginButton).toBeVisible({ timeout: 30000 })
-    await loginButton.click()
+    const dialog = await openLoginModal(page)
 
-    const passwordInput = page.locator('input[placeholder="Enter password"]')
+    const passwordInput = dialog.locator('input[placeholder="Enter password"]')
     await expect(passwordInput).toBeVisible({ timeout: 10000 })
 
     // Get the toggle button - it's inside the same container as input
@@ -176,9 +164,7 @@ test.describe('Admin Panel', () => {
     await page.goto('/admin')
     await page.waitForLoadState('networkidle')
 
-    // Should still show login button after loading
-    const loginButton = page.locator('button:has-text("Login")')
-    await expect(loginButton.first()).toBeVisible({ timeout: 30000 })
+    await expect(footerLoginButton(page)).toBeVisible({ timeout: 30000 })
   })
 
 })

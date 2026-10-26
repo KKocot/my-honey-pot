@@ -98,10 +98,9 @@ test.describe('Admin Panel Sections', () => {
   })
 
   /**
-   * Test 4: LayoutEditor - toggle buttons change section visibility
-   * Verifies slot sections exist and toggle active state changes on click
+   * Test 4: LayoutEditor - element Enable/Disable toggle flips state
    */
-  test('layout editor toggle buttons work', async ({ page }) => {
+  test('layout editor element toggle works', async ({ page }) => {
     await page.goto('/admin')
     await page.waitForLoadState('networkidle')
 
@@ -109,20 +108,14 @@ test.describe('Admin Panel Sections', () => {
     await layoutSection.scrollIntoViewIfNeeded()
     await expect(layoutSection).toBeVisible({ timeout: 30000 })
 
-    // Find section visibility toggle (has aria-label "Hide section" or "Show section")
-    // POTENCJALNY PROBLEM: Jeśli domyślnie wszystkie sekcje są ukryte,
-    // nie będzie buttona z "Hide section" - lokator się nie znajdzie.
-    const visibilityToggle = page.locator('button[aria-label="Hide section"], button[aria-label="Show section"]').first()
-    await expect(visibilityToggle).toBeVisible({ timeout: 10000 })
+    const toggles = page.locator('button[title="Disable"], button[title="Enable"]')
+    const toggle = toggles.first()
+    await expect(toggle).toBeVisible({ timeout: 10000 })
 
-    // Get initial aria-label, click, verify it changed
-    const initialLabel = await visibilityToggle.getAttribute('aria-label')
-    await visibilityToggle.click()
-
-    const expectedNewLabel = initialLabel === 'Hide section' ? 'Show section' : 'Hide section'
-    await expect(
-      page.locator(`button[aria-label="${expectedNewLabel}"]`).first()
-    ).toBeVisible({ timeout: 5000 })
+    const initialTitle = await toggle.getAttribute('title')
+    const expectedTitle = initialTitle === 'Disable' ? 'Enable' : 'Disable'
+    await toggle.click()
+    await expect(toggle).toHaveAttribute('title', expectedTitle, { timeout: 5000 })
   })
 
   /**
