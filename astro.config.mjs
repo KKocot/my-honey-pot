@@ -41,6 +41,18 @@ export default defineConfig({
     optimizeDeps: {
       include: ["@hiveio/beekeeper"],
     },
+    ssr: {
+      // sanitize-html (CJS) require()s ESM-only htmlparser2; the Vercel function loader lacks require(esm), so bundle them
+      noExternal: [
+        'sanitize-html',
+        'htmlparser2',
+        'domhandler',
+        'domutils',
+        'domelementtype',
+        'dom-serializer',
+        'entities',
+      ],
+    },
   },
 
   integrations: [solidJs()]
