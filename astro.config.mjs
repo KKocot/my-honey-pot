@@ -43,6 +43,7 @@ export default defineConfig({
     },
     ssr: {
       // sanitize-html (CJS) require()s ESM-only htmlparser2; the Vercel function loader lacks require(esm), so bundle them
+      // plus their CJS deps, which Vercel does not trace once sanitize-html is bundled
       noExternal: [
         'sanitize-html',
         'htmlparser2',
@@ -51,6 +52,16 @@ export default defineConfig({
         'domelementtype',
         'dom-serializer',
         'entities',
+        'deepmerge',
+        'escape-string-regexp',
+        'is-plain-object',
+        'launder',
+        'dayjs',
+        'parse-srcset',
+        'postcss',
+        'nanoid',
+        'picocolors',
+        'source-map-js',
       ],
     },
   },
